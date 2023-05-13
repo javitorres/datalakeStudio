@@ -1,11 +1,13 @@
-# datalakeStudio
-Python+Streamlit application to explore datasets using SQL. It uses the incredible Duckdb engine.
+# Datalake Studio
+Python+Streamlit+DuckDB application to explore datasets using SQL. It uses the incredible DuckDB engine.
 
 If you have ChatGPT credentials you can use the SQL assistant who will have context about the tables and its fields
 
 # Configuration
 
-Create file .streamlit/secrets.toml in your home for your credentials:
+Install dependencies in requirements.txt
+
+Optional: Create file .streamlit/secrets.toml in your home for your credentials:
 
 s3_access_key_id="XXXXXXXXXXXXXXXXXX"
 s3_secret_access_key="XXXXXXXXXXXXXXXXXX"

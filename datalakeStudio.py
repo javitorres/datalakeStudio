@@ -39,8 +39,13 @@ def askGpt(question):
 
 @st.cache_resource
 def init():
-    duckdb.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + st.secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + st.secrets["s3_secret_access_key"]+"'")
-
+    try:
+        access_key = st.secrets["s3_access_key_id"]
+        secret = st.secrets["s3_secret_access_key"]
+        duckdb.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + access_key + "';SET s3_secret_access_key='" + secret +"'")
+    except:
+        duckdb.query("INSTALL httpfs;LOAD httpfs")
+        print("No s3 credentials found")
 init()
 
 if 'totalTime' not in st.session_state:
