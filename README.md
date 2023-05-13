@@ -9,10 +9,12 @@ Install dependencies in requirements.txt
 
 Optional: Create file .streamlit/secrets.toml in your home for your credentials:
 
+```
 s3_access_key_id="XXXXXXXXXXXXXXXXXX"
 s3_secret_access_key="XXXXXXXXXXXXXXXXXX"
 openai_organization="XXXXXXXXXXXXXXXXXX"
 openai_api_key="XXXXXXXXXXXXXXXXXX"
+```
 
 # How to start application
 Run following command:

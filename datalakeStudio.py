@@ -218,9 +218,9 @@ if (st.session_state.df is not None):
         else:
             st.write(dfOriginal.head(len(dfOriginal.columns)))
 
-        if (st.button("Descargar")):
-            st.write("Descargar tabla")
-            file_type = st.radio("Descargar como", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
+        if (st.button("Download")):
+            st.write("Download table")
+            file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
             if file_type == "CSV":
                 file = convert_df(dfOriginal)
                 st.download_button("Download dataframe", file, "report.csv", "text/csv", use_container_width=True)
