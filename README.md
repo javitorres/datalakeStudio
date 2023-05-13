@@ -32,11 +32,25 @@ Write the file name to load (CSV, parquet or JSON):
 * S3 file name. Press Enter and script will search in your S3 bucket. Click on any suggestion to load
 
 
-Click load button to load the table/s
+Click load button to load the table/s and get quickly some insights about the loaded files:
 
-Now you can run any SQL expression on the loaded tables. You can use ChatGPT assistant on the right to help you to write the SQL queries.
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/9e19f603-0926-4240-9a36-76a1176b40df)
 
-Click on "Run Query" and you'll see below the resulting dataset and analysis.
+View automatic distribution charts for cathegorical and numerical variables 
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/f1fc034b-1026-48b3-87e1-91a768a5032b)
+
+If your data has geodata you can see them in a map directly:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/6cef3eff-9882-4731-9579-ec3dc237bc10)
+
+Run your own SQL queries or ask ChatGPT to do it for you. ChatGPT has contextual info about what tables are loaded and which fields has any table:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/105c115b-f7ed-49de-801a-ca317628af08)
+
+When finished you can download results to CSV or Excel:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/30acd76f-a2b3-489d-9290-e511ae94f6a8)
 
 
 
