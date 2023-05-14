@@ -12,10 +12,10 @@ from s3Index import s3Search
 import sys
 from PIL import Image
 
-logo = Image.open('images/logo.png')
-st.image(logo, caption='Datalake Studio')
-
 st.set_page_config(layout="wide")
+
+logo = Image.open('images/logo.png')
+st.image(logo, width=200)
 
 if len(sys.argv) > 1:
     S3_BUCKET = sys.argv[1]
