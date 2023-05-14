@@ -115,7 +115,6 @@ with fcol3:
         if (str(st.session_state.fileName).endswith("/")):
             files = os.listdir(st.session_state.fileName)
             for file in files:
-                # /home/jtorres/madiva/jupyter/ficheros/ejemplos/coches/
                 if (file.endswith(".csv") or file.endswith(".parquet") or file.endswith(".json")):
                     tableName = os.path.splitext(file)[0]
                     loadTable(tableName, st.session_state.fileName + str(file))

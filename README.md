@@ -18,16 +18,15 @@ openai_api_key="XXXXXXXXXXXXXXXXXX"
 
 # How to start application
 Run following command:
+
 ```
 streamlit run datalakeStudio.py
 ```
 
-Or this one if you want to load files from one S3 bucket:
+Or this one if you want to load files from a S3 bucket:
 
 ```
-
 streamlit run datalakeStudio.py -- YOUR_S3_BUCKET
-
 ```
 
 # Usage
