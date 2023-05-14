@@ -7,8 +7,11 @@ If you have ChatGPT credentials you can use the SQL assistant who will have cont
 
 # Configuration
 
-Install dependencies in requirements.txt
+Install dependencies in requirements.txt:
 
+```
+pip install -r requirements.txt
+```
 Optional: Create file .streamlit/secrets.toml in your home for your credentials:
 
 ```
