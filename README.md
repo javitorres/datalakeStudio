@@ -1,3 +1,5 @@
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4)
+
 # Datalake Studio
 Python+Streamlit+DuckDB application to explore datasets using SQL. It uses the incredible DuckDB engine.
 
@@ -59,7 +61,9 @@ When finished you can download results to CSV or Excel:
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/30acd76f-a2b3-489d-9290-e511ae94f6a8)
 
+# Test online
 
+You can test the application (only can load file via http) here: https://javitorres-datalakestudio-datalakestudio-km7ylm.streamlit.app/
 
 
 
