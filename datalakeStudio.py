@@ -88,7 +88,7 @@ def loadTable(tableName, fileName):
     duckdb.query("DROP TABLE IF EXISTS "+ tableName )
     
     if (fileName.endswith(".csv")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE))")
+        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
     elif (fileName.endswith(".parquet")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif (fileName.endswith(".json")):
@@ -137,7 +137,7 @@ if (len(st.session_state.candidates) > 0):
 if (len(st.session_state.tables) > 0):
     st.markdown("#### Tables:")
     tableList = duckdb.query("SHOW TABLES").df()
-    tcol1,tcol2 = st.columns([1, 4])
+    tcol1,tcol2 = st.columns([1, 6])
     with tcol1:
         for table in tableList.iterrows():
             if st.button(table[1]["name"] + " 🔎", key=table[1]["name"]):
@@ -157,7 +157,7 @@ if (len(st.session_state.tables) > 0):
             tableDf = duckdb.query("SELECT * FROM "+ selectedTable["name"] +" LIMIT 1000").df()
             c1,c2,c3 = st.columns([1, 3, 4])
             with c1:
-                st.write("Fields")
+                st.write("Schema")
                 # Mirar este error de Arrow
                 st.write(tableDf.dtypes)
             with c2:
@@ -211,7 +211,7 @@ if (st.session_state.df is not None):
     dfFiltered = dfOriginal
     col1,col2 = st.columns([1, 5])
     with col1:
-        st.markdown("#### Table info")
+        st.markdown("#### Schema")
         st.write(dfOriginal.dtypes)
         st.write("Records: " + str(len(dfOriginal)))
     with col2:
@@ -231,13 +231,17 @@ if (st.session_state.df is not None):
                 file = convert_excel(dfOriginal)
                 st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
     
-    if ((dfOriginal.columns.str.contains('lat').any() and dfOriginal.columns.str.contains('lon').any())
-        or (dfOriginal.columns.str.contains('latitude').any() and dfOriginal.columns.str.contains('longitude').any())):
+    # id dfOriginal has a column naed latitude
+
+
+    if (("lat" in dfOriginal.columns and "lon" in dfOriginal.columns) or
+        ("latitude" in dfOriginal.columns and "longitude" in dfOriginal.columns)):
 
         st.header("Detected geolocation data")
         st.map(dfOriginal)
     else:
         st.header("No geolocation data detected")
+        st.write("Geo data fields shold be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be ploted")
 
     st.header("Column data analysis")
     for col in dfOriginal.columns:
@@ -259,7 +263,8 @@ if (st.session_state.df is not None):
                 
             with rcol2:  
                 st.write(dfFiltered[col].describe())
-            
+        elif str(dfOriginal[col].dtype).startswith('datetime'):
+            st.write("Datetime column. Not yet implemented")
         else:
             if (dfFiltered[col].describe()["std"] == 0):
                 st.write("Column "+col+" has always the same value: " + str(dfFiltered[col].iloc[0]))
@@ -273,7 +278,7 @@ if (st.session_state.df is not None):
                         q5 = dfFiltered[col].quantile(0.05)
                         q95 = dfFiltered[col].quantile(0.95)
                         bins = np.linspace(q5, q95, num_intervals + 1)
-                        labels = [f"{i:.1f}-{(i + (q95 - q5) / num_intervals):.1f}" for i in bins[:-1]]
+                        labels = [f"{i:.4f}-{(i + (q95 - q5) / num_intervals):.4f}" for i in bins[:-1]]
                         if len(set(labels)) != len(labels):
                             print("labels:" + str(labels))
                             raise ValueError("Las etiquetas generadas no son únicas. Ajusta el número de intervalos o el formato de las etiquetas.")
