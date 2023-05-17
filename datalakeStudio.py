@@ -237,11 +237,11 @@ if (st.session_state.df is not None):
     if (("lat" in dfOriginal.columns and "lon" in dfOriginal.columns) or
         ("latitude" in dfOriginal.columns and "longitude" in dfOriginal.columns)):
 
-        st.header("Detected geolocation data")
+        st.header("Detected spatial data")
         st.map(dfOriginal)
     else:
-        st.header("No geolocation data detected")
-        st.write("Geo data fields shold be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be ploted")
+        st.header("No spatial data detected")
+        st.write("Spatial fields should be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be plotted in a map, use a SQL query to rename them if needed: Ej: Latitude as lat, Longitude as lon")
 
     st.header("Column data analysis")
     for col in dfOriginal.columns:
@@ -253,7 +253,7 @@ if (st.session_state.df is not None):
         groupByValue = duckdb.query("SELECT " + col + ", count(*) as quantity FROM dfFiltered GROUP BY " + col + " ORDER BY quantity DESC").df()
         distinctValues = len(groupByValue)
         rcol1,rcol2 = st.columns([4, 2])
-        if dfOriginal[col].dtype == 'object':
+        if dfOriginal[col].dtype == 'object' or dfOriginal[col].dtype == 'bool':
             with rcol1:
                 if distinctValues < 100:
                     fig = px.pie(groupByValue, values='quantity', names=col, title=f"{col} Pie Chart")
@@ -264,7 +264,10 @@ if (st.session_state.df is not None):
             with rcol2:  
                 st.write(dfFiltered[col].describe())
         elif str(dfOriginal[col].dtype).startswith('datetime'):
-            st.write("Datetime column. Not yet implemented")
+            with rcol1:
+                st.write("Datetime column has no plots yet")
+            with rcol2:
+                st.write(dfFiltered[col].describe())
         else:
             if (dfFiltered[col].describe()["std"] == 0):
                 st.write("Column "+col+" has always the same value: " + str(dfFiltered[col].iloc[0]))
@@ -277,11 +280,15 @@ if (st.session_state.df is not None):
                         num_intervals = 100
                         q5 = dfFiltered[col].quantile(0.05)
                         q95 = dfFiltered[col].quantile(0.95)
-                        bins = np.linspace(q5, q95, num_intervals + 1)
-                        labels = [f"{i:.4f}-{(i + (q95 - q5) / num_intervals):.4f}" for i in bins[:-1]]
+                        if dfOriginal[col].dtype == 'int64':
+                            bins = np.arange(q5, q95 + 2, step=max(1, (q95 - q5 + 1) // num_intervals))
+                            labels = [f"{i}-{(i + bins[1] - bins[0] - 1)}" for i in bins[:-1]]
+                        else:                                
+                            bins = np.linspace(q5, q95, num_intervals + 1)
+                            labels = [f"{i:.4f}-{(i + (q95 - q5) / num_intervals):.4f}" for i in bins[:-1]]
                         if len(set(labels)) != len(labels):
                             print("labels:" + str(labels))
-                            raise ValueError("Las etiquetas generadas no son únicas. Ajusta el número de intervalos o el formato de las etiquetas.")
+                            raise ValueError("Labels are not unique")
                         
                         dfFiltered['grp_'+col] = pd.cut(dfFiltered[col], bins=bins, labels=labels)
                         new_df = dfFiltered.groupby('grp_' + col).size().reset_index(name='quantity')
