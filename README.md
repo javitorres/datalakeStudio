@@ -1,9 +1,21 @@
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4)
+<div align="center">
+<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4" height="200">
+</div>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Version-0.1.0-red" alt="Latest Release">
+    <img src="https://img.shields.io/badge/DuckDB-0.8.0-yellow" alt="Latest Release">
+    <img src="https://img.shields.io/badge/Streamlit-1.21.0-blueviolet" alt="Latest Release">
+    <img src="https://img.shields.io/badge/OpenAI-0.27.6-green" alt="Latest Release">
+</p>
+
 
 # Datalake Studio
-A Python, Streamlit, and DuckDB application to explore datasets using SQL, powered by the incredible DuckDB engine.
+Datalake Studio is a very simple Python application to explore datasets using SQL, powered by the incredible DuckDB engine and the fantastic framework Streamlit.
+You can load files directly from your computer, from a URL, or from an S3 bucket.
 
 If you have ChatGPT credentials, you can use the SQL assistant, which will have context about the tables and their fields.
+
 # Configuration
 
 Install dependencies listed in requirements.txt:
@@ -19,6 +31,34 @@ s3_secret_access_key="XXXXXXXXXXXXXXXXXX"
 openai_organization="XXXXXXXXXXXXXXXXXX"
 openai_api_key="XXXXXXXXXXXXXXXXXX"
 ```
+
+# Dockerfile
+
+If you prefer to use Docker, you can build the image with the following command:
+
+```
+docker build -t datalakestudio .
+```
+
+And run it with:
+
+```
+docker run -p 8080:8501 datalakestudio
+```
+
+Then open your browser at http://localhost:8080
+
+To run the container with your own credentials, edit the file secrets.toml.template in your home directory with the following content:
+
+```
+s3_access_key_id="PUT_HERE_YOUR_S3_ACCESS_KEY_ID"
+s3_secret_access_key="PUT_HERE_YOUR_SECRET_ACCESS_KEY"
+openai_organization="PUT_HERE_YOUR_OPENAI_ORGANIZATION_ID"
+openai_api_key="PUT_HERE_YOUR_OPENAI_API_KEY"
+```
+
+Then rebuild the image with the first command ahead.
+
 
 # How to start application
 Run the following command:
