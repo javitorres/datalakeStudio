@@ -14,6 +14,8 @@
 Datalake Studio is a very simple Python application to explore datasets using SQL, powered by the incredible DuckDB engine and the fantastic framework Streamlit.
 You can load files directly from your computer, from a URL, or from an S3 bucket.
 
+[DatalakeStudioSubs.webm](https://github.com/javitorres/datalakeStudio/assets/4235424/e4396cfb-297a-4ce4-bf8d-f751d0b9dbd0)
+
 If you have ChatGPT credentials, you can use the SQL assistant, which will have context about the tables and their fields.
 
 # Configuration
