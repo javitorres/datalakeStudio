@@ -4,9 +4,9 @@
 
 <p align="center">
     <img src="https://img.shields.io/badge/Version-0.1.0-red" alt="Latest Release">
-    <img src="https://img.shields.io/badge/DuckDB-0.8.0-yellow" alt="Latest Release">
-    <img src="https://img.shields.io/badge/Streamlit-1.21.0-blueviolet" alt="Latest Release">
-    <img src="https://img.shields.io/badge/OpenAI-0.27.6-green" alt="Latest Release">
+    <img src="https://img.shields.io/badge/DuckDB-0.8.0-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/Streamlit-1.21.0-blueviolet" alt="Streamlit">
+    <img src="https://img.shields.io/badge/OpenAI-0.27.6-green" alt="OpenAI">
 </p>
 
 
