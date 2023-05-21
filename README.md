@@ -45,7 +45,7 @@ docker build -t datalakestudio .
 And run it with:
 
 ```
-docker run -p 8080:8501 datalakestudio
+docker run -p 8080:8501 --name datalakestudio datalakestudio
 ```
 
 Then open your browser at http://localhost:8080
@@ -60,6 +60,12 @@ openai_api_key="PUT_HERE_YOUR_OPENAI_API_KEY"
 ```
 
 Then rebuild the image with the first command ahead.
+
+To stop the container simply run:
+
+```
+docker stop datalakestudio
+```
 
 
 # How to start application
