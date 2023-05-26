@@ -1,4 +1,3 @@
-import streamlit as st
 import duckdb
 
 def getTableDescriptionForChatGpt(tableName):
@@ -19,5 +18,4 @@ def loadTable(tableName, fileName):
     elif (fileName.endswith(".json")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
 
-    if (st.session_state.selectedTable is None): 
-        st.session_state.selectedTable = tableName
+    

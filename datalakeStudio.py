@@ -107,6 +107,8 @@ def main():
                         if (file.endswith(".csv") or file.endswith(".parquet") or file.endswith(".json")):
                             tableName = os.path.splitext(file)[0]
                             loadTable(tableName, st.session_state.fileName + str(file))
+                            if (st.session_state.selectedTable is None): 
+                                st.session_state.selectedTable = tableName
                 else:
                     loadTable(tableName, str(st.session_state.fileName))          
                 
@@ -160,7 +162,8 @@ def main():
                 st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
                 if st.button("Suggest query 🤔"):
                     tables = duckdb.query("SHOW TABLES")
-                    st.session_state.chatGptResponse = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
+                    with st.spinner('Waiting OpenAI API...'):
+                        st.session_state.chatGptResponse = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
                 
                 if (st.session_state.chatGptResponse is not None):
                     st.text_area("ChatGPT answer", st.session_state.chatGptResponse)
