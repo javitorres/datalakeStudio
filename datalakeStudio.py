@@ -12,6 +12,7 @@ from chatGPTService import askGpt
 from duckDbService import loadTable
 import sys
 from PIL import Image
+from dataprofiler import Data, Profiler
 
 @st.cache_resource
 def init():
@@ -220,6 +221,11 @@ def main():
                     st.write("Spatial fields should be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be plotted in a map, use a SQL query to rename them if needed: Ej: Latitude as lat, Longitude as lon")
 
                 st.header("Column data analysis")
+
+                profile = Profiler(df)
+                readable_report = profile.report(report_options={"output_format": "compact"})
+                print(readable_report)
+
                 for col in df.columns:
                     if (col.startswith("grp_")):
                         continue
