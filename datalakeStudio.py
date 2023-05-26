@@ -14,9 +14,24 @@ import sys
 from PIL import Image
 from dataprofiler import Data, Profiler
 
+if 'sessionObject' not in st.session_state:
+    print("Initializing session")
+    st.session_state.sessionObject = {}
+    global ses
+    ses = st.session_state.sessionObject
+    ses["fileName"] = "https://gist.githubusercontent.com/netj/8836201/raw/6f9306ad21398ea43cba4f7d537619d0e07d5ae3/iris.csv"
+    ses["candidates"] = []
+    ses["chatGptResponse"] = ""
+    ses["totalTime"] = 0
+    ses["lastQuery"] = ""
+    ses["selectedTable"] = None
+    ses["df"] = None
+    print("Session initialized:"+ str(ses))
+
 @st.cache_resource
 def init():
     try:
+        
         access_key = st.secrets["s3_access_key_id"]
         secret = st.secrets["s3_secret_access_key"]
         duckdb.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + access_key + "';SET s3_secret_access_key='" + secret +"'")
@@ -52,6 +67,7 @@ def showTableScan(tableName):
             st.experimental_rerun() 
 
 def main():
+    ses = st.session_state.sessionObject
     with st.sidebar:
         st.text_input('Project file', '', key='projectFile')
         col1, col2 = st.columns(2)
@@ -77,50 +93,36 @@ def main():
     startTime = queryTime = int(round(time.time() * 1000))
     endTime = 0
 
-    init()
-
-    if 'totalTime' not in st.session_state:
-        st.session_state.totalTime = 0
-        st.session_state.lastQuery = 0
-    if 'chatGptResponse' not in st.session_state:
-        st.session_state.chatGptResponse = None
-    if 'selectedTable' not in st.session_state:
-        st.session_state.selectedTable = None
-    if 'df' not in st.session_state:
-        st.session_state.df = None
-    if 'candidates' not in st.session_state:
-        st.session_state.candidates = []
-    if 'fileName' not in st.session_state:
-        st.session_state.fileName = "https://gist.githubusercontent.com/netj/8836201/raw/6f9306ad21398ea43cba4f7d537619d0e07d5ae3/iris.csv"
-
     ################### Load data #################
     with st.expander("**Load data** 📂", expanded=True):
         fcol1,fcol2,fcol3 = st.columns([4, 2, 1])
         with fcol1:
-            st.session_state.fileName = st.text_input('Local file, folder, http link or find S3 file (pressing Enter) 👇', st.session_state.fileName,  key='s3SearchText', on_change=s3SearchFile)
+            #st.session_state.fileName = st.text_input('Local file, folder, http link or find S3 file (pressing Enter) 👇', st.session_state.fileName,  key='s3SearchText', on_change=s3SearchFile)
+            ses["fileName"] = st.text_input('Local file, folder, http link or find S3 file (pressing Enter) 👇', ses["fileName"],  key='s3SearchText', on_change=s3SearchFile)
+
         with fcol2:
             tableName = st.text_input('Table name', 'iris', key='tableName')
         with fcol3:
             if (st.button("Load 👈")):
-                if (str(st.session_state.fileName).endswith("/")):
-                    files = os.listdir(st.session_state.fileName)
+                if (str(ses["fileName"]).endswith("/")):
+                    files = os.listdir(ses["fileName"])
                     for file in files:
                         if (file.endswith(".csv") or file.endswith(".parquet") or file.endswith(".json")):
                             tableName = os.path.splitext(file)[0]
-                            loadTable(tableName, st.session_state.fileName + str(file))
-                            if (st.session_state.selectedTable is None): 
-                                st.session_state.selectedTable = tableName
+                            loadTable(tableName, ses["fileName"] + str(file))
+                            if (ses["selectedTable"] is None): 
+                                ses["selectedTable"] = tableName
                 else:
-                    loadTable(tableName, str(st.session_state.fileName))          
+                    loadTable(tableName, str(ses["fileName"]))          
                 
-        if (len(st.session_state.candidates) > 0):
+        if (len(ses["candidates"]) > 0):
             st.markdown("#### Select a S3 file:")
-            for path in st.session_state.candidates:
+            for path in ses["candidates"]:
                 if st.button(path):
-                    st.session_state.fileName = path
+                    ses["fileName"] = path
                     st.experimental_rerun() 
             if (st.button("Close S3 file list")):
-                st.session_state.candidates = []
+                ses["candidates"] = []
                 st.experimental_rerun()
 
     ################### Loaded tables       ################
@@ -155,8 +157,8 @@ def main():
                 query = st.text_area("Query SQL ✏️","""SELECT * FROM YOUR_TABLE""")
                 if st.button("Run query 🚀"):
                     with st.spinner('Running query...'):
-                        st.session_state.df = duckdb.query(query).df()
-                        st.session_state.df.columns = st.session_state.df.columns.str.replace('.', '_')
+                        ses["df"] = duckdb.query(query).df()
+                        ses["df"].columns = ses["df"].columns.str.replace('.', '_')
                         queryTime = int(round(time.time() * 1000))
             with col2:
                 askChat = st.text_area("Ask ChatGPT 💬")
@@ -164,10 +166,10 @@ def main():
                 if st.button("Suggest query 🤔"):
                     tables = duckdb.query("SHOW TABLES")
                     with st.spinner('Waiting OpenAI API...'):
-                        st.session_state.chatGptResponse = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
+                        ses["chatGptResponse"] = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
                 
-                if (st.session_state.chatGptResponse is not None):
-                    st.text_area("ChatGPT answer", st.session_state.chatGptResponse)
+                if (ses["chatGptResponse"] is not None):
+                    st.text_area("ChatGPT answer", ses["chatGptResponse"])
 
             ################### Time and resources #################
             c1, c2, c3 = st.columns(3)
@@ -179,16 +181,16 @@ def main():
                 if (st.button("Run GC 🧹")):
                     collected_objects = gc.collect()
             with c2:
-                if (st.session_state.totalTime != 0):
-                    st.metric("Time last query", str(st.session_state.lastQuery) + " ms")    
+                if (ses["totalTime"] != 0):
+                    st.metric("Time last query", str(ses["lastQuery"]) + " ms")    
             with c3:
-                if (st.session_state.totalTime != 0):
-                    st.metric("Total Time", str(st.session_state.totalTime) + " ms")  
+                if (ses["totalTime"] != 0):
+                    st.metric("Total Time", str(ses["totalTime"]) + " ms")  
 
         ################### Column analysis    #################
         with st.expander("Analysis 📊", expanded=True):
-            if (st.session_state.df is not None):
-                df = st.session_state.df
+            if (ses["df"] is not None):
+                df = ses["df"]
                 col1,col2 = st.columns([1, 5])
                 with col1:
                     st.markdown("#### Schema")
@@ -281,21 +283,22 @@ def main():
 
                 endTime = int(round(time.time() * 1000))
                 st.write("Query execution time: " + str(queryTime - startTime) + " ms")
-                st.session_state.lastQuery = queryTime - startTime
+                ses["lastQuery"] = queryTime - startTime
                 st.write("Total execution time: " + str(endTime - startTime) + " ms")
-                st.session_state.totalTime = endTime - startTime
+                ses["totalTime"] = endTime - startTime
 
 def s3SearchFile():
+    ses = st.session_state.sessionObject
     global S3_BUCKET
-    if (st.session_state.s3SearchText and not st.session_state.s3SearchText.startswith('/') and not st.session_state.s3SearchText.startswith('http') and S3_BUCKET is not None):
+    if (ses["s3SearchText"] and not ses["s3SearchText"].startswith('/') and not ses["s3SearchText"].startswith('http') and S3_BUCKET is not None):
         with st.spinner('Searching in S3...'):
-            st.session_state.candidates = []
-            s3Paths = s3Search(S3_BUCKET, st.session_state.s3SearchText)
+            ses["candidates"] = []
+            s3Paths = s3Search(S3_BUCKET, ses["s3SearchText"])
             if len(s3Paths) > 5:
                 total = len(s3Paths)
                 s3Paths = s3Paths[:5]
                 s3Paths.append(f'... y {total - 5} mas')
-            st.session_state.candidates = s3Paths
+            ses["candidates"] = s3Paths
             return
     else:
         if (S3_BUCKET is None):
@@ -308,6 +311,7 @@ if __name__ == "__main__":
         layout="wide",
         initial_sidebar_state="collapsed",
     )
+    init()
     main()
     with st.sidebar:
             st.markdown("---")
