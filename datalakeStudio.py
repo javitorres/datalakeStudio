@@ -7,37 +7,11 @@ import time
 import os
 import psutil
 import gc
-import openai
-from s3Index import s3Search
+from s3IndexService import s3Search
+from chatGPTService import askGpt
+from duckDbService import loadTable
 import sys
 from PIL import Image
-import pydeck as pdk
-
-def askGpt(question):
-    openai.organization = st.secrets["openai_organization"]
-    openai.api_key = st.secrets["openai_api_key"]
-
-    t = duckdb.query("SHOW TABLES")
-    tableListArray = None
-    if (t is not None):
-        tableList = t.df()
-        tableListArray = tableList["name"].to_list()
-
-    if (tableListArray is not None and len(tableListArray) > 0):
-        questionForChatGPT = " You have the following tables:"
-        for table in tableListArray:
-            questionForChatGPT += " " + getTableDescriptionForChatGpt(table)
-        
-        questionForChatGPT += ". The query I need is:" + question
-        print("Sending question to GPT-3: " + questionForChatGPT)
-        with st.spinner('Waiting OpenAI API...'):
-            completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[
-                {"role": "system", "content": """You are a SQL assistant, you only have to answer with SQL queries, no other text, only SQL. Use exactly the table names provided. Don't put any other text that are not in the question or any other text that could break de SQL sintax
-                """},
-                {"role": "user", "content": questionForChatGPT, "name": "DatalakeStudio"}
-                ])
-        print("GPT-3 response: " + completion.choices[0].message.content)
-        return completion.choices[0].message.content
 
 @st.cache_resource
 def init():
@@ -53,27 +27,6 @@ def init():
 @st.cache_data
 def convert_df(df):
     return df.to_csv().encode('utf-8')
-
-def getTableDescriptionForChatGpt(tableName):
-    fields = duckdb.query("DESCRIBE "+ tableName).df()
-    tableDescription = ""
-    for field in fields.iterrows():
-        tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
-    tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
-    return tableDescriptionForGPT
-
-def loadTable(tableName, fileName):
-    duckdb.query("DROP TABLE IF EXISTS "+ tableName )
-    
-    if (fileName.endswith(".csv")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif (fileName.endswith(".json")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-
-    if (st.session_state.selectedTable is None): 
-        st.session_state.selectedTable = tableName
 
 def showTableScan(tableName):
     if (tableName != "-"):
@@ -95,21 +48,17 @@ def showTableScan(tableName):
         if (st.button("Delete table '" + tableName + "' 🚫")):
             tableDf = None
             duckdb.query("DROP TABLE "+ tableName)
-            #del st.session_state.tables[tableName]
             st.experimental_rerun() 
 
 def main():
-
     with st.sidebar:
         st.text_input('Project file', '', key='projectFile')
         col1, col2 = st.columns(2)
         with col1:
             if (st.button("Load")):
-                print("Load")
                 st.write("Feature not implemented yet")
         with col2:
             if (st.button("Save")):
-                print("Save")
                 st.write("Feature not implemented yet")
     
         st.markdown(
@@ -181,7 +130,6 @@ def main():
             tableListArray = tableList["name"].to_list()
     except:
         print("No tables loaded")
-
     
     if (tableListArray is not None and len(tableListArray) > 0):
         with st.expander(label="**Tables** 📄", expanded=True):
@@ -209,9 +157,10 @@ def main():
                         queryTime = int(round(time.time() * 1000))
             with col2:
                 askChat = st.text_area("Ask ChatGPT 💬")
-                st.write("Example: Select the 10 heroes with more total points. I want to known their name, strength, Speed and Total points. I also want to know their gender and race. Use name field to join tables")
+                st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
                 if st.button("Suggest query 🤔"):
-                    st.session_state.chatGptResponse = askGpt(askChat)
+                    tables = duckdb.query("SHOW TABLES")
+                    st.session_state.chatGptResponse = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
                 
                 if (st.session_state.chatGptResponse is not None):
                     st.text_area("ChatGPT answer", st.session_state.chatGptResponse)
@@ -248,7 +197,7 @@ def main():
                     else:
                         st.write(df.head(len(df.columns)))
 
-                    if (st.button("Download")):
+                    if (st.button("Download full result")):
                         st.write("Download table")
                         file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
                         if file_type == "CSV":
@@ -273,8 +222,8 @@ def main():
                         continue
                     st.divider()
                     st.markdown("####  " + col)
-                    print("Query:" + "SELECT " + col + ", count(*) as quantity FROM df GROUP BY " + col + " ORDER BY quantity DESC")
-                    groupByValue = duckdb.query("SELECT " + col + ", count(*) as quantity FROM df GROUP BY " + col + " ORDER BY quantity DESC").df()
+                    query='SELECT "' + col + '", count(*) as quantity FROM df GROUP BY "' + col + '" ORDER BY quantity DESC'
+                    groupByValue = duckdb.query(query).df()
                     distinctValues = len(groupByValue)
                     rcol1,rcol2 = st.columns([4, 2])
                     if df[col].dtype == 'object' or df[col].dtype == 'bool':
@@ -330,15 +279,15 @@ def main():
 def s3SearchFile():
     global S3_BUCKET
     if (st.session_state.s3SearchText and not st.session_state.s3SearchText.startswith('/') and not st.session_state.s3SearchText.startswith('http') and S3_BUCKET is not None):
-        print("Searching S3")
-        st.session_state.candidates = []
-        s3Paths = s3Search(S3_BUCKET, st.session_state.s3SearchText)
-        if len(s3Paths) > 5:
-            total = len(s3Paths)
-            s3Paths = s3Paths[:5]
-            s3Paths.append(f'... y {total - 5} mas')
-        st.session_state.candidates = s3Paths
-        return
+        with st.spinner('Searching in S3...'):
+            st.session_state.candidates = []
+            s3Paths = s3Search(S3_BUCKET, st.session_state.s3SearchText)
+            if len(s3Paths) > 5:
+                total = len(s3Paths)
+                s3Paths = s3Paths[:5]
+                s3Paths.append(f'... y {total - 5} mas')
+            st.session_state.candidates = s3Paths
+            return
     else:
         if (S3_BUCKET is None):
             print("No S3_BUCKET defined")

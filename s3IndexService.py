@@ -33,7 +33,7 @@ def s3Search(bucket, fileName):
 
     return results
 
-# Ejemplo de uso:
+# Example:
 #bucket = "madiva-datalake"
 #fileName = "cargadores"
 #results = s3Search(bucket, fileName)
