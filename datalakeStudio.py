@@ -95,8 +95,7 @@ def main():
                     except:
                         ses["lastQuery"] = "SELECT * FROM XXXXXX"
                     st.write("Project loaded")
-                    
-                st.write("Feature not implemented yet")
+
         with col2:
             if (st.button("Save")):
                 with open(loadSaveFile, "w") as write_file:
