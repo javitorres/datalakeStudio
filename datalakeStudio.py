@@ -31,7 +31,6 @@ if 'sessionObject' not in st.session_state:
 @st.cache_resource
 def init():
     try:
-        
         access_key = st.secrets["s3_access_key_id"]
         secret = st.secrets["s3_secret_access_key"]
         duckdb.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + access_key + "';SET s3_secret_access_key='" + secret +"'")
@@ -289,6 +288,7 @@ def main():
 
 def s3SearchFile():
     ses = st.session_state.sessionObject
+    ses["s3SearchText"] = st.session_state.s3SearchText
     global S3_BUCKET
     if (ses["s3SearchText"] and not ses["s3SearchText"].startswith('/') and not ses["s3SearchText"].startswith('http') and S3_BUCKET is not None):
         with st.spinner('Searching in S3...'):
