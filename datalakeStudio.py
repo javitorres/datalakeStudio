@@ -1,15 +1,16 @@
+import duckDbService as db
+import s3IndexService as s3Index
+import chatGPTService as chatGpt
+
 import streamlit as st
 import pandas as pd
-import duckdb
 import plotly.express as px
 import numpy as np
 import time
 import os
 import psutil
 import gc
-from s3IndexService import s3Search
-from chatGPTService import askGpt
-from duckDbService import loadTable
+import json
 import sys
 from PIL import Image
 from dataprofiler import Data, Profiler
@@ -21,11 +22,14 @@ if 'sessionObject' not in st.session_state:
     ses = st.session_state.sessionObject
     ses["fileName"] = "https://gist.githubusercontent.com/netj/8836201/raw/6f9306ad21398ea43cba4f7d537619d0e07d5ae3/iris.csv"
     ses["candidates"] = []
-    ses["chatGptResponse"] = ""
+    ses["chatGptResponse"] = None
     ses["totalTime"] = 0
     ses["lastQuery"] = ""
     ses["selectedTable"] = None
     ses["df"] = None
+    ses["loadedTables"] = {}
+    ses["queries"] = []
+    
     print("Session initialized:"+ str(ses))
 
 @st.cache_resource
@@ -33,10 +37,10 @@ def init():
     try:
         access_key = st.secrets["s3_access_key_id"]
         secret = st.secrets["s3_secret_access_key"]
-        duckdb.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + access_key + "';SET s3_secret_access_key='" + secret +"'")
+        db.runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';SET s3_access_key_id='" + access_key + "';SET s3_secret_access_key='" + secret +"'")
         print("Loaded S3 credentials")
     except:
-        duckdb.query("INSTALL httpfs;LOAD httpfs")
+        db.runQuery("INSTALL httpfs;LOAD httpfs")
         print("No s3 credentials found")
     
 @st.cache_data
@@ -46,9 +50,9 @@ def convert_df(df):
 def showTableScan(tableName):
     if (tableName != "-"):
         st.write("Table name: " + tableName)
-        count = duckdb.query("SELECT count(*) as total FROM "+ tableName).df()
+        count = db.runQuery("SELECT count(*) as total FROM "+ tableName)
         st.write("Records: " + str(count["total"].iloc[0]))
-        tableDf = duckdb.query("SELECT * FROM "+ tableName +" LIMIT 1000").df()
+        tableDf = db.runQuery("SELECT * FROM "+ tableName +" LIMIT 1000")
         c1,c2,c3 = st.columns([1, 3, 4])
         with c1:
             st.write("Schema")
@@ -62,20 +66,34 @@ def showTableScan(tableName):
             st.write(tableDf.head(1000))
         if (st.button("Delete table '" + tableName + "' 🚫")):
             tableDf = None
-            duckdb.query("DROP TABLE "+ tableName)
+            db.runQuery("DROP TABLE "+ tableName)
             st.experimental_rerun() 
 
 def main():
     ses = st.session_state.sessionObject
     with st.sidebar:
-        st.text_input('Project file', '', key='projectFile')
+        loadSaveFile = st.text_input('Project file (.dls)', '', key='projectFile')
         col1, col2 = st.columns(2)
         with col1:
             if (st.button("Load")):
+                with open(loadSaveFile, "r") as read_file:
+                    data = json.load(read_file)
+                    db.dropAllTables()
+                    for tableName in data["loadedTables"]:
+                        db.loadTable(tableName, data["loadedTables"][tableName], ses)
+
+                    ses["queries"] = data["queries"]
+                    st.write("Project loaded")
+                    
                 st.write("Feature not implemented yet")
         with col2:
             if (st.button("Save")):
-                st.write("Feature not implemented yet")
+                with open(loadSaveFile, "w") as write_file:
+                    data = {}
+                    data["loadedTables"] = ses["loadedTables"]
+                    data["queries"] = ses["queries"]
+                    json.dump(data, write_file)
+                    st.write("Project saved")
     
         st.markdown(
                 '<a href="tutorial/tutorial.html">🎓 Tutorial</a></h6>',
@@ -96,7 +114,6 @@ def main():
     with st.expander("**Load data** 📂", expanded=True):
         fcol1,fcol2,fcol3 = st.columns([4, 2, 1])
         with fcol1:
-            #st.session_state.fileName = st.text_input('Local file, folder, http link or find S3 file (pressing Enter) 👇', st.session_state.fileName,  key='s3SearchText', on_change=s3SearchFile)
             ses["fileName"] = st.text_input('Local file, folder, http link or find S3 file (pressing Enter) 👇', ses["fileName"],  key='s3SearchText', on_change=s3SearchFile)
 
         with fcol2:
@@ -108,11 +125,11 @@ def main():
                     for file in files:
                         if (file.endswith(".csv") or file.endswith(".parquet") or file.endswith(".json")):
                             tableName = os.path.splitext(file)[0]
-                            loadTable(tableName, ses["fileName"] + str(file))
+                            db.loadTable(tableName, ses["fileName"] + str(file), ses)
                             if (ses["selectedTable"] is None): 
                                 ses["selectedTable"] = tableName
                 else:
-                    loadTable(tableName, str(ses["fileName"]))          
+                    db.loadTable(tableName, str(ses["fileName"]), ses)
                 
         if (len(ses["candidates"]) > 0):
             st.markdown("#### Select a S3 file:")
@@ -127,10 +144,10 @@ def main():
     ################### Loaded tables       ################
     tableListArray = None
     try:
-        t = duckdb.query("SHOW TABLES")
+        print("Loading tables")
+        tableList = db.runQuery("SHOW TABLES")
         tableListArray = None
-        if (t is not None):
-            tableList = t.df()
+        if (tableList is not None):
             tableListArray = tableList["name"].to_list()
     except:
         print("No tables loaded")
@@ -153,19 +170,22 @@ def main():
         with st.expander("**Query** 🔧", expanded=True):
             col1,col2 = st.columns(2)
             with col1:
-                query = st.text_area("Query SQL ✏️","""SELECT * FROM YOUR_TABLE""")
+                lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
+                query = st.text_area("Query SQL ✏️", lastQuery)
+                ses["queries"].append(query)
+                
                 if st.button("Run query 🚀"):
                     with st.spinner('Running query...'):
-                        ses["df"] = duckdb.query(query).df()
+                        ses["df"] = db.runQuery(query)
                         ses["df"].columns = ses["df"].columns.str.replace('.', '_')
                         queryTime = int(round(time.time() * 1000))
             with col2:
                 askChat = st.text_area("Ask ChatGPT 💬")
                 st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
                 if st.button("Suggest query 🤔"):
-                    tables = duckdb.query("SHOW TABLES")
+                    tables = db.runQuery("SHOW TABLES")
                     with st.spinner('Waiting OpenAI API...'):
-                        ses["chatGptResponse"] = askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
+                        ses["chatGptResponse"] = chatGpt.askGpt(askChat, tables, st.secrets["openai_organization"], st.secrets["openai_api_key"])
                 
                 if (ses["chatGptResponse"] is not None):
                     st.text_area("ChatGPT answer", ses["chatGptResponse"])
@@ -233,7 +253,7 @@ def main():
                     st.divider()
                     st.markdown("####  " + col)
                     query='SELECT "' + col + '", count(*) as quantity FROM df GROUP BY "' + col + '" ORDER BY quantity DESC'
-                    groupByValue = duckdb.query(query).df()
+                    groupByValue = db.runQuery(query)
                     distinctValues = len(groupByValue)
                     rcol1,rcol2 = st.columns([4, 2])
                     if df[col].dtype == 'object' or df[col].dtype == 'bool':
@@ -293,7 +313,7 @@ def s3SearchFile():
     if (ses["s3SearchText"] and not ses["s3SearchText"].startswith('/') and not ses["s3SearchText"].startswith('http') and S3_BUCKET is not None):
         with st.spinner('Searching in S3...'):
             ses["candidates"] = []
-            s3Paths = s3Search(S3_BUCKET, ses["s3SearchText"])
+            s3Paths = s3Index.s3Search(S3_BUCKET, ses["s3SearchText"])
             if len(s3Paths) > 5:
                 total = len(s3Paths)
                 s3Paths = s3Paths[:5]

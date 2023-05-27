@@ -1,13 +1,12 @@
 import openai
 from duckDbService import getTableDescriptionForChatGpt
 
-def askGpt(question, tables, organization, apikey):
+def askGpt(question, tableList, organization, apikey):
     openai.organization = organization
     openai.api_key = apikey
 
     tableListArray = None
-    if (tables is not None):
-        tableList = tables.df()
+    if (tableList is not None):
         tableListArray = tableList["name"].to_list()
 
     if (tableListArray is not None and len(tableListArray) > 0):
