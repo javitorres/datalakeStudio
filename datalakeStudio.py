@@ -81,6 +81,7 @@ def main():
                 with open(loadSaveFile, "r") as read_file:
                     data = json.load(read_file)
                     db.dropAllTables()
+                    ses["loadedTables"] = {}
                     for tableName in data["loadedTables"]:
                         db.loadTable(tableName, data["loadedTables"][tableName], ses)
 
@@ -192,6 +193,17 @@ def main():
                         queryTime = int(round(time.time() * 1000))
                 if st.button("Save query 💾"):
                     ses["queries"].append(lastQuery)
+                
+                if st.button("Show saved queries"):
+                    if (len(ses["queries"]) > 0):
+                        st.markdown("#### Saved queries:")
+                        # Remove duplicates from ses["queries"]
+                        ses["queries"] = list(dict.fromkeys(ses["queries"]))
+                        for query in ses["queries"]:
+                            st.text_area("",query)
+                        if (st.button("Close saved queries")):
+                            ses["queries"] = []
+                            st.experimental_rerun()
 
             with col2:
                 askChat = st.text_area("Ask ChatGPT 💬")
