@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.express as px
 import numpy as np
 import time
+import datetime
 import os
 import psutil
 import gc
@@ -24,7 +25,8 @@ if 'sessionObject' not in st.session_state:
     ses["candidates"] = []
     ses["chatGptResponse"] = None
     ses["totalTime"] = 0
-    ses["lastQuery"] = ""
+    ses["lastQueryTime"] = 0
+    ses["lastQuery"] = "SELECT * FROM iris"
     ses["selectedTable"] = None
     ses["df"] = None
     ses["loadedTables"] = {}
@@ -82,7 +84,15 @@ def main():
                     for tableName in data["loadedTables"]:
                         db.loadTable(tableName, data["loadedTables"][tableName], ses)
 
-                    ses["queries"] = data["queries"]
+                    try:
+                        ses["queries"] = data["queries"]
+                    except:
+                        ses["queries"] = []
+                        
+                    try:
+                        ses["lastQuery"] = data["lastQuery"]
+                    except:
+                        ses["lastQuery"] = "SELECT * FROM XXXXXX"
                     st.write("Project loaded")
                     
                 st.write("Feature not implemented yet")
@@ -92,8 +102,9 @@ def main():
                     data = {}
                     data["loadedTables"] = ses["loadedTables"]
                     data["queries"] = ses["queries"]
+                    data["lastQuery"] = ses["lastQuery"]
                     json.dump(data, write_file)
-                    st.write("Project saved")
+                    st.write("Project saved " + str(datetime.datetime.now().strftime('%H:%M:%S')))
     
         st.markdown(
                 '<a href="tutorial/tutorial.html">🎓 Tutorial</a></h6>',
@@ -170,15 +181,18 @@ def main():
         with st.expander("**Query** 🔧", expanded=True):
             col1,col2 = st.columns(2)
             with col1:
-                lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
-                query = st.text_area("Query SQL ✏️", lastQuery)
-                ses["queries"].append(query)
-                
+                #lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
+                lastQuery = ses["lastQuery"]
+                lastQuery = st.text_area("Query SQL ✏️", lastQuery)
+                ses["lastQuery"] = lastQuery
                 if st.button("Run query 🚀"):
                     with st.spinner('Running query...'):
-                        ses["df"] = db.runQuery(query)
+                        ses["df"] = db.runQuery(lastQuery)
                         ses["df"].columns = ses["df"].columns.str.replace('.', '_')
                         queryTime = int(round(time.time() * 1000))
+                if st.button("Save query 💾"):
+                    ses["queries"].append(lastQuery)
+
             with col2:
                 askChat = st.text_area("Ask ChatGPT 💬")
                 st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
@@ -201,7 +215,7 @@ def main():
                     collected_objects = gc.collect()
             with c2:
                 if (ses["totalTime"] != 0):
-                    st.metric("Time last query", str(ses["lastQuery"]) + " ms")    
+                    st.metric("Time last query", str(ses["lastQueryTime"]) + " ms")    
             with c3:
                 if (ses["totalTime"] != 0):
                     st.metric("Total Time", str(ses["totalTime"]) + " ms")  
@@ -245,7 +259,7 @@ def main():
 
                 profile = Profiler(df)
                 readable_report = profile.report(report_options={"output_format": "compact"})
-                print(readable_report)
+                #print(readable_report)
 
                 for col in df.columns:
                     if (col.startswith("grp_")):
@@ -302,7 +316,7 @@ def main():
 
                 endTime = int(round(time.time() * 1000))
                 st.write("Query execution time: " + str(queryTime - startTime) + " ms")
-                ses["lastQuery"] = queryTime - startTime
+                ses["lastQueryTime"] = queryTime - startTime
                 st.write("Total execution time: " + str(endTime - startTime) + " ms")
                 ses["totalTime"] = endTime - startTime
 
