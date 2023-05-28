@@ -49,6 +49,106 @@ def init():
 def convert_df(df):
     return df.to_csv().encode('utf-8')
 
+
+def showProfilerAnalysis(df):
+    profile = Profiler(df)
+    readable_report = profile.report(report_options={"output_format": "compact"})
+    st.write(readable_report)
+    c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+    with c1:
+        st.metric("Total columns", readable_report["global_stats"]["column_count"])
+    with c2:
+        st.metric("Total rows", readable_report["global_stats"]["row_count"])
+    with c3:
+        st.metric("Samples used", readable_report["global_stats"]["samples_used"])
+    
+
+    c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+    with c1:
+        st.metric("Unique row ratio", readable_report["global_stats"]["unique_row_ratio"])
+    with c2:
+        st.metric("Duplicate row count", readable_report["global_stats"]["duplicate_row_count"])
+    with c3:
+        st.metric("Any Null ratio", readable_report["global_stats"]["row_has_null_ratio"])
+    with c4:
+        st.metric("Full null ratio", readable_report["global_stats"]["row_is_null_ratio"])
+    
+    c1,c2= st.columns([1, 3])
+    selectedColumn = None
+    with c1:
+        for dataCol in readable_report["data_stats"]:
+            if (st.button(dataCol["column_name"], key=dataCol["column_name"])):
+                selectedColumn = dataCol["column_name"]
+                
+    with c2:
+        for dataCol in readable_report["data_stats"]:
+            if (dataCol["column_name"] == selectedColumn):
+                #st.write(dataCol["column_name"])
+                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+                with c1:
+                    st.markdown("**Data type**: :red["+dataCol["data_type"]+"]")
+                with c2:
+                    st.markdown("**Categorical**: " + str(dataCol["categorical"]))
+                with c3:
+                    st.markdown("**Min**: ", str(dataCol["statistics"]["min"]))
+                with c4:
+                    st.markdown("**Max**: ", str(dataCol["statistics"]["max"]))
+
+                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+                with c1:
+                    st.markdown("**Mean**: "+ dataCol["statistics"]["mean"])
+                with c2:
+                    st.markdown("**Stddev**: "+ dataCol["statistics"]["stddev"])
+                with c3:
+                    st.markdown("**Mode**: " + dataCol["statistics"]["mode"])
+                with c4:
+                    st.markdown("**Median**:" + dataCol["statistics"]["median"])
+
+                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+                with c1:
+                    st.markdown("**Sum**:" + dataCol["statistics"]["sum"])
+                with c2:
+                    st.markdown("**Variance**:" + dataCol["statistics"]["variance"])
+                with c3:
+                    st.markdown("**Skewness**:" + dataCol["statistics"]["skewness"])
+                with c4:
+                    st.markdown("**Kurtosis**:" + dataCol["statistics"]["kurtosis"])
+
+                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+                with c1:
+                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
+                with c2:
+                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
+                with c3:
+                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
+                with c4:
+                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
+
+                '''
+                "column_name":"sepal.length"
+                "data_type":"float"
+                "categorical":false
+                "order":"random"
+                "samples":"['5.0', '5.7', '6.3', '6.1', '6.4']"
+                "statistics":{
+                "min":4.3
+                "max":7.9
+                "mode":"[5.0002]"
+                "median":5.7986
+                "sum":876.5
+                "mean":5.8433
+                "variance":0.6857
+                "stddev":0.8281
+                "skewness":0.3149
+                "kurtosis":-0.5521
+                "quantiles":{
+                "0":5.1014
+                "1":5.7986
+                "2":6.4011
+                }
+                '''
+                
+
 def showTableScan(tableName):
     if (tableName != "-"):
         st.write("Table name: " + tableName)
@@ -69,7 +169,9 @@ def showTableScan(tableName):
         if (st.button("Delete table '" + tableName + "' 🚫")):
             tableDf = None
             db.runQuery("DROP TABLE "+ tableName)
-            st.experimental_rerun() 
+            st.experimental_rerun()
+        showProfilerAnalysis(tableDf)
+        
 
 def main():
     ses = st.session_state.sessionObject
@@ -196,7 +298,6 @@ def main():
                 if st.button("Show saved queries"):
                     if (len(ses["queries"]) > 0):
                         st.markdown("#### Saved queries:")
-                        # Remove duplicates from ses["queries"]
                         ses["queries"] = list(dict.fromkeys(ses["queries"]))
                         for query in ses["queries"]:
                             st.text_area("",query)
