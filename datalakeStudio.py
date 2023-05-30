@@ -49,128 +49,97 @@ def init():
 def convert_df(df):
     return df.to_csv().encode('utf-8')
 
+@st.cache_data
+def getProfile(df):
+    try:
+        profile = Profiler(df)
+        readable_report = profile.report(report_options={"output_format": "compact"})
+        return readable_report
+    except:
+        return None
 
-def showProfilerAnalysis(df):
-    profile = Profiler(df)
-    readable_report = profile.report(report_options={"output_format": "compact"})
-    st.write(readable_report)
-    c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-    with c1:
-        st.metric("Total columns", readable_report["global_stats"]["column_count"])
-    with c2:
-        st.metric("Total rows", readable_report["global_stats"]["row_count"])
-    with c3:
-        st.metric("Samples used", readable_report["global_stats"]["samples_used"])
+def getStr(dict, key):
+    if (key in dict):
+        return str(dict[key])
+    else:
+        return "-"
     
-
+def showProfilerAnalysis(df, tableName):
+    readable_report = getProfile(df)
+    if (readable_report is None): return
     c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-    with c1:
-        st.metric("Unique row ratio", readable_report["global_stats"]["unique_row_ratio"])
-    with c2:
-        st.metric("Duplicate row count", readable_report["global_stats"]["duplicate_row_count"])
-    with c3:
-        st.metric("Any Null ratio", readable_report["global_stats"]["row_has_null_ratio"])
-    with c4:
-        st.metric("Full null ratio", readable_report["global_stats"]["row_is_null_ratio"])
+    with c1: st.metric("Total columns", readable_report["global_stats"]["column_count"])
+    with c2: st.metric("Total rows", readable_report["global_stats"]["row_count"])
+    with c3: st.metric("Samples used", readable_report["global_stats"]["samples_used"])
     
+    c1,c2,c3,c4= st.columns([1, 1, 1, 1])
+    with c1: st.metric("Unique row ratio", readable_report["global_stats"]["unique_row_ratio"])
+    with c2: st.metric("Duplicate row count", readable_report["global_stats"]["duplicate_row_count"])
+    with c3: st.metric("Any Null ratio", readable_report["global_stats"]["row_has_null_ratio"])
+    with c4: st.metric("Full null rows ratio", readable_report["global_stats"]["row_is_null_ratio"])
+    
+    st.divider()
     c1,c2= st.columns([1, 3])
     selectedColumn = None
+    
     with c1:
-        for dataCol in readable_report["data_stats"]:
-            if (st.button(dataCol["column_name"], key=dataCol["column_name"])):
-                selectedColumn = dataCol["column_name"]
-                
+        # Get column names in dataCol["column_name"] to an array
+        column_names = [entry['column_name'] for entry in readable_report['data_stats']]
+
+        option = st.selectbox(label="Select a field to see description", options=column_names, key=tableName + "_selectbox")
+        selectedColumn = option
+               
     with c2:
         for dataCol in readable_report["data_stats"]:
             if (dataCol["column_name"] == selectedColumn):
-                #st.write(dataCol["column_name"])
+                st.markdown("####  Field: " + dataCol["column_name"])
                 c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-                with c1:
+                with c1: 
                     st.markdown("**Data type**: :red["+dataCol["data_type"]+"]")
-                with c2:
+                    st.markdown("**Mean**: "+ getStr(dataCol["statistics"], "mean"))
+                    st.markdown("**Sum**:" + getStr(dataCol["statistics"],"sum"))
+                    try:
+                        st.markdown("**Quantile 0.25**: " + str(dataCol["statistics"]["quantiles"][0]))
+                    except:
+                        st.markdown("**Quantile 0.25**: -")
+                with c2: 
                     st.markdown("**Categorical**: " + str(dataCol["categorical"]))
-                with c3:
-                    st.markdown("**Min**: ", str(dataCol["statistics"]["min"]))
-                with c4:
-                    st.markdown("**Max**: ", str(dataCol["statistics"]["max"]))
-
-                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-                with c1:
-                    st.markdown("**Mean**: "+ dataCol["statistics"]["mean"])
-                with c2:
-                    st.markdown("**Stddev**: "+ dataCol["statistics"]["stddev"])
-                with c3:
-                    st.markdown("**Mode**: " + dataCol["statistics"]["mode"])
-                with c4:
-                    st.markdown("**Median**:" + dataCol["statistics"]["median"])
-
-                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-                with c1:
-                    st.markdown("**Sum**:" + dataCol["statistics"]["sum"])
-                with c2:
-                    st.markdown("**Variance**:" + dataCol["statistics"]["variance"])
-                with c3:
-                    st.markdown("**Skewness**:" + dataCol["statistics"]["skewness"])
-                with c4:
-                    st.markdown("**Kurtosis**:" + dataCol["statistics"]["kurtosis"])
-
-                c1,c2,c3,c4= st.columns([1, 1, 1, 1])
-                with c1:
-                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
-                with c2:
-                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
-                with c3:
-                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
-                with c4:
-                    st.markdown("Quantiles" + dataCol["statistics"]["quantiles"])
-
-                '''
-                "column_name":"sepal.length"
-                "data_type":"float"
-                "categorical":false
-                "order":"random"
-                "samples":"['5.0', '5.7', '6.3', '6.1', '6.4']"
-                "statistics":{
-                "min":4.3
-                "max":7.9
-                "mode":"[5.0002]"
-                "median":5.7986
-                "sum":876.5
-                "mean":5.8433
-                "variance":0.6857
-                "stddev":0.8281
-                "skewness":0.3149
-                "kurtosis":-0.5521
-                "quantiles":{
-                "0":5.1014
-                "1":5.7986
-                "2":6.4011
-                }
-                '''
+                    st.markdown("**Stddev**: "+ getStr(dataCol["statistics"],"stddev"))
+                    st.markdown("**Variance**:" + getStr(dataCol["statistics"],"variance"))
+                    try:
+                        st.markdown("**Quantile 0.50**:" + str(dataCol["statistics"]["quantiles"][1]))
+                    except:
+                        st.markdown("**Quantile 0.50**: -")    
+                with c3: 
+                    st.markdown("**Min**: " + getStr(dataCol["statistics"], "min"))
+                    st.markdown("**Mode**: " + getStr(dataCol["statistics"], "mode"))
+                    st.markdown("**Skewness**:" + getStr(dataCol["statistics"], "skewness"))
+                    try:
+                        st.markdown("**Quantile 0.75**:" + str(dataCol["statistics"]["quantiles"][2]))
+                    except:
+                        st.markdown("**Quantile 0.75**: -")
+                with c4: 
+                    st.markdown("**Max**: " + getStr(dataCol["statistics"], "max"))
+                    st.markdown("**Median**:" + getStr(dataCol["statistics"],"median"))
+                    st.markdown("**Kurtosis**:" + getStr(dataCol["statistics"],"kurtosis"))
                 
-
 def showTableScan(tableName):
     if (tableName != "-"):
-        st.write("Table name: " + tableName)
-        count = db.runQuery("SELECT count(*) as total FROM "+ tableName)
-        st.write("Records: " + str(count["total"].iloc[0]))
+        if (st.button("Delete table '" + tableName + "' 🚫")):
+            tableDf = None
+            db.runQuery("DROP TABLE "+ tableName)
+            st.experimental_rerun()
         tableDf = db.runQuery("SELECT * FROM "+ tableName +" LIMIT 1000")
-        c1,c2,c3 = st.columns([1, 3, 4])
+        c1,c2 = st.columns([1, 7])
         with c1:
             st.write("Schema")
             # Check this arrow warn
             st.write(tableDf.dtypes)
         with c2:
-            st.write("Description")
-            st.write(tableDf.describe())
-        with c3:
             st.write("Sample data (1000)")
             st.write(tableDf.head(1000))
-        if (st.button("Delete table '" + tableName + "' 🚫")):
-            tableDf = None
-            db.runQuery("DROP TABLE "+ tableName)
-            st.experimental_rerun()
-        showProfilerAnalysis(tableDf)
+        
+        showProfilerAnalysis(tableDf, tableName)
         
 
 def main():
@@ -287,27 +256,31 @@ def main():
                 lastQuery = ses["lastQuery"]
                 lastQuery = st.text_area("Query SQL ✏️", lastQuery)
                 ses["lastQuery"] = lastQuery
-                if st.button("Run query 🚀"):
-                    with st.spinner('Running query...'):
-                        ses["df"] = db.runQuery(lastQuery)
-                        ses["df"].columns = ses["df"].columns.str.replace('.', '_')
-                        queryTime = int(round(time.time() * 1000))
-                if st.button("Save query 💾"):
-                    ses["queries"].append(lastQuery)
+                c1,c2,c3,c4 = st.columns([2,2,2,4])
+                with c1:
+                    if st.button("Run query 🚀"):
+                        with st.spinner('Running query...'):
+                            ses["df"] = db.runQuery(lastQuery)
+                            ses["df"].columns = ses["df"].columns.str.replace('.', '_')
+                            queryTime = int(round(time.time() * 1000))
+                with c2:
+                    if st.button("Save query 💾"):
+                        ses["queries"].append(lastQuery)
                 
-                if st.button("Show saved queries"):
-                    if (len(ses["queries"]) > 0):
-                        st.markdown("#### Saved queries:")
-                        ses["queries"] = list(dict.fromkeys(ses["queries"]))
-                        for query in ses["queries"]:
-                            st.text_area("",query)
-                        if (st.button("Close saved queries")):
-                            ses["queries"] = []
-                            st.experimental_rerun()
+                with c3:
+                    if st.button("Load query 📂"):
+                        if (len(ses["queries"]) > 0):
+                            st.markdown("#### Saved queries:")
+                            ses["queries"] = list(dict.fromkeys(ses["queries"]))
+                            for query in ses["queries"]:
+                                st.text_area("",query)
+                            if (st.button("Close saved queries")):
+                                ses["queries"] = []
+                                st.experimental_rerun()
 
             with col2:
-                askChat = st.text_area("Ask ChatGPT 💬")
-                st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
+                askChat = st.text_area("Ask ChatGPT 💬. Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
+                #st.write("Example: Show me the 10 characters with the most published comics in descending order. I also want their gender and race")
                 if st.button("Suggest query 🤔"):
                     tables = db.runQuery("SHOW TABLES")
                     with st.spinner('Waiting OpenAI API...'):
@@ -317,7 +290,7 @@ def main():
                     st.text_area("ChatGPT answer", ses["chatGptResponse"])
 
             ################### Time and resources #################
-            c1, c2, c3 = st.columns(3)
+            c1, c2, c3, c4 = st.columns([1, 1, 1, 5])
             with c1:
                 pid = os.getpid()
                 process = psutil.Process(pid)
@@ -358,6 +331,8 @@ def main():
                             file = convert_excel(df)
                             st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
                 
+                showProfilerAnalysis(df, "query")
+                
                 if (("lat" in df.columns and "lon" in df.columns) or
                     ("latitude" in df.columns and "longitude" in df.columns)):
 
@@ -368,10 +343,6 @@ def main():
                     st.write("Spatial fields should be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be plotted in a map, use a SQL query to rename them if needed: Ej: Latitude as lat, Longitude as lon")
 
                 st.header("Column data analysis")
-
-                profile = Profiler(df)
-                readable_report = profile.report(report_options={"output_format": "compact"})
-                #print(readable_report)
 
                 for col in df.columns:
                     if (col.startswith("grp_")):
