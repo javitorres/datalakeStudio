@@ -14,12 +14,16 @@ def loadTable(tableName, fileName, ses):
     
     if (fileName.endswith(".csv")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet")):
+    elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif (fileName.endswith(".json")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
     ses["loadedTables"][tableName] = fileName
-    duckdb.sql('SHOW TABLES').show()
+    r = duckdb.sql('SHOW TABLES')
+    if (r is not None):
+        r.show()
+    else:
+        print("No tables loaded")
     
 
 def runQuery(query):

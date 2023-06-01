@@ -65,11 +65,15 @@ def getStr(dict, key):
         return "-"
     
 def showProfilerAnalysis(df, tableName):
+    #count = db.runQuery("SELECT count(*) as total FROM "+ df)
+    #st.write("Records: " + str(count["total"].iloc[0]))
+    
     readable_report = getProfile(df)
+    ses["loadedTables"][tableName]["profile"]=readable_report
     if (readable_report is None): return
     c1,c2,c3,c4= st.columns([1, 1, 1, 1])
     with c1: st.metric("Total columns", readable_report["global_stats"]["column_count"])
-    with c2: st.metric("Total rows", readable_report["global_stats"]["row_count"])
+    #with c2: st.metric("Total rows", str(count["total"].iloc[0]))
     with c3: st.metric("Samples used", readable_report["global_stats"]["samples_used"])
     
     c1,c2,c3,c4= st.columns([1, 1, 1, 1])
@@ -124,9 +128,10 @@ def showProfilerAnalysis(df, tableName):
                     st.markdown("**Kurtosis**:" + getStr(dataCol["statistics"],"kurtosis"))
                 
 def showTableScan(tableName):
+    ses = st.session_state.sessionObject
     if (tableName != "-"):
         if (st.button("Delete table '" + tableName + "' 🚫")):
-            tableDf = None
+            #tableDf = None
             db.runQuery("DROP TABLE "+ tableName)
             st.experimental_rerun()
         tableDf = db.runQuery("SELECT * FROM "+ tableName +" LIMIT 1000")
@@ -139,13 +144,16 @@ def showTableScan(tableName):
             st.write("Sample data (1000)")
             st.write(tableDf.head(1000))
         
-        showProfilerAnalysis(tableDf, tableName)
-        
+        #if (ses["loadedTables"][tableName]["profile"] is not None or st.button("Show profiler analysis", key="profiler_"+tableName)):
+        #    showProfilerAnalysis(tableDf, tableName)
+                
 
 def main():
     ses = st.session_state.sessionObject
     with st.sidebar:
         loadSaveFile = st.text_input('Project file (.dls)', '', key='projectFile')
+        if (not loadSaveFile.endswith(".dls")):
+            loadSaveFile = loadSaveFile + ".dls"
         col1, col2 = st.columns(2)
         with col1:
             if (st.button("Load")):
@@ -155,6 +163,7 @@ def main():
                     ses["loadedTables"] = {}
                     for tableName in data["loadedTables"]:
                         db.loadTable(tableName, data["loadedTables"][tableName], ses)
+                        #ses["loadedTables"][tableName]["profile"] = None
 
                     try:
                         ses["queries"] = data["queries"]
@@ -175,7 +184,7 @@ def main():
                     data["queries"] = ses["queries"]
                     data["lastQuery"] = ses["lastQuery"]
                     json.dump(data, write_file)
-                    st.write("Project saved " + str(datetime.datetime.now().strftime('%H:%M:%S')))
+                    st.write("Project saved as "+ loadSaveFile + " at " + str(datetime.datetime.now().strftime('%H:%M:%S')))
     
         st.markdown(
                 '<a href="tutorial/tutorial.html">🎓 Tutorial</a></h6>',
@@ -254,18 +263,19 @@ def main():
             with col1:
                 #lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
                 lastQuery = ses["lastQuery"]
-                lastQuery = st.text_area("Query SQL ✏️", lastQuery)
-                ses["lastQuery"] = lastQuery
+                queryToRun = st.text_area("Query SQL ✏️", lastQuery)
+
+                ses["lastQuery"] = queryToRun
                 c1,c2,c3,c4 = st.columns([2,2,2,4])
                 with c1:
                     if st.button("Run query 🚀"):
                         with st.spinner('Running query...'):
-                            ses["df"] = db.runQuery(lastQuery)
+                            ses["df"] = db.runQuery(queryToRun)
                             ses["df"].columns = ses["df"].columns.str.replace('.', '_')
                             queryTime = int(round(time.time() * 1000))
                 with c2:
                     if st.button("Save query 💾"):
-                        ses["queries"].append(lastQuery)
+                        ses["queries"].append(queryToRun)
                 
                 with c3:
                     if st.button("Load query 📂"):
@@ -331,7 +341,8 @@ def main():
                             file = convert_excel(df)
                             st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
                 
-                showProfilerAnalysis(df, "query")
+                #if (st.button("Show profiler analysis")):
+                    #showProfilerAnalysis(df, "query_")
                 
                 if (("lat" in df.columns and "lon" in df.columns) or
                     ("latitude" in df.columns and "longitude" in df.columns)):
