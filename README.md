@@ -60,7 +60,18 @@ openai_organization="PUT_HERE_YOUR_OPENAI_ORGANIZATION_ID"
 openai_api_key="PUT_HERE_YOUR_OPENAI_API_KEY"
 ```
 
+or run with the following command to use your AWS credentials:
+
+```
+docker run -p 8080:8501 -v ~/.aws:/root/.aws --name datalakestudio datalakestudio
+```
+
 Then rebuild the image with the first command ahead.
+
+Or if you prefer, after editing config files, all together:
+```
+docker build -t datalakestudio . && docker run -v ~/.aws:/root/.aws -e BUCKET_NAME=YOUR_BUCKET -p 8080:8501 --name datalakestudio datalakestudio
+```
 
 To stop the container simply run:
 

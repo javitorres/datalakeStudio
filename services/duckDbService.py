@@ -39,7 +39,6 @@ def loadTable(tableName, fileName, ses):
         r.show()
     else:
         print("No tables loaded")
-    
 
 def runQuery(query):
     try:
@@ -69,5 +68,4 @@ def getTableList():
 
 def saveDfAsTable(dfName, tableName):
     print("Saving df as table " + tableName)
-    #duckdb.from_df(df, tableName)
     duckdb.sql("CREATE TABLE "+ tableName +" AS SELECT * FROM " + dfName)

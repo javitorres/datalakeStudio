@@ -4,3 +4,4 @@ dataFiles
 sampleData
 todo.txt
 *.dls
+mySecrets.toml
