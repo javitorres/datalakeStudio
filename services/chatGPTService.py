@@ -1,5 +1,5 @@
 import openai
-from duckDbService import getTableDescriptionForChatGpt
+from services.duckDbService import getTableDescriptionForChatGpt
 
 def askGpt(question, tableList, organization, apikey):
     openai.organization = organization
