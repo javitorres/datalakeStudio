@@ -13,7 +13,7 @@
 # Datalake Studio
 Datalake Studio is a very simple Python application to explore datasets using SQL, powered by the incredible DuckDB engine and the fantastic framework Streamlit. It also uses the DataProfiler library to get insights about the loaded data.
 
-You can load files directly from your computer, from a URL, or from an S3 bucket.
+You can load files directly from your computer, from a URL, or from an S3 bucket. Now you also can download data from a PostgreSQL Database and retrieve data from an external URL
 
 [DatalakeStudioSubs.webm](https://github.com/javitorres/datalakeStudio/assets/4235424/e4396cfb-297a-4ce4-bf8d-f751d0b9dbd0)
 
@@ -123,6 +123,32 @@ Run your own SQL queries or ask ChatGPT to do it for you. ChatGPT has contextual
 When finished you can download results as CSV or Excel:
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/30acd76f-a2b3-489d-9290-e511ae94f6a8)
+
+# Load data from a PostgreSQL database
+
+Connect to your databases adding the path to your DBeaver config file or any file with rows like this:
+
+```
+host:port:database:user:pass
+```
+
+Add the path to your config file in .streamlit/secrets.toml:
+
+```
+pgpass_file="pathToYour/.pgpass"
+```
+Then you can search and load data with a query
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/823ca136-0c39-4956-abfe-18ab736bda5c)
+
+
+
+# Load data from an external URL
+
+Now you can add columns from an external URL using GET or POST http requests and using columns of your dataset as parameters
+
+[output.webm](https://github.com/javitorres/datalakeStudio/assets/4235424/a57d2377-7513-499b-8b84-bf1e4875f5a8)
+
 
 # Test online
 
