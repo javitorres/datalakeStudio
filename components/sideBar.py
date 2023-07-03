@@ -1,8 +1,10 @@
 import streamlit as st
 
 from PIL import Image
+import json
+import datetime
 
-def sideBar():
+def sideBar(ses):
     with st.sidebar:
         logo = Image.open('images/logo.png')
         st.image(logo, width=200)

@@ -59,7 +59,7 @@ def getProfile(df):
 def main():
     ses = st.session_state.sessionObject
 
-    sideBar.sideBar()
+    sideBar.sideBar(ses)
     
     global S3_BUCKET
     if len(sys.argv) > 1:
