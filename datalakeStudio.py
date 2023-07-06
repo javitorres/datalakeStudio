@@ -30,7 +30,7 @@ if 'sessionObject' not in st.session_state:
     ses["services"] = ses["service"] = ses["methods"] = ses["method"] = ses["methodInfo"] = ses["inParameters"] = ses["tableDfNew"] = None
     ses["fieldsToLoad"] = []
     
-    ses["databases"] = ses["database"] = ses["connection"] = ses["dfRemoteDb"] = None
+    ses["databases"] = ses["database"] = ses["connection"] = ses["schemas"] = ses["schema"] = ses["dfRemoteDb"] = None
 
 @st.cache_resource
 def init():

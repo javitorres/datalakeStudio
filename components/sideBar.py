@@ -1,5 +1,7 @@
 import streamlit as st
 
+import services.duckDbService as db
+
 from PIL import Image
 import json
 import datetime
@@ -8,6 +10,8 @@ def sideBar(ses):
     with st.sidebar:
         logo = Image.open('images/logo.png')
         st.image(logo, width=200)
+
+        st.write("Datalake Studio")
 
         loadSaveFile = st.text_input('Project file (.dls)', '', key='projectFile')
         if (not loadSaveFile.endswith(".dls")):
@@ -41,7 +45,19 @@ def sideBar(ses):
                     data["loadedTables"] = ses["loadedTables"]
                     data["queries"] = ses["queries"]
                     data["lastQuery"] = ses["lastQuery"]
-                    json.dump(data, write_file)
+                    dfTemp=ses["df"]
+                    dfRemoteDb=ses["dfRemoteDb"]
+                    tmpConnection=ses["connection"]
+                    ses["df"] = None
+                    ses["dfRemoteDb"] = None
+                    ses["connection"] = None
+                    
+                    json.dump(ses, write_file)
+                    
+                    ses["df"] = dfTemp
+                    ses["dfRemoteDb"] = dfRemoteDb
+                    ses["connection"] = tmpConnection
+
                     st.write("Project saved as "+ loadSaveFile + " at " + str(datetime.datetime.now().strftime('%H:%M:%S')))
 
         st.markdown(

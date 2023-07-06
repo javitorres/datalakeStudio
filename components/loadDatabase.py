@@ -23,10 +23,15 @@ def loadDataFromDatabase(ses):
                 
                 if (ses["connection"] is not None):
                     st.write("✅ Connected to database: " + str(ses["database"]["db"]))
+
+                    ses["schemas"] = remoteDb.getSchemas(ses["connection"])
+                    if (ses["schemas"] is not None):
+                        ses["schema"] = st.selectbox(label="Select schema", options = ses["schemas"], key="schema")
+                        st.write("Selected schema: " + str(ses["schema"]))
         
         with c2:
-            if (ses["connection"] is not None):
-                tableList = remoteDb.showTables(ses["connection"], ses["database"]["db"])
+            if (ses["connection"] is not None and ses["schema"] is not None):
+                tableList = remoteDb.showTables(ses["connection"], ses["schema"])
                 strTables = [i[0] for i in tableList]
                 result = "\n".join(strTables)
                 st.text_area("Tables", value=result, height=300)

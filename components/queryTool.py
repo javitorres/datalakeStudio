@@ -90,8 +90,9 @@ def query(ses):
         col1,col2 = st.columns(2)
         with col1:
             #lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
+
+            queryToRun = st.text_area("Query SQL ✏️", key="queryToRun", height=200)
             lastQuery = ses["lastQuery"]
-            queryToRun = st.text_area("Query SQL ✏️", lastQuery)
 
             ses["lastQuery"] = queryToRun
             c1,c2,c3,c4 = st.columns([2,2,2,4])
@@ -99,7 +100,8 @@ def query(ses):
                 if st.button("Run query 🚀", key="runQuery2"):
                     with st.spinner('Running query...'):
                         ses["df"] = db.runQuery(queryToRun)
-                        ses["df"].columns = ses["df"].columns.str.replace('.', '_')
+                        if (ses["df"] is not None):
+                            ses["df"].columns = ses["df"].columns.str.replace('.', '_')
                         queryTime = int(round(time.time() * 1000))
             with c2:
                 if st.button("Save query 💾"):

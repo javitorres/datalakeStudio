@@ -1,5 +1,7 @@
 import duckdb
 
+import streamlit as st
+
 def getTableDescriptionForChatGpt(tableName):
     fields = duckdb.query("DESCRIBE "+ tableName).df()
     tableDescription = ""
@@ -9,6 +11,8 @@ def getTableDescriptionForChatGpt(tableName):
     return tableDescriptionForGPT
 
 def getTableDescription(tableName):
+    if (tableName is None):
+        return []
     try:
         fields = duckdb.query("DESCRIBE "+ tableName).df()
         tableDescription = ""
@@ -48,6 +52,7 @@ def runQuery(query):
             return r.df()
     except Exception as e:
         print("Error running query: " + str(e))
+        st.write("Error: " + str(e))
         return None
         
     
