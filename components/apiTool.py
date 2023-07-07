@@ -235,7 +235,7 @@ def apiTool(ses):
                         for index, row in ses["tableDfNew"].iterrows():
                             
                             queryString=""
-                            if (ses["methodInfo"]["parameters"] is not None):
+                            if (ses["methodInfo"] is not None and "parameters" in ses["methodInfo"] and ses["methodInfo"]["parameters"] is not None):
                                 for param in ses["methodInfo"]["parameters"]:
                                     if (st.session_state["pair_" + param["name"]]!="--"):
                                         fileValue = row[st.session_state["pair_" + param["name"]]]
@@ -279,14 +279,14 @@ def apiTool(ses):
                 st.write("Result (max 100 rows))")
                 st.write(ses["tableDfNew"].head(1000))
                 if (st.button("Download file")):
-                    st.write("Download table")
-                    file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
-                    if file_type == "CSV":
-                        file = ses["tableDfNew"].to_csv().encode('utf-8')
-                        st.download_button("Download dataframe", file, "report.csv", "text/csv", use_container_width=True)
-                    elif file_type == "Excel":
-                        file = convert_excel(ses["tableDfNew"])
-                        st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
+                    #st.write("Download table")
+                    #file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
+                    #if file_type == "CSV":
+                    file = ses["tableDfNew"].to_csv().encode('utf-8')
+                    st.download_button("Download dataframe", file, "report.csv", "text/csv", use_container_width=True)
+                    #elif file_type == "Excel":
+                    #    file = convert_excel(ses["tableDfNew"])
+                    #    st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
                 
                 st.write("Save as a new table")
                 tableName = st.text_input('Table name', 'table', key='newTableName')

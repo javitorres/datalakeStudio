@@ -26,13 +26,37 @@ Install dependencies listed in requirements.txt:
 ```
 pip install -r requirements.txt
 ```
-Optional: Create file .streamlit/secrets.toml in your home directory for your credentials:
+Optional: Create file .streamlit/secrets.toml in your home directory for your credentials and other configuration details:
 
 ```
+# S3
 s3_access_key_id="XXXXXXXXXXXXXXXXXX"
 s3_secret_access_key="XXXXXXXXXXXXXXXXXX"
+
+# ChatGPT
 openai_organization="XXXXXXXXXXXXXXXXXX"
 openai_api_key="XXXXXXXXXXXXXXXXXX"
+
+# API search
+api_domain="yourdomain.com"
+api_context="yourApiServiceContext"
+
+# Database connection file
+pgpass_file="pathToYour/.pgpass"
+```
+
+
+# Start application
+Run the following command:
+
+```
+streamlit run datalakeStudio.py
+```
+
+Or use this command if you want to load files from an S3 bucket:
+
+```
+streamlit run datalakeStudio.py -- YOUR_S3_BUCKET
 ```
 
 # Dockerfile
@@ -80,19 +104,6 @@ docker stop datalakestudio
 ```
 
 
-# How to start application
-Run the following command:
-
-```
-streamlit run datalakeStudio.py
-```
-
-Or use this command if you want to load files from an S3 bucket:
-
-```
-streamlit run datalakeStudio.py -- YOUR_S3_BUCKET
-```
-
 # Usage
 
 Enter the file name to load (CSV, Parquet, or JSON):
@@ -120,7 +131,7 @@ Run your own SQL queries or ask ChatGPT to do it for you. ChatGPT has contextual
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/105c115b-f7ed-49de-801a-ca317628af08)
 
-When finished you can download results as CSV or Excel:
+When finished you can download results as CSV:
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/30acd76f-a2b3-489d-9290-e511ae94f6a8)
 

@@ -7,13 +7,14 @@ def loadDataFromDatabase(ses):
     with st.expander("**Load data from a Database** 🛢️", expanded=True):
         c1, c2 = st.columns((1, 1))
         with c1:
-            st.text_input("Database name", key="database_name")
+            st.text_input("Search text", key="database_search_text")
             if (st.button("Search database")):
-                ses["databases"] = remoteDb.getDbList(st.session_state.database_name)
+                ses["databases"] = remoteDb.getDbList(st.session_state.database_search_text)
                 if (ses["databases"] is None or len(ses["databases"])==0):
                     st.write("Could not load any database")
 
             if (ses["databases"] is not None):
+
                 ses["database"] = st.selectbox(label="Select database", options = ses["databases"], key="database")
                 #st.write("Selected database: " + str(ses["database"]))
 
@@ -22,7 +23,7 @@ def loadDataFromDatabase(ses):
                     ses["connection"] = remoteDb.getConnection(ses["database"])
                 
                 if (ses["connection"] is not None):
-                    st.write("✅ Connected to database: " + str(ses["database"]["db"]))
+                    st.write("✅ Connected to database: " + str(ses["database"]))
 
                     ses["schemas"] = remoteDb.getSchemas(ses["connection"])
                     if (ses["schemas"] is not None):

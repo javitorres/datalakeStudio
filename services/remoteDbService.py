@@ -13,8 +13,8 @@ def connect_to_db(database_name):
             continue
         try:
 
-            host, port, db, schema, user, password = line.strip().split(':')
-            print("Database:"+ db + " with host: " + host + " schema:" + schema + " and port: " + port)
+            host, port, db, user, password = line.strip().split(':')
+            print("Database:"+ db + " with host: " + host + " and port: " + port)
             if db == database_name:
                 print("Connecting to database::"+ db + " with host: " + host + " and port: " + port)
                 connection = psycopg2.connect(
@@ -30,14 +30,35 @@ def connect_to_db(database_name):
             print("Error connecting to database")
             pass
     return None  # Si no se encuentra la base de datos
-def getConnection(databaseConfig):
-    print("Connecting to database:"+ str(databaseConfig))
+
+def getPassword(host, port, db, user):
+    with open(st.secrets["pgpass_file"], 'r') as f:
+        lines = f.readlines()
+
+    for line in lines:
+        # If line is a comment, skip it
+        if line.startswith('#'):
+            continue
+        try:
+            hostFile, portFile, dbFile, userFile, password = line.strip().split(':')
+            if (hostFile == host and portFile == port and dbFile == db and userFile == user):
+                return password
+        except:
+            pass
+    return None  
+
+
+def getConnection(selectedDatabase):
+    host, port, db, user = selectedDatabase.strip().split(' - ')
+    password = getPassword(host, port, db, user)
+    
+    print("Connecting to database:"+ str(selectedDatabase))
     connection = psycopg2.connect(
-        host=databaseConfig["host"],
-        port=databaseConfig["port"],
-        dbname=databaseConfig["db"],
-        user=databaseConfig["user"],
-        password=databaseConfig["password"]
+        host=host,
+        port=port,
+        dbname=db,
+        user=user,
+        password=password
     )
     if (connection is None):
         print("Error connecting to database with config:"+ str(databaseConfig))
@@ -54,32 +75,33 @@ def getSchemas(connection):
     cursor.close()
     return schemas
 
-def getDbList(database_name):
+def getDbList(database_search_text):
     databaseList = []
-    with open(st.secrets["pgpass_file"], 'r') as f:
-        lines = f.readlines()
 
+    try:
+        with open(st.secrets["pgpass_file"], 'r') as f:
+            lines = f.readlines()
+    except:
+        st.write("You must define pgpass_file in secrets.toml file")
+        return []
+
+    words = database_search_text.split(" ")
     for line in lines:
         # If line is a comment, skip it
         if line.startswith('#'):
             continue
         try:
             host, port, db, user, password = line.strip().split(':')
-            print("Reading file. Database::"+ db + " with host: " + host + " and port: " + port)
-
-            if (db==database_name or database_name in db or database_name=="" or database_name==None):
-                dbJson = {}
-                dbJson['host'] = host
-                dbJson['port'] = port
-                dbJson['db'] = db
-                dbJson['user'] = user
-                dbJson['password'] = password
-                dbJson['line'] = line
-
-                # Add database to list
-                databaseList.append(dbJson)
+            search_words = database_search_text.split(" ")
+            wordsFound=0
+            for word in search_words:
+                if (word in host or word in port or word in db or word in user):
+                    wordsFound+=1
+                    
+            if wordsFound == len(search_words):
+                databaseList.append(host + " - " + str(port) + " - " + db + " - "  + user)
+            
         except Exception as e:
-            print("Error reading file: " + str(e))
             pass
     print("Database List:"+ str(databaseList))
     return databaseList  # Si no se encuentra la base de datos

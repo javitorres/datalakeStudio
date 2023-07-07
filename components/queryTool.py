@@ -10,6 +10,7 @@ import numpy as np
 import time
 import pandas as pd
 
+
 def getStr(dict, key):
     if (key in dict):
         return str(dict[key])
@@ -19,6 +20,19 @@ def getStr(dict, key):
 @st.cache_data
 def convert_df(df):
     return df.to_csv().encode('utf-8')
+
+@st.cache_data
+def to_excel(df):
+    output = BytesIO()
+    writer = pd.ExcelWriter(output, engine='xlsxwriter')
+    df.to_excel(writer, index=False, sheet_name='Sheet1')
+    workbook = writer.book
+    worksheet = writer.sheets['Sheet1']
+    format1 = workbook.add_format({'num_format': '0.00'}) 
+    worksheet.set_column('A:A', None, format1)  
+    writer.save()
+    processed_data = output.getvalue()
+    return processed_data
 
 def showProfilerAnalysis(df, tableName):
     #count = db.runQuery("SELECT count(*) as total FROM "+ df)
@@ -86,7 +100,7 @@ def showProfilerAnalysis(df, tableName):
 def query(ses):
     startTime = queryTime = int(round(time.time() * 1000))
     endTime = 0
-    with st.expander("**Query and analysis** 🔧", expanded=False):
+    with st.expander("**Query and analysis** 🔧"):
         col1,col2 = st.columns(2)
         with col1:
             #lastQuery = ses["queries"][len(ses["queries"]) - 1] if len(ses["queries"]) > 0 else ""
@@ -161,15 +175,16 @@ def query(ses):
                 else:
                     st.write(df.head(len(df.columns)))
 
-                if (st.button("Download full result")):
-                    st.write("Download table")
-                    file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
-                    if file_type == "CSV":
-                        file = convert_df(df)
-                        st.download_button("Download dataframe", file, "report.csv", "text/csv", use_container_width=True)
-                    elif file_type == "Excel":
-                        file = convert_excel(df)
-                        st.download_button("Download dataframe", file, "report.xlsx", use_container_width=True)
+                if (st.button("Download CSV")):
+                    #st.write("Download table")
+                    #file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
+                    #print("File type:"+file_type)
+                    #if file_type == "CSV":
+                    exportedData = convert_df(df)
+                    fileType="text/csv"
+                    file_name="report.csv"
+                    st.download_button("Click to download the file", data=exportedData, file_name=file_name, mime=fileType, use_container_width=True)
+                    
                 
                 st.write("Save as a new table")
                 tableName = st.text_input('Table name', 'table', key='newTableName1')

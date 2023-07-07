@@ -1,10 +1,16 @@
+import streamlit as st
+
 import boto3
 import requests
 import json
 import pandas as pd
 
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codecommit.html
-client = boto3.client('codecommit')
+client = None
+try:
+    client = boto3.client('codecommit')
+except Exception as e:
+    print("Error connecting to AWS: " + str(e))
 
 class dotdict(dict):
     __getattr__ = dict.get
@@ -28,6 +34,9 @@ def getDefinition(repositoryName, environment, api_domain, context):
     return data
 
 def getRepositories(repositoryName = None):
+    if (client is None):
+        st.write("If you want to connect to your AWS Codecommit account you have to configure your AWS credentials in secrets.toml file")
+        return []
     print("Getting repositories")
     if (repositoryName is not None):
         return [repo['repositoryName'] for repo in client.list_repositories()['repositories'] if repositoryName.lower() in repo['repositoryName'].lower()]
@@ -158,6 +167,8 @@ def postApi(url, body):
         print ("Timeout Error:", errt)
     except requests.exceptions.RequestException as err:
         print ("Something went wrong", err)
+    except Exception as e:
+        print("Error calling API: " + str(e))
     return None
     
 def getMethodInfoFromExample(url):
