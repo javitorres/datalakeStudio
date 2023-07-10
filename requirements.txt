@@ -9,4 +9,4 @@ plotly==5.4.0
 psutil==5.9.0
 psycopg2-binary==2.9.2
 Requests==2.31.0
-streamlit==1.24.0
+streamlit==1.22.0

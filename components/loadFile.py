@@ -17,7 +17,7 @@ def s3SearchFile(ses, s3_bucket, s3SearchText):
             return
 
 def loadDataFromFile(ses, s3_bucket):
-    with st.expander("**Load data from files** 📂", expanded=True):
+    with st.expander("**Load data from files** 📂"):
         fcol1,fcol2,fcol3 = st.columns([4, 2, 1])
         with fcol1:
             ses["s3SearchText"]= st.text_input('Local file, folder, http link or find S3 file 👇', ses["s3SearchText"], key='s3SearchText')

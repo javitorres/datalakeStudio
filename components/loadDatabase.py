@@ -4,7 +4,7 @@ import services.remoteDbService as remoteDb
 
 
 def loadDataFromDatabase(ses):
-    with st.expander("**Load data from a Database** 🛢️", expanded=True):
+    with st.expander("**Load data from a Database** 🛢️"):
         c1, c2 = st.columns((1, 1))
         with c1:
             st.text_input("Search text", key="database_search_text")

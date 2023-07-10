@@ -170,10 +170,11 @@ def query(ses):
                 st.write("Records: " + str(len(df)))
             with col2:
                 st.markdown("#### Sample data")
-                if (len(df.columns) < 10):
-                    st.write(df.head(10))
+                sampleSize = st.text_input("Sample size", key="sampleSize", value="100")
+                if (df.shape[0] > int(sampleSize)):
+                    st.write(df.head(int(sampleSize)))
                 else:
-                    st.write(df.head(len(df.columns)))
+                    st.write(df.head(df.shape[0]))
 
                 if (st.button("Download CSV")):
                     #st.write("Download table")

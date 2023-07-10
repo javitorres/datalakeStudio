@@ -33,7 +33,7 @@ def tablesTool(ses):
         print("No tables loaded")
 
     if (tableListArray is not None and len(tableListArray) > 0):
-        with st.expander(label="**Tables** 📄", expanded=True):
+        with st.expander(label="**Tables** 📄"):
             tableListArray = tableListArray + (10 - len(tableListArray)) * ["-"]
             tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8, tab9, tab10 = st.tabs(tableListArray)
             with tab1:showTableScan(tableListArray[0])
