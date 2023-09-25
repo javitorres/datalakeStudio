@@ -31,7 +31,7 @@ def loadTable(tableName, fileName, ses):
     print("Loading table " + tableName + " from " + fileName)
     duckdb.query("DROP TABLE IF EXISTS "+ tableName )
     
-    if (fileName.endswith(".csv")):
+    if (fileName.endswith(".csv") or fileName.endswith(".tsv")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
     elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
         duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
@@ -42,7 +42,7 @@ def loadTable(tableName, fileName, ses):
     if (r is not None):
         r.show()
     else:
-        print("No tables loaded")
+        print("duckDbService: No tables loaded")
 
 def runQuery(query):
     try:

@@ -8,8 +8,8 @@ RUN pip install --upgrade pip &&\
     pip install --no-cache-dir -r requirements.txt
 
 COPY *.py .
-COPY components/* ./components
-COPY services/* ./services
+COPY components/* ./components/
+COPY services/* ./services/
 
 
 COPY images/logo.png ./images/

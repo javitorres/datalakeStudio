@@ -59,7 +59,7 @@ def showTableScanMini(tableName):
             st.write(tableDf.head(1000))
 
 def apiTool(ses):
-    with st.expander("**Get data from external API** 🌐", expanded=False):
+    with st.expander("**Get data from external API** 🌐", expanded=True):
         tableTmp=None
         c1, c2 = st.columns((1, 1))
         ###### File Section
@@ -166,7 +166,7 @@ def apiTool(ses):
                     r = apiService.getApi(url)
                     if (r is not None):
                         if (r.status_code != 200):
-                            st.write("Error calling API: " + str(r.status_code))
+                            st.write("Error calling API: " + str(r.status_code) + " " + str(r.content))
                         else:
                             jsonString = json.dumps(r.json(), indent=4)
                             st.text_area("Response", value=jsonString, height=400)

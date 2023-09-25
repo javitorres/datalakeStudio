@@ -176,7 +176,7 @@ def query(ses):
                 else:
                     st.write(df.head(df.shape[0]))
 
-                if (st.button("Download CSV")):
+                if (st.button("Download CSV", key="downloadCsv")):
                     #st.write("Download table")
                     #file_type = st.radio("Doanload as:", ("CSV", "Excel"), horizontal=True, label_visibility="collapsed")
                     #print("File type:"+file_type)

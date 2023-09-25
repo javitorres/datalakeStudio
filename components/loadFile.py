@@ -1,6 +1,7 @@
 import streamlit as st
 import services.s3IndexService as s3Index
 import services.duckDbService as db
+import os
 
 
 def s3SearchFile(ses, s3_bucket, s3SearchText):

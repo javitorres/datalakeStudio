@@ -2,6 +2,10 @@
 import streamlit as st
 import services.duckDbService as db
 
+@st.cache_data
+def convert_df(df):
+    return df.to_csv().encode('utf-8')
+
 def showTableScan(tableName):
     ses = st.session_state.sessionObject
     if (tableName != "-"):
@@ -9,7 +13,7 @@ def showTableScan(tableName):
             #tableDf = None
             db.runQuery("DROP TABLE "+ tableName)
             st.experimental_rerun()
-        tableDf = db.runQuery("SELECT * FROM "+ tableName +" LIMIT 1000")
+        tableDf = db.runQuery("SELECT * FROM "+ tableName)
         c1,c2 = st.columns([1, 7])
         with c1:
             st.write("Schema")
@@ -18,6 +22,12 @@ def showTableScan(tableName):
         with c2:
             st.write("Sample data (1000)")
             st.write(tableDf.head(1000))
+        
+        if (st.button("Download CSV", key="downloadCsvTable_" + tableName  )):
+            exportedData = convert_df(tableDf)
+            fileType="text/csv"
+            file_name="report.csv"
+            st.download_button("Click to download the file", data=exportedData, file_name=file_name, mime=fileType, use_container_width=True)
         
         #if (ses["loadedTables"][tableName]["profile"] is not None or st.button("Show profiler analysis", key="profiler_"+tableName)):
         #    showProfilerAnalysis(tableDf, tableName)
