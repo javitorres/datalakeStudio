@@ -1,4 +1,4 @@
-FROM python:3.8
+FROM madiva/python:latest
 
 WORKDIR /app
 
