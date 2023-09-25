@@ -5,9 +5,9 @@ import os
 
 
 def s3SearchFile(ses, s3_bucket, s3SearchText):
-    print("Searching in S3: " + s3SearchText)
+    print("Searching in S3 bucket " + s3_bucket + ": " + s3SearchText)
     if (s3SearchText and not s3SearchText.startswith('/') and not s3SearchText.startswith('http')):
-        with st.spinner('Searching in S3...'):
+        with st.spinner('Searching in S3 bucket ' + s3_bucket + '...'):
             ses["candidates"] = []
             s3Paths = s3Index.s3Search(s3_bucket, s3SearchText)
             if len(s3Paths) > 5:
@@ -22,10 +22,16 @@ def loadDataFromFile(ses, s3_bucket):
         fcol1,fcol2,fcol3 = st.columns([4, 2, 1])
         with fcol1:
             ses["s3SearchText"]= st.text_input('Local file, folder, http link or find S3 file 👇', ses["s3SearchText"], key='s3SearchText')
+            if (s3_bucket is None):
+                bucket = st.text_input('S3 bucket', '', key='s3_bucket')
+            else:
+                st.write("S3 bucket: " + s3_bucket)
+
+
             if (st.button("Search")):
+                st.write("s3_bucket: " + str(s3_bucket) + " bucket: " + str(bucket))
                 if (s3_bucket is None):
-                    st.write("No S3_BUCKET defined use parameter '-- YOUR_BUCKET_NAME'")
-                    return
+                    s3SearchFile(ses, bucket, str(ses["s3SearchText"]))
                 else:
                     s3SearchFile(ses, s3_bucket, str(ses["s3SearchText"]))
 
