@@ -1,0 +1,10 @@
+namespace: default #valor por defecto, no cambiar
+project: datalakestudio # nombre del proyecto
+test: false # habilitar o deshabilitar test
+ansible_repo: ssh://git-codecommit.us-east-1.amazonaws.com/v1/repos/Ansible
+region: eu-west-1 # Cambiar la región en caso de que se mueva a Irlanda el proyecto
+ansiblePlaybookPath: "playbooks/k8s_create_role.yml"
+ecr: "true" #si es software madiva tiene que estar en true para que se suba al repositorio ECR
+k8s: "true"
+shared: "true"
+

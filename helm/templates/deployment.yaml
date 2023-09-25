@@ -1,0 +1,173 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name | lower }}
+  labels:
+    app: {{ .Chart.Name | lower }}
+    env: {{ .Values.environment }}
+  annotations:
+    prometheus.istio.io/merge-metrics: "false"
+spec:
+  {{- if or (eq .Values.environment "PRO") (eq .Values.environment "SHARED")}}
+  replicas: {{.Values.deployment.autoscaling.minreplicas}}
+  {{- else}}
+  replicas: 1
+  {{- end}}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name | lower }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name | lower }}
+        env: {{ .Values.environment }}
+        {{- if ( .Values.disableistio ) }}
+        sidecar.istio.io/inject: "false"
+        {{- else}}
+        sidecar.istio.io/inject: "true"
+        {{- end}}
+      annotations: 
+        inject.istio.io/templates: sidecar
+    spec:
+      {{- if ( .Values.antiaffinity )}}
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - {{ .Values.antiaffinity }}
+            topologyKey: kubernetes.io/hostname
+      {{- end}}
+      serviceAccountName: {{ .Chart.Name | lower }}
+      automountServiceAccountToken: true
+      containers:
+      - name: {{ .Chart.Name | lower }}
+        image: {{ .Values.deployment.image }}
+        {{- if (eq .Values.oldapps true) }}
+        ports:
+          - name: ajp
+            containerPort: {{ .Values.service.ports.containerport }}
+          - name: http
+            containerPort: 8080
+        {{- else}}
+        ports:
+          - name: http
+            containerPort: {{ .Values.service.ports.containerport }}
+        {{- end}}
+        volumeMounts:
+        {{- if (eq .Values.volumes.configvolume.enabled true) }}
+            - name: {{ .Values.volumes.configvolume.name }}
+              mountPath: {{ .Values.volumes.configvolume.mountpath }}
+        {{- end}}
+        {{- if (eq .Values.volumes.datavolume.enabled true) }}
+            - name: {{ .Values.volumes.datavolume.name }}
+              mountPath: {{ .Values.volumes.datavolume.mountpath }}
+        {{- end}}
+        {{- if (eq .Values.volumes.enable_nfs_volumes true) }}
+        {{- range .Values.volumes.nfsvolumes }}
+            - name: {{ .name }}
+              mountPath: {{ .mountpath }}
+        {{- end}} 
+        {{- end}} 
+        env:
+          {{- if (eq .Values.deployment.springboot true) }}
+          - name: "SPRING_PROFILES_ACTIVE"
+            value: {{ .Values.environment | lower }}
+          {{- end}}
+        {{- range .Values.deployment.environment }}
+          - name: {{ .name }}
+            value: {{ .value | quote }}
+        {{- end}} 
+        resources:
+          limits:
+              memory: {{ .Values.deployment.resources.limit.ram }}
+              {{- if ( .Values.deployment.resources.limit.cpu )}}
+              cpu: {{ .Values.deployment.resources.limit.cpu }}
+              {{- end}}
+          requests:
+              memory: {{ .Values.deployment.resources.request.ram }} 
+              {{- if ( .Values.deployment.resources.request.cpu )}}
+              cpu: {{ .Values.deployment.resources.request.cpu }}
+              {{- end}}
+      {{- if (.Values.deployment.healthcheck.path)}}
+        readinessProbe:
+          exec:
+            command:
+            - curl
+            {{- if (eq .Values.oldapps true) }}
+            - http://127.0.0.1:8080{{ .Values.deployment.healthcheck.path}}
+            {{- else}}
+            - http://127.0.0.1:{{ .Values.service.ports.containerport }}{{ .Values.deployment.healthcheck.path}}
+            {{- end}}
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          {{- if or (eq .Values.nodegroup "aggregatorplus") ( .Values.slow_service )}}
+          timeoutSeconds: 60
+          {{- else if (.Values.deployment.healthcheck.timeout)}}
+          timeoutSeconds: {{ .Values.deployment.healthcheck.timeout }}
+          {{- else}}
+          timeoutSeconds: 1
+          {{- end}}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.deployment.healthcheck.path }}
+            {{- if (eq .Values.oldapps true) }}
+            port: 8080
+            {{- else}}
+            port: {{ .Values.service.ports.containerport }}
+            {{- end}}
+          failureThreshold: {{ .Values.deployment.healthcheck.failure }}
+          periodSeconds: {{ .Values.deployment.healthcheck.interval }}
+          {{- if or (eq .Values.nodegroup "aggregatorplus") ( .Values.slow_service )}}
+          timeoutSeconds: 60
+          {{- else}}
+          timeoutSeconds: 1
+          {{- end}}
+        startupProbe:
+          httpGet:
+            path: {{ .Values.deployment.healthcheck.path }}
+            {{- if (eq .Values.oldapps true) }}
+            port: 8080
+            {{- else}}
+            port: {{ .Values.service.ports.containerport }}
+            {{- end}}
+          failureThreshold: {{ .Values.deployment.healthcheck.startupfailure }}
+          periodSeconds: {{ .Values.deployment.healthcheck.interval }}
+          {{- if or (eq .Values.nodegroup "aggregatorplus") ( .Values.slow_service )}}
+          timeoutSeconds: 60
+          {{- else}}
+          timeoutSeconds: 1
+          {{- end}}
+      {{- end}}
+      {{- if or (eq .Values.environment "DEV") (eq .Values.environment "PRE") (eq .Values.environment "PRO")}}
+      nodeSelector: 
+        nodegroup: {{ .Values.nodegroup}}
+      {{- end}}  
+      volumes:
+      {{- if (eq .Values.volumes.configvolume.enabled true) }}
+      - name: {{ .Values.volumes.configvolume.name }}
+        configMap:
+          name: {{ .Chart.Name | lower }}
+      {{- end }}  
+      {{- if (eq .Values.volumes.datavolume.enabled true) }}
+      - name: {{ .Values.volumes.datavolume.name }}
+        persistentVolumeClaim:
+          claimName: {{ .Chart.Name | lower }}
+      {{- end }}  
+      {{- if (eq .Values.volumes.enable_nfs_volumes true) }}
+      {{- range .Values.volumes.nfsvolumes }}
+      - name: {{ .name }}
+        nfs:
+          server: {{ .server }}
+          path: {{ .path }}
+      {{- end }}  
+      {{- end }}  
+
+      
+      
+          
+        
+        

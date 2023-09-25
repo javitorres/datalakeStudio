@@ -1,0 +1,61 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: {{ .Chart.Name | lower }}
+  labels:
+    app: {{ .Chart.Name | lower }}
+    env: {{ .Values.environment }}
+spec:
+  hosts:
+  - "{{ .Chart.Name | lower }}.{{ .Values.environment | lower }}.madiva.vpn"
+  - "{{ .Chart.Name | lower }}.madiva.local"
+  {{- if (.Values.casserver)}}
+  - "cas.inmoconsulta.com"
+  - "cas.pro.inmoconsulta.com"
+  {{- end}}
+  gateways:
+  - {{ .Chart.Name | lower }}
+  - mesh
+  {{- if (eq .Values.oldapps true) }}
+  tcp:
+  - match:
+    - port: {{ .Values.oldapps_port }}
+    route:
+    - destination:
+        host: "{{ .Chart.Name | lower }}.{{ .Values.namespace }}.svc.cluster.local"
+        port:
+          number: {{ .Values.service.ports.containerport }}
+  {{- else}}
+  http:
+  - name: {{ .Chart.Name | lower }}
+    route:
+    - destination:
+        host: "{{ .Chart.Name | lower }}.{{ .Values.namespace }}.svc.cluster.local"
+        port:
+          number: 80
+    retries:
+      {{- if or (eq .Values.nodegroup "aggregatorplus") ( .Values.slow_service )}}
+        {{- if ( .Values.service.attempts ) }}
+      attempts: {{ .Values.service.attempts }}
+        {{- else}}
+      attempts: 1
+        {{- end}}
+        {{- if ( .Values.service.timeout ) }}
+      perTryTimeout: {{ .Values.service.timeout }}
+        {{- else}}
+      perTryTimeout: 120s
+        {{- end}}
+      {{- else}}
+        {{- if ( .Values.service.attempts ) }}
+      attempts: {{ .Values.service.attempts }}
+        {{- else}}
+      attempts: 2
+        {{- end}}
+        {{- if ( .Values.service.timeout ) }}
+      perTryTimeout: {{ .Values.service.timeout }}
+        {{- else}}
+      perTryTimeout: 15s
+        {{- end}}
+      retryOn: gateway-error,connect-failure,refused-stream
+      {{- end}}
+  {{- end}}

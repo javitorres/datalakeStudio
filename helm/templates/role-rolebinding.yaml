@@ -1,0 +1,25 @@
+{{- if ( .Values.aggregatorplusapi ) }}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: {{ .Chart.Name | lower }}
+rules:
+- apiGroups: ["extensions", "apps"]
+  resources: ["deployments/scale","deployments"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Chart.Name | lower }}
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ .Chart.Name | lower }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Chart.Name | lower }}
+    namespace: default
+{{- end}}

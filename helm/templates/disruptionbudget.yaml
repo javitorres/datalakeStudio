@@ -1,0 +1,15 @@
+{{- if (eq .Values.environment "PRO")}}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ .Chart.Name | lower }}
+spec:
+  {{- if eq (.Values.deployment.autoscaling.maxreplicas | int) 1 }}
+  maxUnavailable: 100%
+  {{- else}}
+  maxUnavailable: 50%
+  {{- end}}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name | lower }}
+{{- end}}

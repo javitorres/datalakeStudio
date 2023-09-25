@@ -1,0 +1,35 @@
+{{- if (eq .Values.volumes.datavolume.enabled true) }}
+kind: StorageClass
+apiVersion: storage.k8s.io/v1
+metadata:
+  name: {{ .Chart.Name | lower }}
+provisioner: efs.csi.aws.com
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: {{ .Chart.Name | lower }}
+spec:
+  capacity:
+    storage: {{ .Values.volumes.datavolume.capacity }}
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: {{ .Values.volumes.datavolume.reclaimpolicy }}
+  storageClassName: efs-sc
+  csi:
+    driver: efs.csi.aws.com
+    volumeHandle: {{ .Values.volumes.datavolume.efsvolid }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Chart.Name | lower }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-sc
+  resources:
+    requests:
+      storage: {{ .Values.volumes.datavolume.capacity }}
+{{- end}}

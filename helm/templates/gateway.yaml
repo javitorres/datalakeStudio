@@ -1,0 +1,37 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: {{ .Chart.Name | lower }}
+  namespace: default
+  labels:
+    app: {{ .Chart.Name | lower }}
+    env: {{ .Values.environment }}
+spec:
+  selector:
+    istio: ingressgateway
+  servers:
+  {{- if (eq .Values.oldapps true) }}
+  - port:
+      number: {{ .Values.oldapps_port }}
+      name: tcp
+      protocol: TCP
+    hosts:
+    - "{{ .Chart.Name | lower }}.{{ .Values.environment | lower }}.madiva.vpn"
+    - "{{ .Chart.Name | lower }}.madiva.local"
+  {{- else}}
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "{{ .Chart.Name | lower }}.{{ .Values.environment | lower }}.madiva.vpn"
+    - "{{ .Chart.Name | lower }}.madiva.local"
+    {{- if (.Values.casserver)}}
+    - "cas.inmoconsulta.com"
+    - "cas.pro.inmoconsulta.com"
+    {{- end}}
+  {{- end}}  
+
+  
+
+

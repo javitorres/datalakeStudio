@@ -1,0 +1,77 @@
+{{- if not (hasKey .Values "disablehpa") }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ .Chart.Name | lower }}
+  labels:
+    app: {{ .Chart.Name | lower }}
+    env: {{ .Values.environment }}
+  annotations:
+    metric-config.object.istio-requests-total.prometheus/per-replica: "true"
+    metric-config.object.istio-requests-total.prometheus/query: |
+       sum(
+          rate(
+            istio_requests_total{
+              destination_workload="{{ .Chart.Name | lower }}",
+              destination_workload_namespace="default"
+            }[1m]
+          )
+        ) /
+        count(
+          count(
+            container_memory_usage_bytes{
+              namespace="default",
+              pod=~"{{ .Chart.Name | lower }}.*"
+            }
+          ) by (pod)
+        )
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Chart.Name | lower }}
+  {{- if or (eq .Values.environment "PRO") (eq .Values.environment "SHARED")}}
+  {{- if (eq .Values.oldapps true) }}
+  minReplicas: 1
+  maxReplicas: 1
+  {{- else}}
+  minReplicas: {{ .Values.deployment.autoscaling.minreplicas }}
+  maxReplicas: {{ .Values.deployment.autoscaling.maxreplicas }}
+  {{- end}}
+  {{- else }}
+  minReplicas: 1
+  {{- if (eq .Values.oldapps true) }}
+  maxReplicas: 1
+  {{- else}}
+  maxReplicas: {{ .Values.deployment.autoscaling.maxreplicas }}
+  {{- end}}
+  {{- end }}
+  metrics:
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     target:
+  #       type: Utilization
+  #       averageUtilization: {{ .Values.deployment.autoscaling.targetcpuutilization }}
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 90
+  - type: Object
+    object:
+      metric:
+       name: istio-requests-total
+      describedObject:
+        apiVersion: v1
+        kind: Pod
+        name: {{ .Chart.Name | lower }}
+      target:
+        type: Value
+        {{- if (.Values.deployment.autoscaling.requestpersecond)}}
+        value: "{{ .Values.deployment.autoscaling.requestpersecond }}m"
+        {{- else}}
+        value: "10000m"
+        {{- end}}
+{{- end}}

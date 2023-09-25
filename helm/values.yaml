@@ -1,0 +1,81 @@
+namespace: default # NO TOCAR
+role_arn: #NO TOCAR, rol del pod, se rellena automáticamente por jenkins
+environment: "SHARED" # NO TOCAR, lo modifica jenkins automáticamente.
+oldapps: false # solo se pone a true para las aplicaciones antiguas
+oldapps_port: # solo se rellena si oldapp es true
+#slow_service: "true" # se descomenta para servicios cuyas peticiones tardan más de 15 segundos en ser resueltas ()
+disablehpa: "true" # se descomenta si queremos que un servicio no tenga autoscaling (útil para scraper agregación)
+#antiaffinity: kongk8s # sirve para decirle a k8s que no schedule un pod en el mismo host que otro servicio.
+#stickysession: true # sirve para activar sticky sessions por el nombre que definamos en cookieName, si no ponemos sera CASTGC
+#cookieName: CASTGC # nombre de la cookie por la que haremos sticky session, si no se declara es CASTGC por defecto
+nodegroup: default # selección grupo de nodos, opciones: default, aggregatorplus y batch
+deployment:
+  springboot: true # Si es proyecto Springboot true, si no false.
+  image: "nginx:latest" #NO TOCAR, se sobreescibe desde jenkins.
+  autoscaling:
+    minreplicas: 1 #  número de replicas mínimo del pod, en DEV/PRE es 1 automáticamente 
+    maxreplicas: 1 # número de replicas máximo del pod
+    requestpersecond: 10000 # (se divide entre 1000) número de peticiones por segundo a un pod para que escale hacia arriba
+  healthcheck:
+      path: "/" # path del contenedor donde hacemos el healthcheck si lo quitamos no se hacen healthchecks
+      interval: 10 # intervalo de tiempo del healthcheck en segundos
+      failure: 2  # número de healthcheck para considerar un pod fallido
+      startupfailure: 30 # número de fallos que puede tener en su primer arranque, válido para arranques lentos
+      timeout: 1 # número de segundos de timeout del healthcheck, en servicios con uso de cpu intensivo interesa subirlo
+  resources:
+    request:
+      ram: "1024Mi" # megas de ram asignados al POD
+      # cpu: "0.125" #número de cores de cpu asignados al POD se descomenta si queremos reservar cpu para un pod
+    limit:
+      ram: "4096Mi" # megas de ram de consumo máximo si sobran recursos en el cluster
+      # cpu: "0.250" #número de cores de cpu de consumo máximo si sobran recursos en el cluster se descomenta si queremos reservar cpu para un pod
+  environment: #variables de entorno
+    - name: "var1"
+      value: "var1value"
+    - name: "var2"
+      value: "var2value"
+
+service:
+  type: "ClusterIP" # NO TOCAR, tipo de servicio kubernetes.
+  timeout: 15s # valor en segundos para que el servicio de un timeout si no responde, sino existe el default es 15 y 120 para slowservice: "true"
+  attempts: 2 # número de reintentos para dar timeout del servicio, si no existe el default es 2 y 1 para los slow services
+  ports:
+    protocol: "TCP" # NO TOCAR
+    containerport: 8501 # puerto del contenedor
+
+#En esta sección configuramos volúmenes solo si son necesarios, por norma general no lo son.
+volumes:
+  datavolume: #configuración para volumen de datos AWS-EFS
+    enabled: false #true o false para habilitar volumen de datos  
+    name: "data"
+    efsvolid: "fs-efd908db" #id del volumen de AWS-EFS
+    capacity: "1Gi" #tamaño del volumen de datos
+    reclaimpolicy: "Delete" #Retain,Delete o Recicle
+    mountpath: "/data/" # si tiene volumen de datos donde lo montamos
+
+  configvolume: #configuración para volumen de configuración
+    enabled: false  #true o false para habilitar volumen de config
+    name: "config"
+    mountpath: "/etc/config_example/"
+    configfiles: #para montar un fichero como volumen
+      config.conf: | 
+        Hello world
+      config2.conf: |
+        Hello world 2
+
+  enable_nfs_volumes: false
+  nfsvolumes:  #configuracion para montar un volumen de red NFS
+    - name: "static" 
+      enabled: false #true o false para habilitar volumen de datos  
+      server: "10.50.10.107"
+      path: "/"
+      mountpath: "/madiva/zZz_Static" # punto de montaje
+    - name: "binarios"
+      enabled: false #true o false para habilitar volumen de datos  
+      server: "10.50.10.155"
+      path: "/"
+      mountpath: "/madiva/zZz_Binarios" # punto de montaje
+
+
+
+

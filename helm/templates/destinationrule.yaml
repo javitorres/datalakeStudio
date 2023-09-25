@@ -1,0 +1,14 @@
+{{- if or (.Values.casserver) (.Values.stickysession)}}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ .Chart.Name | lower }}
+spec:
+  host: "{{ .Chart.Name | lower }}.{{ .Values.namespace }}.svc.cluster.local"
+  trafficPolicy:
+    loadBalancer:
+      consistentHash:
+        httpCookie:
+          name: {{ .Values.cookieName | default "CASTGC" }}
+          ttl: 0s
+{{- end}}    
