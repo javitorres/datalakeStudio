@@ -7,4 +7,10 @@ ansiblePlaybookPath: "playbooks/k8s_create_role.yml"
 ecr: "true" #si es software madiva tiene que estar en true para que se suba al repositorio ECR
 k8s: "true"
 shared: "true"
+task_policies:
+  - name: s3
+    allow:
+      - "s3:*"
+    resources:
+      - "*"
 
