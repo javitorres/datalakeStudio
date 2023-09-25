@@ -4,6 +4,7 @@ import time
 
 index = None
 indexBuildingTime = 0
+previousBucket = None
 
 def buildIndex(bucket_name):
     print ("Building index...")
@@ -21,6 +22,12 @@ def buildIndex(bucket_name):
 def s3Search(bucket, fileName):
     global index
     global indexBuildingTime
+    global previousBucket
+
+    if (bucket!=previousBucket):
+        index = None
+        previousBucket = bucket
+    
     if (index == None) or time.time() - indexBuildingTime > 300:
         index = buildIndex(bucket)
         indexBuildingTime = time.time()
