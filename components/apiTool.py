@@ -47,16 +47,17 @@ def writeInParameters(methodInfo):
     return inParameters
 
 def showTableScanMini(tableName):
-    ses = st.session_state.sessionObject
-    tableDf = db.runQuery("SELECT * FROM " + tableName + " LIMIT 1000")
-    c1,c2 = st.columns([1, 7])
-    if (tableDf is not None):
-        with c1:
-            st.write("Schema")
-            st.write(tableDf.dtypes)
-        with c2:
-            st.write("Sample data (1000)")
-            st.write(tableDf.head(1000))
+    if (tableName is not None):
+        ses = st.session_state.sessionObject
+        tableDf = db.runQuery("SELECT * FROM " + tableName + " LIMIT 1000")
+        c1,c2 = st.columns([1, 7])
+        if (tableDf is not None):
+            with c1:
+                st.write("Schema")
+                st.write(tableDf.dtypes)
+            with c2:
+                st.write("Sample data (1000)")
+                st.write(tableDf.head(1000))
 
 def apiTool(ses):
     with st.expander("**Get data from external API** 🌐", expanded=True):

@@ -1,6 +1,6 @@
 boto3==1.26.133
 DataProfiler==0.8.9
-duckdb==0.8.1
+duckdb==0.9.1
 numpy==1.24.2
 openai==0.27.6
 pandas==1.5.3
