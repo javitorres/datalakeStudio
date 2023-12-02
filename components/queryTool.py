@@ -197,70 +197,72 @@ def query(ses):
             
             #if (st.button("Show profiler analysis")):
                 #showProfilerAnalysis(df, "query_")
+
+            if (st.button("Run analysis over query", key="runAnalysis")):
             
-            if (("lat" in df.columns and "lon" in df.columns) or
-                ("latitude" in df.columns and "longitude" in df.columns)):
+                if (("lat" in df.columns and "lon" in df.columns) or
+                    ("latitude" in df.columns and "longitude" in df.columns)):
 
-                st.header("Detected spatial data")
-                st.map(df)
-            else:
-                st.header("No spatial data detected")
-                st.write("Spatial fields should be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be plotted in a map, use a SQL query to rename them if needed: Ej: Latitude as lat, Longitude as lon")
-
-            st.header("Column data analysis")
-
-            for col in df.columns:
-                if (col.startswith("grp_")):
-                    continue
-                st.divider()
-                st.markdown("####  " + col)
-                query='SELECT "' + col + '", count(*) as quantity FROM df GROUP BY "' + col + '" ORDER BY quantity DESC'
-                groupByValue = db.runQuery(query)
-                distinctValues = len(groupByValue)
-                rcol1,rcol2 = st.columns([4, 2])
-                if df[col].dtype == 'object' or df[col].dtype == 'bool':
-                    with rcol1:
-                        if distinctValues < 100:
-                            fig = px.pie(groupByValue, values='quantity', names=col, title=f"{col} Pie Chart")
-                            st.plotly_chart(fig, use_container_width=True)
-                        else:
-                            st.write("Too many values ("+str(distinctValues)+") in "+col+" to plot a chart")
-                        
-                    with rcol2:  
-                        st.write(df[col].describe())
-                elif str(df[col].dtype).startswith('datetime'):
-                    with rcol1:
-                        st.write("Datetime column has no plots yet")
-                    with rcol2:
-                        st.write(df[col].describe())
+                    st.header("Detected spatial data")
+                    st.map(df)
                 else:
-                    if (df[col].describe()["std"] == 0):
-                        st.write("Column "+col+" has always the same value: " + str(df[col].iloc[0]))
-                    else:
+                    st.header("No spatial data detected")
+                    st.write("Spatial fields should be named 'lat', 'latitude', 'LAT', 'LATITUDE' AND 'lon', 'longitude', 'LON', 'LONGITUDE' to be plotted in a map, use a SQL query to rename them if needed: Ej: Latitude as lat, Longitude as lon")
+
+                st.header("Column data analysis")
+
+                for col in df.columns:
+                    if (col.startswith("grp_")):
+                        continue
+                    st.divider()
+                    st.markdown("####  " + col)
+                    query='SELECT "' + col + '", count(*) as quantity FROM df GROUP BY "' + col + '" ORDER BY quantity DESC'
+                    groupByValue = db.runQuery(query)
+                    distinctValues = len(groupByValue)
+                    rcol1,rcol2 = st.columns([4, 2])
+                    if df[col].dtype == 'object' or df[col].dtype == 'bool':
                         with rcol1:
-                            if (distinctValues < 500):
-                                fig = px.bar(groupByValue, x=col, y='quantity', title=f"{col} Bar Chart")
+                            if distinctValues < 100:
+                                fig = px.pie(groupByValue, values='quantity', names=col, title=f"{col} Pie Chart")
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
-                                num_intervals = 100
-                                q5 = df[col].quantile(0.05)
-                                q95 = df[col].quantile(0.95)
-                                if df[col].dtype == 'int64':
-                                    bins = np.arange(q5, q95 + 2, step=max(1, (q95 - q5 + 1) // num_intervals))
-                                    labels = [f"{i}-{(i + bins[1] - bins[0] - 1)}" for i in bins[:-1]]
-                                else:                                
-                                    bins = np.linspace(q5, q95, num_intervals + 1)
-                                    labels = [f"{i:.4f}-{(i + (q95 - q5) / num_intervals):.4f}" for i in bins[:-1]]
-                                if len(set(labels)) != len(labels):
-                                    raise ValueError("Labels are not unique")
-                                
-                                df['grp_'+col] = pd.cut(df[col], bins=bins, labels=labels)
-                                new_df = df.groupby('grp_' + col).size().reset_index(name='quantity')
-                                fig = px.line(new_df, x="grp_" + col, y="quantity", title=col + " Distribution")
-                                st.plotly_chart(fig, use_container_width=True)
+                                st.write("Too many values ("+str(distinctValues)+") in "+col+" to plot a chart")
+                            
                         with rcol2:  
                             st.write(df[col].describe())
-                            st.write("Distinct values:" + str(distinctValues))
+                    elif str(df[col].dtype).startswith('datetime'):
+                        with rcol1:
+                            st.write("Datetime column has no plots yet")
+                        with rcol2:
+                            st.write(df[col].describe())
+                    else:
+                        if (df[col].describe()["std"] == 0):
+                            st.write("Column "+col+" has always the same value: " + str(df[col].iloc[0]))
+                        else:
+                            with rcol1:
+                                if (distinctValues < 500):
+                                    fig = px.bar(groupByValue, x=col, y='quantity', title=f"{col} Bar Chart")
+                                    st.plotly_chart(fig, use_container_width=True)
+                                else:
+                                    num_intervals = 100
+                                    q5 = df[col].quantile(0.05)
+                                    q95 = df[col].quantile(0.95)
+                                    if df[col].dtype == 'int64':
+                                        bins = np.arange(q5, q95 + 2, step=max(1, (q95 - q5 + 1) // num_intervals))
+                                        labels = [f"{i}-{(i + bins[1] - bins[0] - 1)}" for i in bins[:-1]]
+                                    else:                                
+                                        bins = np.linspace(q5, q95, num_intervals + 1)
+                                        labels = [f"{i:.4f}-{(i + (q95 - q5) / num_intervals):.4f}" for i in bins[:-1]]
+                                    if len(set(labels)) != len(labels):
+                                        raise ValueError("Labels are not unique")
+                                    
+                                    df['grp_'+col] = pd.cut(df[col], bins=bins, labels=labels)
+                                    new_df = df.groupby('grp_' + col).size().reset_index(name='quantity')
+                                    fig = px.line(new_df, x="grp_" + col, y="quantity", title=col + " Distribution")
+                                    st.plotly_chart(fig, use_container_width=True)
+                            with rcol2:  
+                                st.write(df[col].describe())
+                                st.write("Distinct values:" + str(distinctValues))
 
             endTime = int(round(time.time() * 1000))
             st.write("Query execution time: " + str(queryTime - startTime) + " ms")

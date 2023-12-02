@@ -13,7 +13,8 @@ def showTableScan(tableName):
             #tableDf = None
             db.runQuery("DROP TABLE "+ tableName)
             st.experimental_rerun()
-        tableDf = db.runQuery("SELECT * FROM "+ tableName)
+        print("Loading to df")
+        tableDf = db.runQuery("SELECT * FROM "+ tableName + " LIMIT 1000")
         c1,c2 = st.columns([1, 7])
         with c1:
             st.write("Schema")
