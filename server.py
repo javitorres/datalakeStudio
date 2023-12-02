@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi import Response
+from fastapi.responses import JSONResponse
 
 import services.duckDbService as db
 import services.apiService as apiService
@@ -11,6 +13,20 @@ import pandas as pd
 import yaml
 
 app = FastAPI()
+
+origins = [
+    "http://localhost:8080",
+    "http://localhost",
+    "http://localhost:5173",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class Config:
     def __init__(self):
@@ -33,6 +49,11 @@ config = Config()
 # Load file into duckdb endpoint (get)
 @app.get("/loadFile")
 def loadFile(fileName: str, tableName: str):
+    if (fileName is None or tableName is None):
+        response = {"status": "error", "message": "fileName and tableName are required"}
+        return JSONResponse(content=response, status_code=400)
+    
+    print("Loading file '" + fileName + "' into table '" + tableName + "'")
     conf = config.get()
     db.init(conf)
     db.loadTable(tableName, fileName)
@@ -40,7 +61,7 @@ def loadFile(fileName: str, tableName: str):
     return {"status": "ok", "rows": df.to_json()}
 
 @app.get("/runQuery")
-def loadFile(query: str):
+def runQuery(query: str):
     r = db.runQuery(query)
     if r is not None:
         csv_data = r.to_csv(index=False)
@@ -48,16 +69,26 @@ def loadFile(query: str):
     else:
         return Response(content="Query failed or returned no data", status_code=400)    
 
-# Method to search for files in S3 (get)
 @app.get("/s3Search")
 def s3Search(bucket: str, fileName: str):
-    results = s3Service.s3Search(bucket, fileName)
-    return {"results": results}
+    print("Searching for '" + fileName + "' in bucket '" + bucket + "'")
+    if (bucket is None or fileName is None):
+        response = {"status": "error", "message": "bucket and fileName are required"}
+        return JSONResponse(content=response, status_code=400)
+    # If filename size is less than 3, return error
+    if (len(fileName) < 3):
+        response = {"status": "error", "message": "fileName must be at least 3 characters"}
+        return JSONResponse(content=response, status_code=400)
 
+    results = s3Service.s3Search(bucket, fileName)
+    # If  results array is greter than 100 items, return first 10
+    if (len(results) > 10):
+        results = results[:10]
+    return {"results": results}
 app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
 
 if __name__ == "__main__":
     import uvicorn
 
     print("Starting server...")
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8080)
