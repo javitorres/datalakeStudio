@@ -1,5 +1,3 @@
-import streamlit as st
-
 import psycopg2
 import pandas as pd
 
@@ -136,7 +134,6 @@ def runQuery(connection, query):
         df = pd.DataFrame(data, columns=column_names)
         return df
     except Exception as e:
-        st.write("Error: " + str(e))
         connection.rollback()
     finally:
         cursor.close()

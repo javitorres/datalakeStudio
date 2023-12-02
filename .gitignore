@@ -5,3 +5,10 @@ sampleData
 todo.txt
 *.dls
 mySecrets.toml
+
+secrets.yml
+misNotas.md
+.vscode/
+
+client/dist
+client/node_modules

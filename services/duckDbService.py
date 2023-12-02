@@ -1,6 +1,56 @@
 import duckdb
 
-import streamlit as st
+configLoaded = False
+db = duckdb.connect()
+
+def init(config):
+    try:
+        runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
+        runQuery("SET s3_access_key_id='" + config["s3_access_key_id"] + "';SET s3_secret_access_key='" + config["s3_secret_access_key"] +"'")
+        print("Loaded S3 credentials")
+    except Exception as e:
+        print("Error loading S3 credentials: " + str(e))
+        runQuery("INSTALL httpfs;LOAD httpfs")
+        print("No s3 credentials found")
+    
+    global configLoaded
+    configLoaded = True
+
+def loadTable(tableName, fileName):
+    global configLoaded
+    if (configLoaded == False):
+        print("Load config")
+        return None
+
+    print("Loading table " + tableName + " from " + fileName)
+    duckdb.query("DROP TABLE IF EXISTS "+ tableName )
+    
+    if (fileName.endswith(".csv") or fileName.endswith(".tsv")):
+        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
+    elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
+        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
+    elif (fileName.endswith(".json")):
+        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+    #ses["loadedTables"][tableName] = fileName
+    r = duckdb.sql('SHOW TABLES')
+    if (r is not None):
+        r.show()
+    else:
+        print("duckDbService: No tables loaded")
+
+def runQuery(query):
+    try:
+        print("Executing query: " + query)
+        r = duckdb.query(query)
+        if (r is not None):
+            return r.df()
+    except Exception as e:
+        print("Error running query: " + str(e))
+        return None
+    
+'''
+METODOS NO PROBADOS AUN
+'''    
 
 def getTableDescriptionForChatGpt(tableName):
     fields = duckdb.query("DESCRIBE "+ tableName).df()
@@ -27,33 +77,7 @@ def getTableDescription(tableName):
         print("Error getting table description: " + str(e))
         return []
 
-def loadTable(tableName, fileName, ses):
-    print("Loading table " + tableName + " from " + fileName)
-    duckdb.query("DROP TABLE IF EXISTS "+ tableName )
-    
-    if (fileName.endswith(".csv") or fileName.endswith(".tsv")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif (fileName.endswith(".json")):
-        duckdb.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    ses["loadedTables"][tableName] = fileName
-    r = duckdb.sql('SHOW TABLES')
-    if (r is not None):
-        r.show()
-    else:
-        print("duckDbService: No tables loaded")
 
-def runQuery(query):
-    try:
-        print("Executing query: " + query)
-        r = duckdb.query(query)
-        if (r is not None):
-            return r.df()
-    except Exception as e:
-        print("Error running query: " + str(e))
-        st.write("Error: " + str(e))
-        return None
         
     
 def dropAllTables():
