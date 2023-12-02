@@ -3,10 +3,17 @@ import duckdb
 configLoaded = False
 db = duckdb.connect()
 
-def init(config):
+def init(secrets, config):
+    global db
+
+    print("Secrets: " + str(secrets))
+    print("Config: " + str(config))
+    if (config["database"] is not None):
+        print("Connecting to database..." + config["database"])
+        db = duckdb.connect(config["database"])
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
-        runQuery("SET s3_access_key_id='" + config["s3_access_key_id"] + "';SET s3_secret_access_key='" + config["s3_secret_access_key"] +"'")
+        runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'")
         print("Loaded S3 credentials")
     except Exception as e:
         print("Error loading S3 credentials: " + str(e))

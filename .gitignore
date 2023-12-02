@@ -12,3 +12,4 @@ misNotas.md
 
 client/dist
 client/node_modules
+data/*

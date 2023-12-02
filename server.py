@@ -28,22 +28,55 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-class Config:
+class Secrets:
     def __init__(self):
         self._load_config()
 
     def _load_config(self):
         try:
+            print("Loading secrets...")
             with open('secrets.yml', 'r') as file:
+                self.secrets = yaml.safe_load(file)
+
+        except Exception as e:
+            print(f"Error loading secrets: {e}")
+
+        except Exception as e:
+            print(f"No secrets.yml file found")
+            self.secrets = {}
+
+    def get(self):
+        return self.secrets
+    
+
+secrets = Secrets().secrets
+
+class ServerStatus:
+    def __init__(self, secrets):
+        self._load_config()
+        print("Initializing server...")
+        print("Connecting to database..." + self.config["database"])
+        db.init(secrets, self.config)
+
+        self.serverStatus = {}
+        self.serverStatus["databaseReady"] = True
+    
+    def _load_config(self):
+        try:
+            with open('config.yml', 'r') as file:
                 self.config = yaml.safe_load(file)
         except Exception as e:
             print(f"Error loading configuration: {e}")
             self.config = {}
 
     def get(self):
-        return self.config
+        return self.serverStatus
 
-config = Config()
+serverStatus = ServerStatus(secrets)
+print("Server initialized")
+print("Serever port:" + str(serverStatus.config["port"]))
+
+
 
 
 # Load file into duckdb endpoint (get)
@@ -55,7 +88,7 @@ def loadFile(fileName: str, tableName: str):
     
     print("Loading file '" + fileName + "' into table '" + tableName + "'")
     conf = config.get()
-    db.init(conf)
+    
     db.loadTable(tableName, fileName)
     df = db.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
@@ -91,4 +124,4 @@ if __name__ == "__main__":
     import uvicorn
 
     print("Starting server...")
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=serverStatus.config["port"])
