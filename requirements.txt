@@ -1,0 +1,9 @@
+boto3==1.26.133
+fastapi==0.104.1
+openai==0.27.6
+pandas==1.5.3
+#psycopg2==2.9.9
+PyYAML==6.0.1
+Requests==2.31.0
+setuptools==59.6.0
+uvicorn==0.13.1

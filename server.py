@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 import services.duckDbService as db
 import services.apiService as apiService
-import services.remoteDbService as remoteDbService
+#import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
 
 import pandas as pd
@@ -37,10 +37,6 @@ class Secrets:
             print("Loading secrets...")
             with open('secrets.yml', 'r') as file:
                 self.secrets = yaml.safe_load(file)
-
-        except Exception as e:
-            print(f"Error loading secrets: {e}")
-
         except Exception as e:
             print(f"No secrets.yml file found")
             self.secrets = {}
@@ -55,6 +51,15 @@ class ServerStatus:
     def __init__(self, secrets):
         self._load_config()
         print("Initializing server...")
+        # Check if data folder existsin filesistem and create if not
+        if (self.config["database"] is not None):
+            print("Checking data folder...")
+            import os
+            if not os.path.exists(self.config["database"]):
+                os.makedirs("data")
+                print("Data folder created")
+        
+
         print("Connecting to database..." + self.config["database"])
         db.init(secrets, self.config)
 
