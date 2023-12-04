@@ -40,8 +40,3 @@ def s3Search(bucket, fileName):
 
     return results
 
-# Example:
-#bucket = "madiva-datalake"
-#fileName = "cargadores"
-#results = s3Search(bucket, fileName)
-#print("Results:", results)

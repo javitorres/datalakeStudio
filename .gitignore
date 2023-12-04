@@ -13,3 +13,6 @@ misNotas.md
 client/dist
 client/node_modules
 data/*
+.idea
+client/package-lock.json
+client/yarn.lock

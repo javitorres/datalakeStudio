@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi import Response
 from fastapi.responses import JSONResponse
 
-import services.duckDbService as db
+import services.duckDbService as duckDbService
 import services.apiService as apiService
 #import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
@@ -51,6 +51,7 @@ class ServerStatus:
     def __init__(self, secrets):
         self._load_config()
         print("Initializing server...")
+
         # Check if data folder existsin filesistem and create if not
         if (self.config["database"] is not None):
             print("Checking data folder...")
@@ -61,7 +62,10 @@ class ServerStatus:
         
 
         print("Connecting to database..." + self.config["database"])
-        db.init(secrets, self.config)
+        duckDbService.init(secrets, self.config)
+
+        duckDbService.init(secrets, self.config)
+
 
         self.serverStatus = {}
         self.serverStatus["databaseReady"] = True
@@ -79,10 +83,7 @@ class ServerStatus:
 
 serverStatus = ServerStatus(secrets)
 print("Server initialized")
-print("Serever port:" + str(serverStatus.config["port"]))
-
-
-
+print("Server port:" + str(serverStatus.config["port"]))
 
 # Load file into duckdb endpoint (get)
 @app.get("/loadFile")
@@ -92,11 +93,45 @@ def loadFile(fileName: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
     
     print("Loading file '" + fileName + "' into table '" + tableName + "'")
-    conf = config.get()
+
     
-    db.loadTable(tableName, fileName)
-    df = db.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    duckDbService.loadTable(tableName, fileName)
+    df = duckDbService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
+
+@app.get("/getTables")
+def getTables():
+    tableList = duckDbService.getTableList()
+    if (tableList is not None):
+        return JSONResponse(content=tableList, status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
+
+@app.get("/getTableSchema")
+def getTableSchema(tableName: str):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting schema for table " + tableName)
+    r = duckDbService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
+    if (r is not None):
+        schema_dict = r.dtypes.apply(lambda x: str(x)).to_dict()
+        return JSONResponse(content=schema_dict, status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
+
+@app.get("/getSampleData", response_class=Response)
+def getTableData(tableName: str, limit: int = 100):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting data for table " + tableName)
+    r = duckDbService.runQuery("SELECT * FROM " + tableName + " LIMIT " + str(limit))
+    if (r is not None):
+        #return JSONResponse(content=r.to_csv(index=False), status_code=200)
+        return Response(r.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
+    else:
+        return ""
 
 @app.get("/runQuery")
 def runQuery(query: str):
@@ -123,10 +158,9 @@ def s3Search(bucket: str, fileName: str):
     if (len(results) > 10):
         results = results[:10]
     return {"results": results}
+
 app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
 
 if __name__ == "__main__":
     import uvicorn
-
-    print("Starting server...")
     uvicorn.run(app, host="0.0.0.0", port=serverStatus.config["port"])
