@@ -21,7 +21,7 @@ a,
   }
 }
 
-@media (min-width: 1024px) {
+@media () {
   body {
     display: flex;
     place-items: center;

@@ -16,9 +16,16 @@
     </div>
 
     <div class="row">
+      <h2>Table {{ selectedTable }}</h2>
+      <!-- Delete button -->
+      <div class="row-md-2" v-if="selectedTable">
+        <button class="btn btn-primary m-1 opcion-style" @click="deleteTable">
+          Delete table
+        </button>
+      </div>
       <!-- Fields -->
       <div class="col-md-2" v-if="schema">
-        <h4>Schema Fields</h4>
+        <h4>Table Fields</h4>
         <ul>
           <li v-for="(type, field) in schema" :key="field">
             {{ field }} ({{ type }})
@@ -50,26 +57,30 @@ export default {
 
       tabulator: null,
       table: [],
-      
+
+      tables: [],
+      selectedTable: '',
     };
   },
-  props: {
-    tables: {
-      type: Array,
-      required: true,
-    },
+
+  mounted() {
+    this.getTables();
+    
   },
+  
   methods: {
-
-    getTables() {
-
-      axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
+    async getTables() {
+      //TODO: Quitar este getTables y que se refresquen con un emit en el pader
+      var response  = axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
         params: {
         },
       }).then((response) => {
         if (response.status === 200) {
           this.error = '';
-          this.tables = response.data.results;
+          this.tables = response.data;
+          if (this.tables.length > 0) {
+            this.clickTable(this.tables[0]);
+          }
         } else {
           this.error = `Error: HTTP ${response.message}`;
         }
@@ -84,7 +95,7 @@ export default {
       this.fileInput = S3File;
     },
 
-    loadFile() {
+    async loadFile() {
       console.log('loadFile');
       this.loading = true;
       this.info = 'Loading file please wait...';
@@ -107,6 +118,8 @@ export default {
     },
 
     async clickTable(table) {
+      console.log('clickTable on ' + table);
+      this.selectedTable = table;
       var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/getTableSchema`, {
         params: {
           tableName: table,
@@ -144,6 +157,26 @@ export default {
           
       });
 
+        } else {
+          this.error = `Error: HTTP ${response.message}`;
+        }
+      }).catch((error) => {
+        this.error = `Error: ${error.message}`;
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+
+    async deleteTable() {
+      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/deleteTable`, {
+        params: {
+          tableName: this.selectedTable,
+        },
+      }).then((response) => {
+        if (response.status === 200) {
+          this.error = '';
+          this.info = 'Table deleted successfully';
+          this.getTables();
         } else {
           this.error = `Error: HTTP ${response.message}`;
         }

@@ -61,19 +61,31 @@
       </div> <!-- col-md-6 -->
     </div> <!-- row -->
 
-    <div class="row">
-      <TablesPanel :tables=this.tables></TablesPanel>
-    </div>
+    <TablesPanel 
+      
+      >
+    </TablesPanel>
+
+    <QueryPanel
+      @tableCreated="this.getTables()"
+      
+    ></QueryPanel>
+
   </div> <!-- container-fluid -->
 </template>
 
 <script>
 import axios from 'axios';
 import TablesPanel from './TablesPanel.vue';
+import QueryPanel from './QueryPanel.vue';
 //import { get } from 'express/lib/response';
 
 export default {
   name: 'DatalakeStudio',
+  components: { 
+    TablesPanel,
+    QueryPanel,
+  },
   data() {
     return {
       fileInput: '',
@@ -151,6 +163,7 @@ export default {
       });
     },
     getTables() {
+      console.log('getTables...');
       axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
         params: {
         },
@@ -169,7 +182,7 @@ export default {
       });
     },
   },
-  components: { TablesPanel }
+  
 }
 
 

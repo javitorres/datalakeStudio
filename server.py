@@ -102,6 +102,10 @@ def loadFile(fileName: str, tableName: str):
 @app.get("/getTables")
 def getTables():
     tableList = duckDbService.getTableList()
+    # Remove __lastQuery table form the list
+    tableList = [x for x in tableList if x != "__lastQuery"]
+    print("Tables: " + str(tableList))
+
     if (tableList is not None):
         return JSONResponse(content=tableList, status_code=200)
     else:
@@ -121,7 +125,7 @@ def getTableSchema(tableName: str):
         return JSONResponse(content=[], status_code=200)
 
 @app.get("/getSampleData", response_class=Response)
-def getTableData(tableName: str, limit: int = 100):
+def getTableData(tableName: str, limit: int = 20):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
@@ -135,12 +139,36 @@ def getTableData(tableName: str, limit: int = 100):
 
 @app.get("/runQuery")
 def runQuery(query: str):
-    r = db.runQuery(query)
-    if r is not None:
-        csv_data = r.to_csv(index=False)
+    #duckDbService.loadTable("__lastquery", fileName)
+    duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
+    duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+    df = duckDbService.runQuery("SELECT *  FROM __lastQuery LIMIT 30")
+    #return {"status": "ok", "rows": df.to_json()}
+
+    if df is not None:
+        csv_data = df.to_csv(index=False)
         return Response(content=csv_data, media_type="text/csv", status_code=200)
     else:
-        return Response(content="Query failed or returned no data", status_code=400)    
+        return Response(content="Query failed or returned no data", status_code=400)   
+  
+@app.get("/createTableFromQuery")
+def createTableFromQuery(query: str, tableName: str):
+    if (query is None or tableName is None):
+        response = {"status": "error", "message": "query and tableName are required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Creating table " + tableName + " from query " + query)
+    duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+    duckDbService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+    return {"status": "ok"}
+
+@app.get("/deleteTable")
+def deleteTable(tableName: str):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Deleting table " + tableName)
+    duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+    return {"status": "ok"}
 
 @app.get("/s3Search")
 def s3Search(bucket: str, fileName: str):
