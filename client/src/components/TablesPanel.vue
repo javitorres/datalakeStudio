@@ -5,6 +5,12 @@
       <div class="col-md-12">
         <div v-if="tables && tables.length > 0">
           <ul class="list-unstyled d-flex flex-wrap">
+            <!-- None Button -->
+            <li>
+              <button class="btn btn-secondary m-1 opcion-style" @click="selectedTable = None">
+                Close tables view
+              </button>
+            </li>
             <li v-for="table in tables" :key="table.id">
               <button class="btn btn-primary m-1 opcion-style" @click="clickTable(table)">
                 {{ table }}
@@ -15,7 +21,7 @@
       </div>
     </div>
 
-    <div class="row">
+    <div class="row"  v-if="selectedTable">
       <h2>Table {{ selectedTable }}</h2>
       <!-- Delete button -->
       <div class="row-md-2" v-if="selectedTable">
@@ -43,13 +49,13 @@
 <script>
 import axios from 'axios';
 import {TabulatorFull as Tabulator} from 'tabulator-tables';
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 export default {
   name: 'TablesPanel',
   data() {
     return {
-      error: '',
-      info: '',
       serverHost: 'localhost',
       serverPort: '8080',
       schema: [],
@@ -58,7 +64,6 @@ export default {
       tabulator: null,
       table: [],
 
-      //tables: [],
       selectedTable: '',
     };
   },
@@ -77,13 +82,12 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
           this.schema = response.data;
         } else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: ${error.message}`;
+        toast.error(`Error: HTTP ${response.message}`);
       }).finally(() => {
         this.loading = false;
       });
@@ -94,7 +98,6 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
           this.sampleData = response.data;
           var columns = [];
           for (var key in this.sampleData[0]) {
@@ -109,10 +112,11 @@ export default {
       });
 
         } else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: ${error.message}`;
+        toast.error(`Error: HTTP ${error.message}`);
+        
       }).finally(() => {
         this.loading = false;
       });

@@ -8,9 +8,11 @@ import services.duckDbService as duckDbService
 import services.apiService as apiService
 #import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
+import services.chatGPTService as chatGPTService
 
 import pandas as pd
 import yaml
+import openai
 
 app = FastAPI()
 
@@ -59,13 +61,9 @@ class ServerStatus:
             if not os.path.exists(self.config["database"]):
                 os.makedirs("data")
                 print("Data folder created")
-        
 
         print("Connecting to database..." + self.config["database"])
         duckDbService.init(secrets, self.config)
-
-        duckDbService.init(secrets, self.config)
-
 
         self.serverStatus = {}
         self.serverStatus["databaseReady"] = True
@@ -197,6 +195,22 @@ def s3Search(bucket: str, fileName: str):
         results = results[:10]
     return {"results": results}
 
+@app.get("/askGPT")
+def askGPT(question: str):
+    tables = duckDbService.getTableList()
+
+    if (tables is not None and len(tables) > 0):
+        questionForChatGPT = " You have the following tables:"
+        for table in tables:
+            #if (table != "__lastQuery"):
+            questionForChatGPT += " " + duckDbService.getTableDescriptionForChatGpt(table)
+        questionForChatGPT += ". The query I need is:" + question
+
+        chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, secrets["openai_organization"], secrets["openai_api_key"])
+        print("GPT response: " + chatGPTResponse)
+    
+    return JSONResponse(content=chatGPTResponse, status_code=200)
+            
 app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
 
 if __name__ == "__main__":

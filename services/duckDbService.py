@@ -64,24 +64,26 @@ def getTableList():
     if (tableList is not None):
         tableListArray = tableList["name"].to_list()
     return tableListArray
-    
-'''
-METODOS NO PROBADOS AUN
-'''    
 
 def getTableDescriptionForChatGpt(tableName):
-    fields = duckdb.query("DESCRIBE "+ tableName).df()
+    fields = db.query("DESCRIBE "+ tableName).df()
     tableDescription = ""
     for field in fields.iterrows():
         tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
     tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
     return tableDescriptionForGPT
+    
+'''
+METODOS NO PROBADOS AUN
+'''    
+
+
 
 def getTableDescription(tableName):
     if (tableName is None):
         return []
     try:
-        fields = duckdb.query("DESCRIBE "+ tableName).df()
+        fields = db.query("DESCRIBE "+ tableName).df()
         tableDescription = ""
         for field in fields.iterrows():
             tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"

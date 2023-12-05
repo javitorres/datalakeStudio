@@ -28,7 +28,7 @@ def s3Search(bucket, fileName):
         index = None
         previousBucket = bucket
     
-    if (index == None) or time.time() - indexBuildingTime > 300:
+    if (index == None) or time.time() - indexBuildingTime > 600:
         index = buildIndex(bucket)
         indexBuildingTime = time.time()
 

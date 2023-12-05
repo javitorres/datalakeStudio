@@ -4,13 +4,13 @@
 
       <div class="col-md-6">
         <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">File</span>
-          <input id="fileInput" type="text" class="form-control" placeholder="Path to the file " aria-label="File"
+          <span class="input-group-text" id="basic-addon1">Data file to load</span>
+          <input id="fileInput" type="text" class="form-control" placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
             aria-describedby="basic-addon1" v-model="fileInput" @input="findFileInS3">
         </div>
       </div> <!-- col-md-6 -->
 
-      <div class="col-md-4">
+      <div class="col-md-4" v-if="fileInput">
         <!-- Table name input -->
         <div class="input-group mb-3">
           <span class="input-group-text" id="basic-addon1">Table</span>
@@ -19,7 +19,7 @@
         </div> 
       </div> <!-- col-md-4 -->
 
-      <div class="col-md-2">
+      <div class="col-md-2" v-if="fileInput && tableNameInput">
         <!-- Load file button -->
         <button class="btn btn-primary m-1 opcion-style" @click="loadFile">
           Load file
@@ -29,20 +29,10 @@
 
     <div class="row">
       <div class="col-md-6">
-
         <div class="row">
           <div class="col-md-2">
             <div class="spinner-border" role="status" v-if="loading">
               <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-
-          <div class="col-md-10">
-            <div class="alert alert-danger" role="alert" v-if="error">
-              {{ error }}
-            </div>
-            <div class="alert primary alert" role="alert" v-if="info">
-              {{ info }}
             </div>
           </div>
         </div>
@@ -61,14 +51,15 @@
       </div> <!-- col-md-6 -->
     </div> <!-- row -->
 
-    <TablesPanel 
+    <TablesPanel v-if="tables && tables.length > 0"
       :tables="tables"
 
       @deleteTable="this.deleteTable"
       >
     </TablesPanel>
     <br/>
-    <QueryPanel
+
+    <QueryPanel v-if="tables && tables.length > 0"
       @tableCreated="this.tableCreated"
       
     ></QueryPanel>
@@ -109,8 +100,6 @@ export default {
       serverHost: 'localhost',
       serverPort: '8080',
       loading: false,
-      error: '',
-      info: '',
       S3Files: [],
       tableNameInput: '',
       tables: [],
@@ -133,30 +122,46 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     findFileInS3() {
+      // If fileName length is less than 3 or fileName doesn start with 's3' don't search
+      if (this.fileInput.length < 5 || this.fileInput.substring(0, 2) !== 's3') {
+        this.S3Files = [];
+        //console.log('No search:"' + this.fileInput.substring(0, 3) + '"');
+        return;
+      }
+      
       this.S3Files = [];
       var response = '';
       this.loading = true;
+
+      // Remove s3 from beginning of the string
+      var fileInputCleaned = this.fileInput;
+      if (this.fileInput.substring(0, 2) === 's3'){
+        fileInputCleaned = this.fileInput.substring(3, this.fileInput.length);
+      }
+      
+
       axios.get(`http://${this.serverHost}:${this.serverPort}/s3Search`, {
         params: {
           bucket: 'madiva-datalake',
-          fileName: this.fileInput,
+          fileName: fileInputCleaned,
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
           this.S3Files = response.data.results;
         }
         else {
-          this.error = `Error: HTTP ${response.message}`;
+          //toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: HTTP ${response.data}`;
+        //toast.error(`Error: HTTP ${response.data}`);
       }).finally(() => {
         this.loading = false;
       });
     },
+    ////////////////////////////////////////////////////////////////
     clickS3File(S3File, isFile) {
       this.fileInput = S3File;
+      this.S3Files = [];
     },
     ////////////////////////////////////////////////////////////////
     loadFile() {
@@ -169,14 +174,13 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
           toast.success('Table created successfully');
         }
         else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: HTTP ${response.data}`;
+        toast.error(`Error: HTTP ${response.data}`);
       }).finally(() => {
         this.loading = false;
         this.info = '';
@@ -190,14 +194,13 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
           this.tables = response.data;
         }
         else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: HTTP ${response.data}`;
+        toast.error(`Error: HTTP ${response.data}`);
       }).finally(() => {
         this.loading = false;
       });
@@ -210,16 +213,13 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
-          
           toast.success('Table deleted successfully');
           this.getTables();
-          //this.emit("tableDeleted");
         } else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        this.error = `Error: ${error.message}`;
+        toast.error(`Error: HTTP ${error.message}`);
       }).finally(() => {
         this.loading = false;
       });

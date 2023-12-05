@@ -1,6 +1,17 @@
 <template>
  <div class="row">
    <div class="col-md-4">
+      <h4>Ask ChatGPT</h4>
+      <div class="form-group">
+        <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">
+      </div>
+      <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
+      <br/>
+      <!-- ChatGPT Response -->
+      <div v-if="!loading && chatGPTOutput">
+        <input type="text" class="form-control" id="chatGPTOutput" v-model="chatGPTOutput">
+        <button type="button" class="btn btn-primary" @click="useChatGPTAnswer">Run this query</button>
+      </div>
      <h4>Query</h4>
      <div class="form-group">
        <codemirror
@@ -13,22 +24,18 @@
 
      <br/>
      <!-- Create table from query -->
-      <div class="form-group">
+      <div class="form-group" v-if="sampleData">
+        <br/>
         <label for="tableNameInput">Create table from query</label>
         <div class="row">
-          
-
           <div class="md-col-4">
-            <input type="text" class="form-control" id="tableNameInput" v-model="tableFromQuery">
+            <input type="text" class="form-control" id="tableNameInput" placeholder="New table name" v-model="tableFromQuery">
           </div>
 
           <div class="md-col-2">
             <button type="button" class="btn btn-primary" @click="createTable">Create table</button>
           </div>
-
         </div>
-        
-        
       </div>
    </div>
 
@@ -37,15 +44,6 @@
         <div class="col-md-2">
           <div class="spinner-border" role="status" v-if="loading">
             <span class="visually-hidden">Loading...</span>
-          </div>
-        </div>
-  
-        <div class="col-md-10">
-          <div class="alert alert-danger" role="alert" v-if="error">
-            {{ error }}
-          </div>
-          <div class="alert primary alert" role="alert" v-if="info">
-            {{ info }}
           </div>
         </div>
       </div>
@@ -72,6 +70,7 @@ import 'vue3-toastify/dist/index.css';
 
 export default {
   name: 'QueryPanel',
+  
   components: {
     Codemirror,
   },
@@ -83,11 +82,14 @@ export default {
       serverHost: 'localhost',
       serverPort: '8080',
       query: 'SELECT * FROM homecenter',
-      sampleData: [],
+      sampleData: null,
 
       tabulator: null,
-      table: [],
+      table: null,
       tableFromQuery: '',
+
+      chatGPTInput: 'dame askingprice medio',
+      chatGPTOutput: '',
 
       cmOption: {
           tabSize: 4,
@@ -109,6 +111,8 @@ export default {
     };
   },
   props: {
+    tables: Object,
+    secrets: Object,
     
   },
   emits: ['tableCreated'],
@@ -144,7 +148,7 @@ export default {
         this.loading = false;
       });
     },
-
+    ///////////////////////////////////////////////////////
     async createTable() {
       var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/createTableFromQuery`, {
         params: {
@@ -165,6 +169,32 @@ export default {
       });
       
     },
+    ///////////////////////////////////////////////////////
+    async askChatGPT() {
+      this.loading = true;
+      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/askGPT`, {
+        params: {
+          question: this.chatGPTInput,
+        },
+      }).then((response) => {
+        if (response.status === 200) {
+          this.error = '';
+          this.chatGPTOutput = response.data;
+        } else {
+          this.error = `Error: HTTP ${response.message}`;
+        }
+      }).catch((error) => {
+        this.error = `Error: ${error.message}`;
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    ///////////////////////////////////////////////////////
+    async useChatGPTAnswer() {
+      this.query = this.chatGPTOutput;
+      this.runQuery();
+    },
+
     
 }
 }

@@ -4,4 +4,3 @@ openai==0.27.6
 pandas==1.5.3
 psycopg2==2.9.9
 Requests==2.31.0
-streamlit==1.22.0
