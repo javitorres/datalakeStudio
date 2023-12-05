@@ -62,12 +62,14 @@
     </div> <!-- row -->
 
     <TablesPanel 
-      
+      :tables="tables"
+
+      @deleteTable="this.deleteTable"
       >
     </TablesPanel>
-
+    <br/>
     <QueryPanel
-      @tableCreated="this.getTables()"
+      @tableCreated="this.tableCreated"
       
     ></QueryPanel>
 
@@ -78,14 +80,29 @@
 import axios from 'axios';
 import TablesPanel from './TablesPanel.vue';
 import QueryPanel from './QueryPanel.vue';
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 //import { get } from 'express/lib/response';
 
 export default {
   name: 'DatalakeStudio',
+
+  /*
+  // Toast setup
+  setup() {
+    const notify = () => {
+      toast("Wow so easy !", {
+        autoClose: 1000,
+      }); // ToastOptions
+    }
+    return { notify };
+   },
+  */
   components: { 
     TablesPanel,
     QueryPanel,
   },
+
   data() {
     return {
       fileInput: '',
@@ -99,11 +116,13 @@ export default {
       tables: [],
     };
   },
+
   mounted() {
     this.getTables();
+    
   },
-  methods: {
 
+  methods: {
     getProperty(path, defaultValue = '') {
       try {
         return path.split('.').reduce((o, i) => o[i], this);
@@ -112,7 +131,7 @@ export default {
         return defaultValue;
       }
     },
-
+    ////////////////////////////////////////////////////////////////
     findFileInS3() {
       this.S3Files = [];
       var response = '';
@@ -139,6 +158,7 @@ export default {
     clickS3File(S3File, isFile) {
       this.fileInput = S3File;
     },
+    ////////////////////////////////////////////////////////////////
     loadFile() {
       this.loading = true;
       this.info = 'Loading file please wait...';
@@ -150,6 +170,7 @@ export default {
       }).then((response) => {
         if (response.status === 200) {
           this.error = '';
+          toast.success('Table created successfully');
         }
         else {
           this.error = `Error: HTTP ${response.message}`;
@@ -162,8 +183,8 @@ export default {
         this.getTables();
       });
     },
+    ////////////////////////////////////////////////////////////////
     getTables() {
-      console.log('getTables...');
       axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
         params: {
         },
@@ -180,6 +201,32 @@ export default {
       }).finally(() => {
         this.loading = false;
       });
+    },
+    ////////////////////////////////////////////////////////////////
+    async deleteTable(table){
+      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/deleteTable`, {
+        params: {
+          tableName: table,
+        },
+      }).then((response) => {
+        if (response.status === 200) {
+          this.error = '';
+          
+          toast.success('Table deleted successfully');
+          this.getTables();
+          //this.emit("tableDeleted");
+        } else {
+          this.error = `Error: HTTP ${response.message}`;
+        }
+      }).catch((error) => {
+        this.error = `Error: ${error.message}`;
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+
+    async tableCreated(){
+      this.getTables();
     },
   },
   

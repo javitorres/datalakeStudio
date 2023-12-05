@@ -6,6 +6,7 @@
        <codemirror
           v-model="query"
           :options="cmOption"
+          style="height: 300px;"
                 />
      </div>
      <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
@@ -64,6 +65,8 @@
 import { Codemirror } from 'vue-codemirror'
 import axios from 'axios';
 import {TabulatorFull as Tabulator} from 'tabulator-tables';
+import { toast } from 'vue3-toastify';
+import 'vue3-toastify/dist/index.css';
 
 
 
@@ -150,17 +153,17 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.error = '';
-          this.info = 'Table created successfully';
+          toast.success('Table created successfully');
+          this.$emit('tableCreated');
         } else {
-          this.error = `Error: HTTP ${response.message}`;
+          toast.error('Table creation error::' + response.message);
         }
       }).catch((error) => {
-        this.error = `Error: ${error.message}`;
+        toast.error('Table creation error:' + error);
       }).finally(() => {
         this.loading = false;
       });
-      this.$emit('tableCreated');
+      
     },
     
 }

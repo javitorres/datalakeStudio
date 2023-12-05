@@ -58,67 +58,18 @@ export default {
       tabulator: null,
       table: [],
 
-      tables: [],
+      //tables: [],
       selectedTable: '',
     };
   },
-
-  mounted() {
-    this.getTables();
-    
+  props: {
+    tables: Object,
   },
-  
+
+  emits: ['deleteTable'],
+
   methods: {
-    async getTables() {
-      //TODO: Quitar este getTables y que se refresquen con un emit en el pader
-      var response  = axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
-        params: {
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.error = '';
-          this.tables = response.data;
-          if (this.tables.length > 0) {
-            this.clickTable(this.tables[0]);
-          }
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-        }
-      }).catch((error) => {
-        this.error = `Error: HTTP ${response.data}`;
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-
-    clickS3File(S3File, isFile) {
-      this.fileInput = S3File;
-    },
-
-    async loadFile() {
-      console.log('loadFile');
-      this.loading = true;
-      this.info = 'Loading file please wait...';
-      axios.get(`http://${this.serverHost}:${this.serverPort}/loadFile`, {
-        params: {
-          tableName: this.tableNameInput,
-          fileName: this.fileInput,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.error = '';
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-        }
-      }).catch((error) => {
-        this.error = `Error: HTTP ${response.data}`;
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-
     async clickTable(table) {
-      console.log('clickTable on ' + table);
       this.selectedTable = table;
       var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/getTableSchema`, {
         params: {
@@ -166,25 +117,10 @@ export default {
         this.loading = false;
       });
     },
-
+    ////////////////////////////////////////////////////
     async deleteTable() {
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/deleteTable`, {
-        params: {
-          tableName: this.selectedTable,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.error = '';
-          this.info = 'Table deleted successfully';
-          this.getTables();
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-        }
-      }).catch((error) => {
-        this.error = `Error: ${error.message}`;
-      }).finally(() => {
-        this.loading = false;
-      });
+      this.$emit('deleteTable', this.selectedTable);
+      this.selectedTable = '';
     },
     
 }

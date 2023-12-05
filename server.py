@@ -157,8 +157,18 @@ def createTableFromQuery(query: str, tableName: str):
         response = {"status": "error", "message": "query and tableName are required"}
         return JSONResponse(content=response, status_code=400)
     print("Creating table " + tableName + " from query " + query)
-    duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
-    duckDbService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+    try:
+        duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+    except Exception as e:
+        print("Error dropping table: " + str(e))
+    
+    try:
+        duckDbService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+    except Exception as e:
+        print("Error creating table: " + str(e))
+        response = {"status": "error", "message": "Error creating table: " + str(e)}
+        return JSONResponse(content=response, status_code=400)
+    
     return {"status": "ok"}
 
 @app.get("/deleteTable")

@@ -21,7 +21,8 @@
     "require": "^2.4.20",
     "tabulator-tables": "^5.5.2",
     "vue": "^3.3.4",
-    "vue-codemirror": "^6.1.1"
+    "vue-codemirror": "^6.1.1",
+    "vue3-toastify": "^0.1.14"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.4.0",

@@ -39,8 +39,8 @@ def loadTable(tableName, fileName):
     elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif (fileName.endswith(".json")):
-        db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    #ses["loadedTables"][tableName] = fileName
+        ss = db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+
     r = db.sql('SHOW TABLES')
     if (r is not None):
         r.show()
@@ -55,7 +55,8 @@ def runQuery(query):
             return r.df()
     except Exception as e:
         print("Error running query: " + str(e))
-        return None
+        # Raise exception to be handled by caller
+        raise e
 
 def getTableList():
     tableList = runQuery("SHOW TABLES")
