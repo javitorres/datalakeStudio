@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 import services.duckDbService as duckDbService
 import services.apiService as apiService
-#import services.remoteDbService as remoteDbService
+import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
 import services.chatGPTService as chatGPTService
 
@@ -15,6 +15,7 @@ import yaml
 import openai
 
 app = FastAPI()
+connection = None
 
 origins = [
     "http://localhost:8080",
@@ -210,7 +211,85 @@ def askGPT(question: str):
         print("GPT response: " + chatGPTResponse)
     
     return JSONResponse(content=chatGPTResponse, status_code=200)
-            
+
+@app.get("/getDatabaseList")
+def getDatabaseList(databaseName: str):
+    if (databaseName is None):
+        response = {"status": "error", "message": "databaseName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting database list for '" + databaseName + "'")
+    databaseList = remoteDbService.getDbList(databaseName, secrets["pgpass_file"])
+    return JSONResponse(content=databaseList, status_code=200)
+
+@app.get("/connectDatabase")
+def connectDatabase(databaseName: str):
+    global connection
+
+    if (databaseName is None):
+        response = {"status": "error", "message": "databaseName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Connecting to database '" + databaseName + "'")
+    connection = remoteDbService.connectDatabase(databaseName, secrets["pgpass_file"])
+    
+    if (connection is not None):
+        schemas = remoteDbService.getSchemas(connection)
+        response = {"status": "ok", "schemas": schemas}
+        return JSONResponse(content=response, status_code=200)
+    else:
+        return {"status": "error"}
+
+@app.get("/getSchemas")
+def getSchemas():
+    global connection
+
+    if (connection is None):
+        response = {"status": "error", "message": "You must connect to a database first"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting schemas")
+    schemas = remoteDbService.getSchemas(connection)
+    return JSONResponse(content=schemas, status_code=200)
+
+@app.get("/getTablesFromRemoteSchema")
+def getTablesFromSchema(schema: str):
+    global connection
+
+    if (connection is None):
+        response = {"status": "error", "message": "You must connect to a database first"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting tables from schema " + schema)
+    tables = remoteDbService.getTables(connection, schema)
+    response = {"status": "ok", "tables": tables}
+    return JSONResponse(content=response, status_code=200)
+
+@app.get("/runRemoteQuery")
+def runRemoteQuery(query: str):
+    global connection
+
+    if (connection is None):
+        response = {"status": "error", "message": "You must connect to a database first"}
+        return JSONResponse(content=response, status_code=400)
+    print("Running query " + query)
+    df = remoteDbService.runRemoteQuery(connection, query)
+    if (df is not None):
+        return JSONResponse(content=df.to_csv(index=False), status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
+
+@app.get("/createTableFromRemoteQuery")
+def createTableFromRemoteQuery(query: str, tableName: str):
+    global connection
+
+    if (connection is None):
+        response = {"status": "error", "message": "You must connect to a database first"}
+        return JSONResponse(content=response, status_code=400)
+    print("Creating table " + tableName + " from query " + query)
+    df = remoteDbService.runRemoteQuery(connection, query)
+    if (df is not None):
+        duckDbService.createTableFromDataFrame(df, tableName)
+        return {"status": "ok"}
+    else:
+        return {"status": "error"}
+
 app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
 
 if __name__ == "__main__":

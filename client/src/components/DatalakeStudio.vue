@@ -1,5 +1,6 @@
 <template>
   <div class="container-fluid">
+    <h1>Load data from files</h1>
     <div class="row">
 
       <div class="col-md-6">
@@ -51,6 +52,10 @@
       </div> <!-- col-md-6 -->
     </div> <!-- row -->
 
+    <RemoteDbPanel 
+      @tableCreated="this.tableCreated"
+    ></RemoteDbPanel>
+
     <TablesPanel v-if="tables && tables.length > 0"
       :tables="tables"
 
@@ -60,9 +65,11 @@
     <br/>
 
     <QueryPanel v-if="tables && tables.length > 0"
-      @tableCreated="this.tableCreated"
-      
-    ></QueryPanel>
+      @tableCreated="this.tableCreated"></QueryPanel>
+
+    
+
+
 
   </div> <!-- container-fluid -->
 </template>
@@ -71,8 +78,10 @@
 import axios from 'axios';
 import TablesPanel from './TablesPanel.vue';
 import QueryPanel from './QueryPanel.vue';
+import RemoteDbPanel from './RemoteDbPanel.vue';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+
 //import { get } from 'express/lib/response';
 
 export default {
@@ -89,10 +98,11 @@ export default {
     return { notify };
    },
   */
-  components: { 
+  components: {
     TablesPanel,
     QueryPanel,
-  },
+    RemoteDbPanel
+},
 
   data() {
     return {

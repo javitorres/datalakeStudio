@@ -73,6 +73,13 @@ def getTableDescriptionForChatGpt(tableName):
     tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
     return tableDescriptionForGPT
     
+def createTableFromDataFrame(df, tableName):
+    print("Creating table " + tableName)
+    db.query("DROP TABLE IF EXISTS "+ tableName )
+    #db.register("df", df)
+    db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM df)")
+    #db.deregister("df")
+
 '''
 METODOS NO PROBADOS AUN
 '''    

@@ -1,12 +1,25 @@
 <template>
+  <hr>
+  <h1>Query</h1>
  <div class="row">
    <div class="col-md-4">
-      <h4>Ask ChatGPT</h4>
-      <div class="form-group">
-        <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">
+    <br/>
+      <div class="row">
+        <div class="col-md-3">
+          <h4>Ask ChatGPT</h4>
+        </div>
+
+        <div class="col-md-6">
+          <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">  
+        </div>
+
+        <div class="col-md-3">
+          <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>    
+        </div>
       </div>
-      <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
+    
       <br/>
+      
       <!-- ChatGPT Response -->
       <div v-if="!loading && chatGPTOutput">
         <input type="text" class="form-control" id="chatGPTOutput" v-model="chatGPTOutput">

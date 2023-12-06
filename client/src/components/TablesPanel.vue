@@ -4,11 +4,13 @@
     <div class="row">
       <div class="col-md-12">
         <div v-if="tables && tables.length > 0">
+          <hr>
+          <h1>Tables loaded in DatalakeStudio</h1>
           <ul class="list-unstyled d-flex flex-wrap">
             <!-- None Button -->
             <li>
               <button class="btn btn-secondary m-1 opcion-style" @click="selectedTable = None">
-                Close tables view
+                Close table view
               </button>
             </li>
             <li v-for="table in tables" :key="table.id">
