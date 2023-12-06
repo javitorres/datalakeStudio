@@ -4,6 +4,8 @@ services:
     build:
       context: ./server
       dockerfile: Dockerfile
+    volumes:
+      - ~/.aws:/root/.aws:ro
     ports:
       - "8000:8000"
 

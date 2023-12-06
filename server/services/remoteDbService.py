@@ -4,14 +4,14 @@ import pandas as pd
 
 
 
-def getDbList(database_search_text, pgpassfile, ):
+def getDbList(database_search_text, pgpassfile):
     databaseList = []
 
     try:
         with open(pgpassfile, 'r') as f:
             lines = f.readlines()
     except:
-        print("You must define pgpass_file in secrets.yml file")
+        print("pgpassfile not found in '"+ pgpassfile +"'. You must define pgpass_file in secrets.yml file")
         return []
 
     words = database_search_text.split(" ")

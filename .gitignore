@@ -13,3 +13,4 @@ server/data
 .idea
 client/package-lock.json
 client/yarn.lock
+server/.pgpass

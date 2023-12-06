@@ -1,103 +1,104 @@
 <template>
   <hr>
-  <h1>Remote databases</h1>
-  <div class="spinner-border" role="status" v-if="loading">
-    <span class="visually-hidden">Loading...</span>
-  </div>
-  <div class="col-md-6">
-    <div class="input-group mb-3">
-      <span class="input-group-text" id="basic-addon1">Database name</span>
-      <input id="databaseInput" type="text" class="form-control" placeholder="Write the database name" aria-label="File"
-        aria-describedby="basic-addon1" v-model="databaseInput" @input="searchDatabase">
+  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Remote databases</h1>
+  <div v-if="expanded">
+    <div class="spinner-border" role="status" v-if="loading">
+      <span class="visually-hidden">Loading...</span>
     </div>
-  </div> <!-- col-md-6 -->
-
-  <!-- Green button with connectedDatabase -->
-  <div class="row">
-    <div class="col-md-2" v-if="connectedDatabase">
-      <button class="btn btn-success m-1 opcion-style" @click="disconnectDatabase(connectedDatabase)">
-        Database: {{ connectedDatabase }}.<br /> Click to disconnect
-      </button>
-    </div> <!-- col-md-2 -->
-
-    <div class="col-md-2" v-if="schemaSelected">
-      <button class="btn btn-success m-1 opcion-style" @click="showSchemas = !showSchemas">
-        Schema active: {{ schemaSelected }}.<br /> {{ showSchemas ? 'Click to hide schemas' : 'Click to show schemas' }}
-      </button>
-    </div> <!-- col-md-2 -->
-  </div>
-
-  <!-- Databases -->
-  <div class="row">
-    <div v-if="databases && databases.length > 0">
-      <ul class="list-unstyled d-flex flex-wrap">
-        <li v-for="database in databases" :key="database.id">
-          <button class="btn btn-primary m-1 opcion-style" @click="clickDatabase(database, true)">
-            {{ database }}
-          </button>
-        </li>
-      </ul>
-    </div> <!-- v-if -->
-  </div> <!-- row -->
-
-  <!-- Schemas -->
-  <div class="row" v-if="connectedDatabase && showSchemas">
-    <div v-if="schemas && schemas.length > 0">
-      <p>Remote Schemas:</p>
-      <ul class="list-unstyled d-flex flex-wrap">
-        <li v-for="schema in schemas" :key="schema.id">
-          <button class="btn btn-primary m-1 opcion-style" @click="clickSchema(schema, true)">
-            {{ schema }}
-          </button>
-        </li>
-      </ul>
-    </div> <!-- v-if -->
-  </div> <!-- row -->
-
-  <!-- Tables -->
-  <div class="row" v-if="connectedDatabase">
-    <div v-if="tables && tables.length > 0">
-      <p>Remote Tables:</p>
-      <input type="text" class="form-control" id="tableNameInput" placeholder="Filter by name"
-        v-model="filterTable">
-      <ul class="list-unstyled d-flex flex-wrap">
-        <li v-for="table in tables" :key="table.id">
-
-          <button class="btn btn-primary m-1 opcion-style" v-if="table.indexOf(filterTable) > -1"
-            @click="query = 'SELECT * FROM ' + schemaSelected + '.' + table + ' LIMIT 30'">
-            {{ table }}
-          </button>
-        </li>
-      </ul>
-    </div> <!-- v-if -->
-  </div> <!-- row -->
-
-  <div class="row">
     <div class="col-md-6">
-      <h4>Query on remote database</h4>
-      <div class="form-group">
-        <codemirror v-model="query" style="height: 300px;" />
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">Database name</span>
+        <input id="databaseInput" type="text" class="form-control" placeholder="Write the database name" aria-label="File"
+          aria-describedby="basic-addon1" v-model="databaseInput" @input="searchDatabase">
       </div>
-      <button type="button" class="btn btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
+    </div> <!-- col-md-6 -->
 
-      <!-- Create table from query -->
-      <div class="form-group" v-if="sampleData">
-        <br />
-        <label for="tableNameInput">Create table from query</label>
-        <div class="row">
-          <div class="md-col-4">
-            <input type="text" class="form-control" id="tableNameInput" placeholder="New table name"
-              v-model="tableFromQuery">
-          </div>
+    <!-- Green button with connectedDatabase -->
+    <div class="row">
+      <div class="col-md-2" v-if="connectedDatabase">
+        <button class="btn btn-success m-1 opcion-style" @click="disconnectDatabase(connectedDatabase)">
+          Database: {{ connectedDatabase }}.<br /> Click to disconnect
+        </button>
+      </div> <!-- col-md-2 -->
 
-          <div class="md-col-2">
-            <button type="button" class="btn btn-primary" @click="createTableFromRemoteQuery">Create table</button>
+      <div class="col-md-2" v-if="schemaSelected">
+        <button class="btn btn-success m-1 opcion-style" @click="showSchemas = !showSchemas">
+          Schema active: {{ schemaSelected }}.<br /> {{ showSchemas ? 'Click to hide schemas' : 'Click to show schemas' }}
+        </button>
+      </div> <!-- col-md-2 -->
+    </div>
+
+    <!-- Databases -->
+    <div class="row">
+      <div v-if="databases && databases.length > 0">
+        <ul class="list-unstyled d-flex flex-wrap">
+          <li v-for="database in databases" :key="database.id">
+            <button class="btn btn-primary m-1 opcion-style" @click="clickDatabase(database, true)">
+              {{ database }}
+            </button>
+          </li>
+        </ul>
+      </div> <!-- v-if -->
+    </div> <!-- row -->
+
+    <!-- Schemas -->
+    <div class="row" v-if="connectedDatabase && showSchemas">
+      <div v-if="schemas && schemas.length > 0">
+        <p>Remote Schemas:</p>
+        <ul class="list-unstyled d-flex flex-wrap">
+          <li v-for="schema in schemas" :key="schema.id">
+            <button class="btn btn-primary m-1 opcion-style" @click="clickSchema(schema, true)">
+              {{ schema }}
+            </button>
+          </li>
+        </ul>
+      </div> <!-- v-if -->
+    </div> <!-- row -->
+
+    <!-- Tables -->
+    <div class="row" v-if="connectedDatabase">
+      <div v-if="tables && tables.length > 0">
+        <p>Remote Tables:</p>
+        <input type="text" class="form-control" id="tableNameInput" placeholder="Filter by name" v-model="filterTable">
+        <ul class="list-unstyled d-flex flex-wrap">
+          <li v-for="table in tables" :key="table.id">
+
+            <button class="btn btn-primary m-1 opcion-style" v-if="table.indexOf(filterTable) > -1"
+              @click="query = 'SELECT * FROM ' + schemaSelected + '.' + table + ' LIMIT 30'">
+              {{ table }}
+            </button>
+          </li>
+        </ul>
+      </div> <!-- v-if -->
+    </div> <!-- row -->
+
+    <div class="row" v-if="connectedDatabase">
+      <div class="col-md-6">
+        <h4>Query on remote database</h4>
+        <div class="form-group">
+          <codemirror v-model="query" style="height: 300px;" />
+        </div>
+        <button type="button" class="btn btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
+
+        <!-- Create table from query -->
+        <div class="form-group" v-if="sampleData">
+          <br />
+          <label for="tableNameInput">Create table from query</label>
+          <div class="row">
+            <div class="md-col-4">
+              <input type="text" class="form-control" id="tableNameInput" placeholder="New table name"
+                v-model="tableFromQuery">
+            </div>
+
+            <div class="md-col-2">
+              <button type="button" class="btn btn-primary" @click="createTableFromRemoteQuery">Create table</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-    <div class="col-md-6">
-      <div ref="table"></div>
+      <div class="col-md-6">
+        <div ref="table"></div>
+      </div>
     </div>
   </div>
 </template>
@@ -113,6 +114,7 @@ export default {
   name: 'RemoteDbPanel',
   data() {
     return {
+      expanded: true,
       serverHost: 'localhost',
       serverPort: '8000',
       tabulator: null,

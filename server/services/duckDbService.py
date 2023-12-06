@@ -15,7 +15,7 @@ def init(secrets, config):
 
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
-        runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'")
+        runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'", False)
         print("Loaded S3 credentials")
     except Exception as e:
         print("Error loading S3 credentials: " + str(e))
@@ -47,14 +47,20 @@ def loadTable(tableName, fileName):
     else:
         print("duckDbService: No tables loaded")
 
-def runQuery(query):
+def runQuery(query, logQuery=True):
     try:
-        print("Executing query: " + query)
+        if (logQuery):
+            print("Executing query: " + query)
+        else:
+            print("Executing query XXXXXXX")
         r = db.query(query)
         if (r is not None):
             return r.df()
     except Exception as e:
-        print("Error running query: " + str(e))
+        if (logQuery):
+            print("Error running query: " + str(e))
+        else:
+            print("Error running query XXXXXXX")
         # Raise exception to be handled by caller
         raise e
 

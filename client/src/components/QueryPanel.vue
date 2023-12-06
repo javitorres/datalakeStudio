@@ -1,48 +1,45 @@
 <template>
   <hr>
-  <h1>Query</h1>
- <div class="row">
-   <div class="col-md-4">
-    <br/>
+  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Query</h1>
+  <div class="row" v-if="expanded">
+    <div class="col-md-4">
+      <br />
       <div class="row">
         <div class="col-md-3">
           <h4>Ask ChatGPT</h4>
         </div>
 
         <div class="col-md-6">
-          <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">  
+          <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">
         </div>
 
         <div class="col-md-3">
-          <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>    
+          <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
         </div>
       </div>
-    
-      <br/>
-      
+
+      <br />
+
       <!-- ChatGPT Response -->
       <div v-if="!loading && chatGPTOutput">
         <input type="text" class="form-control" id="chatGPTOutput" v-model="chatGPTOutput">
         <button type="button" class="btn btn-primary" @click="useChatGPTAnswer">Run this query</button>
       </div>
-     <h4>Query</h4>
-     <div class="form-group">
-       <codemirror
-          v-model="query"
-          :options="cmOption"
-          style="height: 300px;"
-                />
-     </div>
-     <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
+      <h4>Query</h4>
+      <div class="form-group">
+        <codemirror v-model="query" :options="cmOption" style="height: 300px;" />
+      </div>
+      <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
 
-     <br/>
-     <!-- Create table from query -->
+      <br />
+      <!-- Create table from query -->
       <div class="form-group" v-if="sampleData">
-        <br/>
+        <br />
         <label for="tableNameInput">Create table from query</label>
         <div class="row">
           <div class="md-col-4">
-            <input type="text" class="form-control" id="tableNameInput" placeholder="New table name" v-model="tableFromQuery">
+            <input type="text" class="form-control" id="tableNameInput" placeholder="New table name"
+              v-model="tableFromQuery">
           </div>
 
           <div class="md-col-2">
@@ -50,7 +47,7 @@
           </div>
         </div>
       </div>
-   </div>
+    </div>
 
     <div class="col-md-8">
       <div class="row">
@@ -60,22 +57,21 @@
           </div>
         </div>
       </div>
-  
+
       <div class="row">
         <div class="col-md-12">
           <div ref="table"></div>
         </div>
       </div>
 
+    </div>
   </div>
-  </div>
-
 </template>
 
 <script>
 import { Codemirror } from 'vue-codemirror'
 import axios from 'axios';
-import {TabulatorFull as Tabulator} from 'tabulator-tables';
+import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -83,17 +79,18 @@ import 'vue3-toastify/dist/index.css';
 
 export default {
   name: 'QueryPanel',
-  
+
   components: {
     Codemirror,
   },
   data() {
     return {
+      expanded: true,
       error: '',
       info: '',
       loading: false,
       serverHost: 'localhost',
-      serverPort: '8080',
+      serverPort: '8000',
       query: 'SELECT * FROM homecenter',
       sampleData: null,
 
@@ -105,28 +102,28 @@ export default {
       chatGPTOutput: '',
 
       cmOption: {
-          tabSize: 4,
-          styleActiveLine: true,
-          lineNumbers: true,
-          line: true,
-          foldGutter: true,
-          styleSelectedText: true,
-          mode: 'text/python',
-          keyMap: "sublime",
-          matchBrackets: true,
-          showCursorWhenSelecting: true,
-          theme: "monokai",
-          extraKeys: { "Ctrl": "autocomplete" },
-          hintOptions:{
-            completeSingle: false
-          }
+        tabSize: 4,
+        styleActiveLine: true,
+        lineNumbers: true,
+        line: true,
+        foldGutter: true,
+        styleSelectedText: true,
+        mode: 'text/python',
+        keyMap: "sublime",
+        matchBrackets: true,
+        showCursorWhenSelecting: true,
+        theme: "monokai",
+        extraKeys: { "Ctrl": "autocomplete" },
+        hintOptions: {
+          completeSingle: false
         }
+      }
     };
   },
   props: {
     tables: Object,
     secrets: Object,
-    
+
   },
   emits: ['tableCreated'],
   methods: {
@@ -142,15 +139,15 @@ export default {
           this.sampleData = response.data;
           var columns = [];
           for (var key in this.sampleData[0]) {
-            columns.push({title: key, field: key});
+            columns.push({ title: key, field: key });
           }
           var table = new Tabulator(this.$refs.table, {
-          data: this.sampleData,
-          reactiveData: true,
-          importFormat: "csv",
-          autoColumns: true,
-          
-      });
+            data: this.sampleData,
+            reactiveData: true,
+            importFormat: "csv",
+            autoColumns: true,
+
+          });
 
         } else {
           this.error = `Error: HTTP ${response.message}`;
@@ -180,7 +177,7 @@ export default {
       }).finally(() => {
         this.loading = false;
       });
-      
+
     },
     ///////////////////////////////////////////////////////
     async askChatGPT() {
@@ -208,10 +205,9 @@ export default {
       this.runQuery();
     },
 
-    
-}
+
+  }
 }
 
 </script>
-<style scoped>
-</style>
+<style scoped></style>

@@ -1,11 +1,11 @@
 <template>
-  
-    <!-- Table list -->
+  <!-- Table list -->
+  <hr>
+  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Tables loaded in DatalakeStudio</h1>
+  <div v-if="expanded">
     <div class="row">
       <div class="col-md-12">
         <div v-if="tables && tables.length > 0">
-          <hr>
-          <h1>Tables loaded in DatalakeStudio</h1>
           <ul class="list-unstyled d-flex flex-wrap">
             <!-- None Button -->
             <li>
@@ -23,7 +23,7 @@
       </div>
     </div>
 
-    <div class="row"  v-if="selectedTable">
+    <div class="row" v-if="selectedTable">
       <h2>Table {{ selectedTable }}</h2>
       <!-- Delete button -->
       <div class="row-md-2" v-if="selectedTable">
@@ -46,11 +46,12 @@
         <div ref="table"></div>
       </div>
     </div>
+  </div>
 </template>
 
 <script>
 import axios from 'axios';
-import {TabulatorFull as Tabulator} from 'tabulator-tables';
+import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -58,8 +59,9 @@ export default {
   name: 'TablesPanel',
   data() {
     return {
+      expanded: true,
       serverHost: 'localhost',
-      serverPort: '8080',
+      serverPort: '8000',
       schema: [],
       sampleData: [],
 
@@ -103,22 +105,22 @@ export default {
           this.sampleData = response.data;
           var columns = [];
           for (var key in this.sampleData[0]) {
-            columns.push({title: key, field: key});
+            columns.push({ title: key, field: key });
           }
           var table = new Tabulator(this.$refs.table, {
-          data: this.sampleData,
-          reactiveData: true,
-          importFormat: "csv",
-          autoColumns: true,
-          
-      });
+            data: this.sampleData,
+            reactiveData: true,
+            importFormat: "csv",
+            autoColumns: true,
+
+          });
 
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
         toast.error(`Error: HTTP ${error.message}`);
-        
+
       }).finally(() => {
         this.loading = false;
       });
@@ -128,10 +130,9 @@ export default {
       this.$emit('deleteTable', this.selectedTable);
       this.selectedTable = '';
     },
-    
-}
+
+  }
 }
 
 </script>
-<style scoped>
-</style>
+<style scoped></style>

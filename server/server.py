@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi import Response
 from fastapi.responses import JSONResponse
 
@@ -10,9 +9,7 @@ import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
 import services.chatGPTService as chatGPTService
 
-import pandas as pd
 import yaml
-import openai
 
 app = FastAPI()
 connection = None
@@ -185,15 +182,15 @@ def s3Search(bucket: str, fileName: str):
     if (bucket is None or fileName is None):
         response = {"status": "error", "message": "bucket and fileName are required"}
         return JSONResponse(content=response, status_code=400)
-    # If filename size is less than 3, return error
-    if (len(fileName) < 3):
-        response = {"status": "error", "message": "fileName must be at least 3 characters"}
-        return JSONResponse(content=response, status_code=400)
+    
+    results = []
+    if (len(fileName) >= 3):
+        results = s3Service.s3Search(bucket, fileName)
 
-    results = s3Service.s3Search(bucket, fileName)
     # If  results array is greter than 100 items, return first 10
     if (len(results) > 10):
         results = results[:10]
+    
     return {"results": results}
 
 @app.get("/askGPT")

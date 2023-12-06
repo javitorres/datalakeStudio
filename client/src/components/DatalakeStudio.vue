@@ -1,75 +1,67 @@
 <template>
   <div class="container-fluid">
-    <h1>Load data from files</h1>
-    <div class="row">
-
-      <div class="col-md-6">
-        <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">Data file to load</span>
-          <input id="fileInput" type="text" class="form-control" placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
-            aria-describedby="basic-addon1" v-model="fileInput" @input="findFileInS3">
-        </div>
-      </div> <!-- col-md-6 -->
-
-      <div class="col-md-4" v-if="fileInput">
-        <!-- Table name input -->
-        <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">Table</span>
-          <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
-            aria-describedby="basic-addon1" v-model="tableNameInput">
-        </div> 
-      </div> <!-- col-md-4 -->
-
-      <div class="col-md-2" v-if="fileInput && tableNameInput">
-        <!-- Load file button -->
-        <button class="btn btn-primary m-1 opcion-style" @click="loadFile">
-          Load file
-        </button>
-      </div> <!-- col-md-2 -->
-    </div> <!-- row -->
 
     <div class="row">
-      <div class="col-md-6">
-        <div class="row">
-          <div class="col-md-2">
-            <div class="spinner-border" role="status" v-if="loading">
-              <span class="visually-hidden">Loading...</span>
+      <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Load data from files</h1>
+      <div v-if="expanded">
+        <div class="col-md-6">
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Data file to load</span>
+            <input id="fileInput" type="text" class="form-control"
+              placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
+              aria-describedby="basic-addon1" v-model="fileInput" @input="findFileInS3">
+          </div>
+        </div> <!-- col-md-6 -->
+
+        <div class="col-md-4" v-if="fileInput">
+          <!-- Table name input -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Table</span>
+            <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
+              aria-describedby="basic-addon1" v-model="tableNameInput">
+          </div>
+        </div> <!-- col-md-4 -->
+
+        <div class="col-md-2" v-if="fileInput && tableNameInput">
+          <!-- Load file button -->
+          <button class="btn btn-primary m-1 opcion-style" @click="loadFile">
+            Load file
+          </button>
+        </div> <!-- col-md-2 -->
+      </div> <!-- row -->
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="row">
+            <div class="col-md-2">
+              <div class="spinner-border" role="status" v-if="loading">
+                <span class="visually-hidden">Loading...</span>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="row">
-          <div v-if="S3Files && S3Files.length > 0">
-            <ul class="list-unstyled d-flex flex-wrap">
-              <li v-for="S3File in S3Files" :key="S3File.id">
-                <button class="btn btn-primary m-1 opcion-style" @click="clickS3File(S3File, true)">
-                  {{ S3File }}
-                </button>
-              </li>
-            </ul>
-          </div> <!-- v-if -->
-        </div> <!-- row -->
-      </div> <!-- col-md-6 -->
+          <div class="row">
+            <div v-if="S3Files && S3Files.length > 0">
+              <ul class="list-unstyled d-flex flex-wrap">
+                <li v-for="S3File in S3Files" :key="S3File.id">
+                  <button class="btn btn-primary m-1 opcion-style" @click="clickS3File(S3File, true)">
+                    {{ S3File }}
+                  </button>
+                </li>
+              </ul>
+            </div> <!-- v-if -->
+          </div> <!-- row -->
+        </div> <!-- col-md-6 -->
+      </div> <!-- if expanded -->
     </div> <!-- row -->
 
-    <RemoteDbPanel 
-      @tableCreated="this.tableCreated"
-    ></RemoteDbPanel>
+    <RemoteDbPanel @tableCreated="this.tableCreated"></RemoteDbPanel>
 
-    <TablesPanel v-if="tables && tables.length > 0"
-      :tables="tables"
-
-      @deleteTable="this.deleteTable"
-      >
+    <TablesPanel v-if="tables && tables.length > 0" :tables="tables" @deleteTable="this.deleteTable">
     </TablesPanel>
-    <br/>
-
-    <QueryPanel v-if="tables && tables.length > 0"
-      @tableCreated="this.tableCreated"></QueryPanel>
-
     
 
-
+    <QueryPanel v-if="tables && tables.length > 0" @tableCreated="this.tableCreated"></QueryPanel>
 
   </div> <!-- container-fluid -->
 </template>
@@ -102,10 +94,11 @@ export default {
     TablesPanel,
     QueryPanel,
     RemoteDbPanel
-},
+  },
 
   data() {
     return {
+      expanded: true,
       fileInput: '',
       serverHost: 'localhost',
       serverPort: '8000',
@@ -118,7 +111,7 @@ export default {
 
   mounted() {
     this.getTables();
-    
+
   },
 
   methods: {
@@ -138,17 +131,17 @@ export default {
         //console.log('No search:"' + this.fileInput.substring(0, 3) + '"');
         return;
       }
-      
+
       this.S3Files = [];
       var response = '';
       this.loading = true;
 
       // Remove s3 from beginning of the string
       var fileInputCleaned = this.fileInput;
-      if (this.fileInput.substring(0, 2) === 's3'){
+      if (this.fileInput.substring(0, 2) === 's3') {
         fileInputCleaned = this.fileInput.substring(3, this.fileInput.length);
       }
-      
+
 
       axios.get(`http://${this.serverHost}:${this.serverPort}/s3Search`, {
         params: {
@@ -216,7 +209,7 @@ export default {
       });
     },
     ////////////////////////////////////////////////////////////////
-    async deleteTable(table){
+    async deleteTable(table) {
       var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/deleteTable`, {
         params: {
           tableName: table,
@@ -235,11 +228,11 @@ export default {
       });
     },
 
-    async tableCreated(){
+    async tableCreated() {
       this.getTables();
     },
   },
-  
+
 }
 
 
