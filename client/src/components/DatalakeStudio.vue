@@ -108,7 +108,7 @@ export default {
     return {
       fileInput: '',
       serverHost: 'localhost',
-      serverPort: '8080',
+      serverPort: '8000',
       loading: false,
       S3Files: [],
       tableNameInput: '',

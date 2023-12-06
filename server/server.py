@@ -290,7 +290,7 @@ def createTableFromRemoteQuery(query: str, tableName: str):
     else:
         return {"status": "error"}
 
-app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
+#app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
 
 if __name__ == "__main__":
     import uvicorn

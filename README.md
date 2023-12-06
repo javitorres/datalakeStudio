@@ -1,16 +1,27 @@
-## Project run
+# Project build with Docker
 
-```sh
-python3 server.py
+
+```
+docker-compose up --build
 ```
 
-## Project build
+# Project build without Docker
 
-From the client directory of the project, run these commands to build the Vue UI project:
+## Server
 
-```sh
+Inside server folder run:
+```
+pip3 install -r requirements.txt
+```
+
+## Client
+
+Inside the client folder of the project, run these commands to build the Vue UI project:
+
+```
 npm install
 npm run build
 ```
 
 
+# Project build without Docker

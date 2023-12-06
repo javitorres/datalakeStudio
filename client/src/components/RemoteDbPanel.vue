@@ -114,7 +114,7 @@ export default {
   data() {
     return {
       serverHost: 'localhost',
-      serverPort: '8080',
+      serverPort: '8000',
       tabulator: null,
       connectedDatabase: '',
       loading: false,

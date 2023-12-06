@@ -4,15 +4,12 @@ dataFiles
 sampleData
 todo.txt
 *.dls
-mySecrets.toml
-
-secrets.yml
+server/secrets.yml
 misNotas.md
 .vscode/
-
 client/dist
 client/node_modules
-data/*
+server/data
 .idea
 client/package-lock.json
 client/yarn.lock
