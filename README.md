@@ -1,3 +1,22 @@
+<div align="center">
+<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4" height="200">
+</div>
+
+<p align="center">
+    <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Latest Release">
+    <img src="https://img.shields.io/badge/DuckDB-0.9.0-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/OpenAI-0.27.6-green" alt="OpenAI">
+</p>
+
+
+# Datalake Studio
+Datalake Studio is a Python/HTML/Javascript application to explore datasets. You can explore your datafiles using the incredible DuckDB engine. 
+
+You can load files directly from your computer, from a URL, or from an S3 bucket. You also can download data from your PostgreSQL Databases
+
+If you have ChatGPT credentials, you can use the SQL assistant, which will have context about the tables and their fields.
+
+
 # Project build with Docker
 
 
