@@ -42,7 +42,7 @@ Inside the client folder of the project, run these commands to build the Vue UI 
 
 ```
 npm install
-npm run dev
+npm run dev -- --port 8080
 ```
 
 Open http://localhost:8080/ in your browser.
