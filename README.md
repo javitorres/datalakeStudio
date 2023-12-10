@@ -16,6 +16,8 @@ You can load files directly from your computer, from a URL, or from an S3 bucket
 
 If you have ChatGPT credentials, you can use the SQL assistant, which will have context about the tables and their fields.
 
+Frontend is built with Vue.js and backend with Python Flask.
+
 
 # Project build with Docker
 

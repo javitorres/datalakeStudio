@@ -87,31 +87,10 @@ def createTableFromDataFrame(df, tableName):
     #db.deregister("df")
 
 '''
-METODOS NO PROBADOS AUN
+METODOS NO PROBADOS AUN TRAS REFACTOR
 '''    
 
-
-
-def getTableDescription(tableName):
-    if (tableName is None):
-        return []
-    try:
-        fields = db.query("DESCRIBE "+ tableName).df()
-        tableDescription = ""
-        for field in fields.iterrows():
-            tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
-
-        columns = fields["column_name"].tolist()
-        types = fields["column_type"].tolist()
-        
-        return columns
-    except Exception as e:
-        print("Error getting table description: " + str(e))
-        return []
-
-
-        
-    
+ 
 def dropAllTables():
     tableList = runQuery("SHOW TABLES")
     tableListArray = None
@@ -119,9 +98,3 @@ def dropAllTables():
         tableListArray = tableList["name"].to_list()
         for table in tableListArray:
             runQuery("DROP TABLE IF EXISTS "+ table )
-
-
-
-def saveDfAsTable(dfName, tableName):
-    print("Saving df as table " + tableName)
-    duckdb.sql("CREATE TABLE "+ tableName +" AS SELECT * FROM " + dfName)

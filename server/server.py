@@ -8,6 +8,7 @@ import services.apiService as apiService
 import services.remoteDbService as remoteDbService
 import services.s3IndexService as s3Service
 import services.chatGPTService as chatGPTService
+import services.profilerService as profilerService
 
 import yaml
 
@@ -176,6 +177,10 @@ def deleteTable(tableName: str):
     duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     return {"status": "ok"}
 
+############################################################################################################
+# S3
+############################################################################################################
+
 @app.get("/s3Search")
 def s3Search(bucket: str, fileName: str):
     print("Searching for '" + fileName + "' in bucket '" + bucket + "'")
@@ -193,6 +198,10 @@ def s3Search(bucket: str, fileName: str):
     
     return {"results": results}
 
+############################################################################################################
+# Chat GPT
+############################################################################################################
+
 @app.get("/askGPT")
 def askGPT(question: str):
     tables = duckDbService.getTableList()
@@ -208,6 +217,10 @@ def askGPT(question: str):
         print("GPT response: " + chatGPTResponse)
     
     return JSONResponse(content=chatGPTResponse, status_code=200)
+
+############################################################################################################
+# Remote database queries
+############################################################################################################
 
 @app.get("/getDatabaseList")
 def getDatabaseList(databaseName: str):
@@ -287,7 +300,23 @@ def createTableFromRemoteQuery(query: str, tableName: str):
     else:
         return {"status": "error"}
 
-#app.mount("/", StaticFiles(directory="client/dist", html=True), name="dist")
+############################################################################################################
+# Profiler
+############################################################################################################
+
+@app.get("/getTableProfile")
+def getProfile(tableName: str):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting profile for table " + tableName)
+    df = duckDbService.runQuery("SELECT * FROM " + tableName)
+    if (df is not None):
+        profile = profilerService.getProfile(df)
+        return {"status": "ok", "profile": profile}
+    else:
+        return {"status": "error"}
+
 
 if __name__ == "__main__":
     import uvicorn
