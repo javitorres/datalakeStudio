@@ -18,9 +18,10 @@ def init(secrets, config):
         runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'", False)
         print("Loaded S3 credentials")
     except Exception as e:
-        print("Error loading S3 credentials: " + str(e))
+        print("Could not load S3 credentials from secrets.yml file")
         runQuery("INSTALL httpfs;LOAD httpfs")
-        print("No s3 credentials found")
+        runQuery("INSTALL aws;LOAD aws")
+        runQuery("CALL load_aws_credentials();")
     
     global configLoaded
     configLoaded = True

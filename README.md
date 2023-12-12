@@ -63,7 +63,7 @@ database: "data/datalakeStudio.db"
 And another file named secrets.yml with properties:
 
 ```
-# Necessary for DuckDB to work with S3
+# Optional for DuckDB to work with S3, if not defined, user aws credentials will be loaded through the AWS Default Credentials Provider Chain
 s3_access_key_id: "YOUR_S3_ACCESS_KEY_ID"
 s3_secret_access_key: "YOUR_S3_SECRET_ACCESS_KEY"
 
