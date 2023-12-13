@@ -312,8 +312,9 @@ def getProfile(tableName: str):
     print("Getting profile for table " + tableName)
     df = duckDbService.runQuery("SELECT * FROM " + tableName)
     if (df is not None):
-        report = profilerService.getProfile(df)
-        return report
+        profile = profilerService.getProfile(df)
+        response = {"status": "ok", "profile": profile}
+        return response
     else:
         return {"status": "error"}
 

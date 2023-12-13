@@ -7,15 +7,21 @@
       <div class="col-md-12">
         <div v-if="tables && tables.length > 0">
           <ul class="list-unstyled d-flex flex-wrap">
-            <!-- None Button -->
-            <li>
-              <button class="btn btn-secondary m-1 opcion-style" @click="selectedTable = None">
-                Close table view
+            <li v-for="table in tables" :key="table.id">
+              <button v-if="selectedTable !== table" class="btn btn-primary m-1 opcion-style" @click="clickTable(table)">
+                <i class="bi bi-table"></i>
+                {{ table }}
+              </button>
+              <!-- if table selected then  button green -->
+              <button v-if="selectedTable === table" class="btn btn-success m-1 opcion-style" @click="clickTable(table)">
+                <i class="bi bi-table"></i>
+                {{ table }}
               </button>
             </li>
-            <li v-for="table in tables" :key="table.id">
-              <button class="btn btn-primary m-1 opcion-style" @click="clickTable(table)">
-                {{ table }}
+            <li>
+              <button v-if="selectedTable" class="btn btn-secondary m-1 opcion-style" @click="selectedTable = None">
+                <i class="bi bi-x-square"></i>
+                Close table view
               </button>
             </li>
           </ul>
@@ -24,21 +30,20 @@
     </div>
 
     <div class="row" v-if="selectedTable">
-      <h2>Table {{ selectedTable }}</h2>
       <!-- Delete button -->
       <div class="row-md-2" v-if="selectedTable">
-        <button class="btn btn-primary m-1 opcion-style" @click="deleteTable">
-          <img src="../assets/delete.svg" alt="delete table" width="30" height="30">
+        <button class="btn btn-danger m-1 opcion-style" @click="confirmDelete">
+          <i class="bi bi-x-octagon"></i>
           Delete table
         </button>
 
         <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(selectedTable)">
-          <img src="../assets/table.svg" alt="show sample data" width="30" height="30">
+          <i class="bi bi-table"></i>
           Show sample data
         </button>
 
         <button class="btn btn-primary m-1 opcion-style" @click="getTableProfile(selectedTable)">
-          <img src="../assets/magnifying-glass.svg" alt="profile table" width="30" height="30">
+          <i class="bi bi-search"></i>
           Show table profile
         </button>
       </div>
@@ -46,8 +51,10 @@
       <div class="col-md-2" v-if="schema">
         <h4>Table Fields</h4>
         <div class="row" v-for="(type, field) in schema" :key="field">
-          <button class="btn btn-primary m-1 opcion-style" @click="analyzeField">
-            {{ field }} ({{ type }})
+          <button class="btn btn-secondary m-1 opcion-style" @click="analyzeField">
+            <!--<img :src="imageSrc(type)" alt="profile table" width="30" height="30">-->
+            <span v-html="imageSrc(type)"></span>
+            {{ field }} 
           </button>
         </div>
 
@@ -60,54 +67,31 @@
 
       <div v-if="tableProfile && showProfile" class="col-md-10">
         <h4>Table profile</h4>
-        <!-- Global Stats -->
-        <div class="card mb-3">
-          <div class="card-header">Estadísticas Globales</div>
-          <div class="card-body">
-            <p v-for="(value, key) in tableProfile.global_stats" :key="key">
-              <strong>{{ key }}:</strong> {{ value }}
-            </p>
-          </div>
-        </div>
-
-        <!-- Data Stats -->
-        <div class="card mb-3" v-for="(columnStats, index) in tableProfile.data_stats" :key="index">
-    <div class="card-header">Estadísticas de Datos - {{ columnStats.column_name }}</div>
-    <div class="card-body">
-        <!-- Mostrar todos los elementos excepto statistics -->
-        <p v-for="(value, key) in columnStats" v-if="key !== 'statistics'" :key="key">
-            <strong>{{ key }}:</strong> {{ value }}
-        </p>
-
-        <!-- Mostrar elemento Statistics -->
-        <div v-if="columnStats.statistics">
-            <h5>Statistics:</h5>
-            <p v-for="(statValue, statKey) in columnStats.statistics" :key="statKey">
-                <strong>{{ statKey }}:</strong> {{ statValue }}
-            </p>
-
-            <!-- Si hay quantiles dentro de statistics, mostrarlos también -->
-            <div v-if="columnStats.statistics.quantiles">
-                <h6>Quantiles:</h6>
-                <p v-for="(quantileValue, quantileKey) in columnStats.statistics.quantiles" :key="quantileKey">
-                    <strong>{{ quantileKey }}:</strong> {{ quantileValue }}
-                </p>
-            </div>
-
-            <!-- Si hay data_type_representation dentro de statistics, mostrarlos también -->
-            <div v-if="columnStats.statistics.data_type_representation">
-                <h6>Data Type Representation:</h6>
-                <p v-for="(dataTypeValue, dataTypeKey) in columnStats.statistics.data_type_representation" :key="dataTypeKey">
-                    <strong>{{ dataTypeKey }}:</strong> {{ dataTypeValue }}
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
-
+        <div ref="tableProfile"></div>
       </div>
     </div>
+  </div>
+
+  <!-- Diálogo de confirmación -->
+  <div v-if="showDialog" class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Attention</h5>
+          <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to drop table {{ selectedTable }}?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showDialog = false">Cancel</button>
+          <button type="button" class="btn btn-danger" @click="deleteTable">Yes, delete it</button>
+        </div>
+      </div>
     </div>
+  </div>
+  <div v-if="showDialog" class="modal-backdrop fade show"></div>
+
 </template>
 
 <script>
@@ -120,6 +104,7 @@ export default {
   name: 'TablesPanel',
   data() {
     return {
+      showDialog: false,
       expanded: true,
       serverHost: 'localhost',
       serverPort: '8000',
@@ -129,10 +114,9 @@ export default {
       showSampleData: true,
       showProfile: false,
 
-      tableProfile: {},
-
       tabulator: null,
       table: [],
+      tableProfile: [],
 
       selectedTable: '',
     };
@@ -143,7 +127,22 @@ export default {
 
   emits: ['deleteTable'],
 
+
   methods: {
+    imageSrc(type) {
+      
+      if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
+      else if (type === 'float32') return '<i class="bi bi-123"></i>';
+      else if (type === 'float64') return '<i class="bi bi-123"></i>';
+      else if (type === 'int64') return '<i class="bi bi-123"></i>';
+      else if (type === 'boolean') return "MNO";
+      else if (type === 'null') return "PQR";
+      else return type;
+      
+    },
+    confirmDelete() {
+      this.showDialog = true;
+    },
     async clickTable(table) {
       this.selectedTable = table;
       var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/getTableSchema`, {
@@ -185,9 +184,7 @@ export default {
             reactiveData: true,
             importFormat: "csv",
             autoColumns: true,
-
           });
-
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -202,27 +199,47 @@ export default {
     async getTableProfile(table) {
       this.showSampleData = false;
       this.showProfile = true;
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/getTableProfile`, {
+
+      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/getTableProfile`, {
         params: {
           tableName: table,
         },
-      }).then((response) => {
+      });
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Loading table profile, please wait...',
+          success: 'Profile loaded',
+          error: 'Error loading profile'
+        },
+        {
+          position: toast.POSITION.BOTTOM_RIGHT,
+        }
+      ).then((response) => {
         if (response.status === 200) {
           this.tableProfile = response.data.profile;
-
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
+          var columns = [];
+          for (var key in this.tableProfile[0]) {
+            columns.push({ title: key, field: key });
+          }
+          new Tabulator(this.$refs.tableProfile, {
+            data: this.tableProfile,
+            reactiveData: true,
+            importFormat: "csv",
+            autoColumns: true,
+          });
         }
       }).catch((error) => {
-        toast.error(`Error: HTTP ${error.message}`);
-      }).finally(() => {
-
+        console.error('Error: ', error.message);
       });
     },
+
     ////////////////////////////////////////////////////
     async deleteTable() {
       this.$emit('deleteTable', this.selectedTable);
       this.selectedTable = '';
+      this.showDialog = false;
     },
     ////////////////////////////////////////////////////
 
@@ -249,4 +266,29 @@ export default {
 }
 
 </script>
-<style scoped></style>
+<style scoped>
+.modal {
+  display: block;
+  position: fixed;
+  z-index: 1050;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-backdrop {
+  z-index: 1040; /* Backdrop debe estar detrás del modal */
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+
+</style>
