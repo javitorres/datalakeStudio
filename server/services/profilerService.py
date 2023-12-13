@@ -1,9 +1,12 @@
-from dataprofiler import Data, Profiler
+import numpy as np
+import pandas as pd
+from ydata_profiling import ProfileReport
 
 def getProfile(df):
     try:
-        profile = Profiler(df)
-        readable_report = profile.report(report_options={"output_format": "compact"})
-        return readable_report
-    except:
+        profile = ProfileReport(df, title="Profiling Report")
+        report = profile.to_notebook_iframe()
+        return report
+    except Exception as e:
+        print("Error in generating profile report:" + str(e))
         return None

@@ -8,6 +8,8 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install ydata-profiling
+RUN pip install ipython ipywidgets
 
 # Copiar el resto del código del backend
 COPY . .
