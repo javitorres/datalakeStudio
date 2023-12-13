@@ -18,38 +18,42 @@
     </div>
   </div>
 
-  <div class="section">
-    <div class="container">
-      <div id="data-table">
-      </div>
-    </div>
-  </div>
-
-  <script>
-    var config = <%- JSON.stringify(config) %>;
-            window.onload = function() {
-                if (config) {
-                    initializeDashboard(config); 
-                }
-                updateFiltersSummary();
-            };
-  </script>
-  <script src="js/genericCross.js"></script>
 </template>
 
 <script>
+import { csvParse } from 'd3-dsv';
 
 export default {
   name: 'GenericCross',
 
   data() {
     return {
-      config: {}
+      config: {
+        "charts": [
+          {
+            "title": "Precision",
+            "type": "categorical",
+            "fields": "precision"
+          },
+          {
+            "title": "Price",
+            "type": "numerical",
+            "fields": "askingPriceVenta"
+          }
+        ]
+      },
+
+
     };
   },
 
+  props: {
+    dataStr: String,
+  },
+
   mounted() {
-    this.initializeDashboard();
+    this.initializeDashboard(this.config);
+    this.updateFiltersSummary();
   },
 
   methods: {
@@ -66,6 +70,8 @@ export default {
       titleElement.innerText = title;
       header.appendChild(titleElement);
       container.appendChild(header);
+
+      //console.log("Create chart " + type);
 
       if (type === 'numerical') {
 
@@ -132,7 +138,7 @@ export default {
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     generateChart(crossFilterData, chartConfig, index, data) {
-      var elementId = createChartContainer(chartConfig.title, chartConfig.fields, index, chartConfig.type);
+      var elementId = this.createChartContainer(chartConfig.title, chartConfig.fields, index, chartConfig.type);
       var chart;
 
       dimension = crossFilterData.dimension(dc.pluck(chartConfig.fields));
@@ -140,7 +146,7 @@ export default {
 
       var reasonableMaxValue = d3.max(group.all(), d => d.key);
 
-      console.log(chartConfig.fields + ': ' + reasonableMaxValue);
+      //console.log(chartConfig.fields + ': ' + reasonableMaxValue);
       switch (chartConfig.type) {
         case 'numerical':
           chart = dc.barChart('#' + elementId)
@@ -190,8 +196,8 @@ export default {
             resetLink.style.display = chart.filters().length > 0 ? 'block' : 'none';
           });
 
-          chart.on('filtered', function (chart) {
-            updateFiltersSummary();
+          chart.on('filtered', (chart) => {
+            this.updateFiltersSummary(); // 'this' se refiere al componente Vue
           });
 
           break;
@@ -257,8 +263,8 @@ export default {
         resetLink.style.display = chart.filters().length > 0 ? 'block' : 'none';
       });
 
-      chart.on('filtered', function (chart) {
-        updateFiltersSummary();
+      chart.on('filtered', (chart) => {
+        this.updateFiltersSummary(); // 'this' se refiere al componente Vue
       });
 
       return chart;
@@ -291,73 +297,37 @@ export default {
         dc.redrawAll();
       }
     },
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    createDataTable(crossFilterData, config) {
-      var dataTable = dc.dataTable("#data-table");
-      var allDim = crossFilterData.dimension(d => d);
-
-      var columns = config.charts.map(chartConfig => {
-        return {
-          label: chartConfig.fields,
-          format: d => d[chartConfig.fields]
-        };
-      });
-
-      dataTable
-        .dimension(allDim)
-        .columns(columns)
-        .sortBy(d => d[columns[0].label]) // Ordenar por la primera columna como predeterminado
-        .order(d3.ascending)
-        .on('renderlet', function (table) {
-          table.selectAll('.dc-table th')
-            .on('click', function (d) {
-              var column = d.label;
-              if (dataTable.order() === d3.ascending) {
-                dataTable.order(d3.descending);
-              } else {
-                dataTable.order(d3.ascending);
-              }
-              dataTable.sortBy(d => d[column]);
-              dataTable.redraw();
-            });
-          table.selectAll('.dc-table').classed('dc-table', true);
-        });
-
-      setTimeout(function () {
-        d3.selectAll('#data-table .dc-data-table').classed('dc-table', true);
-      }, 0);
-
-      return dataTable;
-    },
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     initializeDashboard(config) {
-      d3.csv(config.data).then((data) => {
-        data.forEach(function (d) {
-          config.charts.forEach(function (chartConfig) {
-            if (chartConfig.type === 'date') {
-              d[chartConfig.fields] = new Date(d[chartConfig.fields]);
-            } else if (chartConfig.type === 'numerical') {
-              // Convertir a número
-              d[chartConfig.fields] = +d[chartConfig.fields];
-            }
-          });
-        });
+      let data = csvParse(this.dataStr);
+      
 
-        var crossFilterData = crossfilter(data);
-        var charts = config.charts.map((chartConfig, index) => {
-          return generateChart(crossFilterData, chartConfig, index, data);
-        });
-
-        var dataTable = createDataTable(crossFilterData, config);
-        dc.renderAll();
-
-        document.getElementById('reset-all').addEventListener('click', function () {
-          dc.filterAll();
-          dc.redrawAll();
+      data.forEach(function (d) {
+        //console.log("DATA:" + d + " Config:" + config);
+        config.charts.forEach(function (chartConfig) {
+          if (chartConfig.type === 'date') {
+            d[chartConfig.fields] = new Date(d[chartConfig.fields]);
+          } else if (chartConfig.type === 'numerical') {
+            // Convertir a número
+            d[chartConfig.fields] = +d[chartConfig.fields];
+          }
         });
       });
+
+      var crossFilterData = crossfilter(data);
+      var charts = config.charts.map((chartConfig, index) => {
+        return this.generateChart(crossFilterData, chartConfig, index, data);
+      });
+
+      dc.renderAll();
+
+      document.getElementById('reset-all').addEventListener('click', function () {
+        dc.filterAll();
+        dc.redrawAll();
+      });
+
     }
 
   },

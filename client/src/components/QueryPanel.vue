@@ -2,6 +2,7 @@
   <hr>
   <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Query</h1>
   <div class="row" v-if="expanded">
+    <div  class="row">
     <div class="col-md-4">
       <br />
       <div class="row">
@@ -66,6 +67,13 @@
 
     </div>
   </div>
+  <GenericCross 
+    v-if="sampleData" 
+    :dataStr="sampleData"
+    
+
+    ></GenericCross>
+  </div>
 </template>
 
 <script>
@@ -75,6 +83,8 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
+import GenericCross from './GenericCross.vue';
+
 
 
 export default {
@@ -82,6 +92,7 @@ export default {
 
   components: {
     Codemirror,
+    GenericCross
   },
   data() {
     return {
