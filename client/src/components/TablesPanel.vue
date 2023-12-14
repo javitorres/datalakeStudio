@@ -1,7 +1,7 @@
 <template>
   <!-- Table list -->
   <hr>
-  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Tables loaded in DatalakeStudio</h1>
+  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Table explorer</h1>
   <div v-if="expanded">
     <div class="row">
       <div class="col-md-12">

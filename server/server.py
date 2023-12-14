@@ -139,7 +139,7 @@ def runQuery(query: str):
     #duckDbService.loadTable("__lastquery", fileName)
     duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
     duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
-    df = duckDbService.runQuery("SELECT *  FROM __lastQuery LIMIT 30")
+    df = duckDbService.runQuery("SELECT *  FROM __lastQuery LIMIT 1000")
     #return {"status": "ok", "rows": df.to_json()}
 
     if df is not None:
