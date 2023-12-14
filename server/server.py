@@ -147,6 +147,15 @@ def runQuery(query: str):
         return Response(content=csv_data, media_type="text/csv", status_code=200)
     else:
         return Response(content="Query failed or returned no data", status_code=400)   
+
+@app.get("/lastQuerySchema")
+def lastQuerySchema():
+    df = duckDbService.runQuery("SELECT * FROM __lastQuery LIMIT 1")
+    if (df is not None):
+        schema_dict = df.dtypes.apply(lambda x: str(x)).to_dict()
+        return JSONResponse(content=schema_dict, status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
   
 @app.get("/createTableFromQuery")
 def createTableFromQuery(query: str, tableName: str):

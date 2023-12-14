@@ -1,19 +1,24 @@
 <template>
-  <div class="container">
-    <div id="filters-summary" class="content">
-      <h3>Active filters:</h3>
-      <ul id="filters-list"></ul>
-    </div>
+  <div class="container" v-if="filtersList && filtersList.length > 0">
+    <h3> <i class="bi bi-funnel"></i>  Active filters:</h3>
+    <ul class="list-unstyled d-flex flex-wrap">
+      <li v-for="filter in filtersList" :key="filter.id">
+        <button class="btn btn-primary m-1 opcion-style" @click="resetChart(filter.chart)">
+           <i class="bi bi-x-octagon"></i>
+          {{ filter.chart.replace("#chart-","") }}: {{ filter.filters }}
+        </button>
+      </li>
+    </ul>
   </div>
 
   <div class="container">
-    <button id="reset-all" class="button is-primary">Reset All Filters</button>
+    <button type="button" class="btn btn-danger" id="reset-all" >Reset All Filters</button>
   </div>
 
 
   <div class="section">
     <div class="container" id="charts-container">
-      <!-- Los gráficos se generarán dinámicamente aquí -->
+      <!-- Charts will be generated here -->
 
     </div>
   </div>
@@ -28,39 +33,33 @@ export default {
 
   data() {
     return {
-      config: {
-        "charts": [
-          {
-            "title": "Precision",
-            "type": "categorical",
-            "fields": "precision"
-          },
-          {
-            "title": "Price",
-            "type": "numerical",
-            "fields": "askingPriceVenta"
-          }
-        ]
-      },
-
-
+      filtersList: [],
     };
   },
 
   props: {
     dataStr: String,
+    chartConfig: Object,
+    key: Number,
   },
 
   mounted() {
-    this.initializeDashboard(this.config);
+    this.initializeDashboard(this.chartConfig);
     this.updateFiltersSummary();
+  },
+  watch: {
+    key: function () {
+      this.initializeDashboard(this.chartConfig);
+      this.updateFiltersSummary();
+    },
+    
   },
 
   methods: {
     createChartContainer(title, identifier, index, type) {
       var elementId = 'chart-' + (Array.isArray(identifier) ? identifier.join("-") : identifier);
       var container = document.createElement('div');
-      container.className = 'chart-container column is-half';
+      container.className = 'chart-container col-md-6';
       container.id = elementId;
 
       var header = document.createElement('header');
@@ -98,7 +97,7 @@ export default {
 
       if (index % 2 === 0) {
         var row = document.createElement('div');
-        row.className = 'columns';
+        row.className = 'row';
         row.id = 'row-' + Math.floor(index / 2);
         document.getElementById('charts-container').appendChild(row);
       }
@@ -189,7 +188,8 @@ export default {
           var resetLink = document.createElement('a');
           resetLink.className = 'reset-link button is-small';
           resetLink.innerText = 'Reset';
-          resetLink.href = 'javascript:resetChart("' + elementId + '")';
+          //resetLink.href = 'javascript:resetChart("' + elementId + '")';
+          resetLink.addEventListener('click', () => this.resetChart(elementId));
           document.getElementById(elementId).appendChild(resetLink);
 
           chart.on('renderlet', function (chart) {
@@ -256,7 +256,8 @@ export default {
       var resetLink = document.createElement('a');
       resetLink.className = 'reset-link button is-small';
       resetLink.innerText = 'Reset';
-      resetLink.href = 'javascript:resetChart("' + elementId + '")';
+      //resetLink.href = 'javascript:resetChart("' + elementId + '")';
+      resetLink.addEventListener('click', () => this.resetChart(elementId));
       document.getElementById(elementId).appendChild(resetLink);
 
       chart.on('renderlet', function (chart) {
@@ -271,26 +272,21 @@ export default {
     },
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     updateFiltersSummary() {
-      var filtersList = dc.chartRegistry.list().reduce(function (acc, chart) {
+      this.filtersList = dc.chartRegistry.list().reduce(function (acc, chart) {
         var filters = chart.filters();
         if (filters.length > 0) {
           acc.push({ chart: chart.anchor(), filters: filters });
         }
         return acc;
       }, []);
-
-      var filtersListElement = document.getElementById('filters-list');
-      filtersListElement.innerHTML = ''; // Limpiar el listado actual
-
-      filtersList.forEach(function (item) {
-        var li = document.createElement('li');
-        li.textContent = item.chart + ': ' + item.filters.join(', ');
-        filtersListElement.appendChild(li);
-      });
     },
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////
     resetChart(elementId) {
+      if (elementId.startsWith('#')) {
+        elementId = elementId.slice(1);
+      }
+      console.log('Reset chart ' + elementId);
       var chart = dc.chartRegistry.list().find(c => c.anchor() === '#' + elementId);
       if (chart) {
         chart.filterAll();
@@ -305,7 +301,7 @@ export default {
       
 
       data.forEach(function (d) {
-        //console.log("DATA:" + d + " Config:" + config);
+        //console.log("DATA:" + d + " Config:" + JSON.stringify(config));
         config.charts.forEach(function (chartConfig) {
           if (chartConfig.type === 'date') {
             d[chartConfig.fields] = new Date(d[chartConfig.fields]);
