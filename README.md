@@ -87,4 +87,43 @@ If you want to use remote database, copy your pgpass file to the server folder. 
 ```
 hostname:port:database:username:password
 ```
+# Usage
+
+## Load data
+
+You can load data from local filesystem, from any URL or from S3
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/60c9761f-8f2f-42ee-819d-4b315566e57d)
+
+## Table explorer
+
+Inspect data and profile loaded data
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5301e4ca-d2ae-4d34-a417-dbb946edbe55)
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/592bc7d9-45da-4e29-a02c-a35470124a11)
+
+## Query panel
+
+Query your data and generate new tables.
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/f5341884-f7a0-478d-98bb-8ee9a549adfd)
+
+Use GPT assistant to generate SQL
+
+Explore your data using automatic and interactive charts:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/a8e888f6-e3c8-4f5c-9923-262b1cb620fd)
+
+
+
+
+
+
+
+
+
+
+
+
 
