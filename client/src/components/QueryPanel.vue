@@ -59,39 +59,32 @@
           </div>
         </div>
 
-        <div class="row">
-          <div class="col-md-12">
-            <div ref="table"></div>
-          </div>
+        <div class="row" v-if="querySuccesful">
+          <TableInspector :tableName="tableName" />
         </div>
 
       </div>
     </div>
-    <GenericCross 
-      v-if="sampleData && chartConfig" 
-      :key="genericCrossKey"
-      :dataStr="sampleData" 
-      :chartConfig="chartConfig">
-    
-    </GenericCross>
+
   </div>
 </template>
 
 <script>
 import { Codemirror } from 'vue-codemirror'
 import axios from 'axios';
-import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
+import TableInspector from './TableInspector.vue';
 
 export default {
   name: 'QueryPanel',
 
   components: {
     Codemirror,
-    GenericCross
+    GenericCross,
+    TableInspector
   },
   data() {
     return {
@@ -104,16 +97,14 @@ export default {
       query: 'SELECT * FROM homecenter',
       sampleData: null,
 
-      tabulator: null,
       table: null,
       tableFromQuery: '',
 
       chatGPTInput: 'dame askingprice medio',
       chatGPTOutput: '',
 
-      lastQuerySchema: null,
-      chartConfig: null,
-      genericCrossKey: 0,
+      tableName: "__lastQuery",
+      querySuccesful: false,
 
       cmOption: {
         tabSize: 4,
@@ -142,24 +133,8 @@ export default {
   emits: ['tableCreated'],
   methods: {
 
-    async getLastQuerySchema() {
-      try {
-        const response = await axios.get(`http://${this.serverHost}:${this.serverPort}/lastQuerySchema`);
-
-        if (response.status === 200) {
-          console.log("Schema loaded:", response.data);
-          return response.data;
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-          return null;
-        }
-      } catch (error) {
-        this.error = `Error: ${error.message}`;
-        return null;
-      }
-    },
-
     async runQuery(table) {
+      
       try {
         const response = await axios.get(`http://${this.serverHost}:${this.serverPort}/runQuery`, {
           params: { query: this.query, },
@@ -169,18 +144,8 @@ export default {
           this.error = '';
           
           this.sampleData = response.data;
+          this.querySuccesful = true;
 
-          var columns = [];
-          for (var key in this.sampleData[0]) {
-            columns.push({ title: key, field: key });
-          }
-          var table = new Tabulator(this.$refs.table, {
-            data: this.sampleData,
-            reactiveData: true,
-            importFormat: "csv",
-            autoColumns: true,
-
-          });
         } else {
           this.error = `Error: HTTP ${response.message}`;
         }
@@ -189,34 +154,7 @@ export default {
       } finally {
         this.loading = false;
       };
-      this.lastQuerySchema = await this.getLastQuerySchema();
-
-      var charts = [];
-      for (var key in this.lastQuerySchema) {
-        var chart = {
-          title: key,
-          type: this.lastQuerySchema[key],
-          fields: key
-        };
-        if (chart.type === 'object' || chart.type === 'bool') {
-          chart.type = 'categorical';
-        } else if (chart.type === 'int64' || chart.type === 'float64') {
-          chart.type = 'numerical';
-        } else if (chart.type === 'datetime64[ns]') {
-          chart.type = 'date';
-        } else {
-          chart.type = 'categorical';
-        }
-        charts.push(chart);
-      }
-      this.chartConfig = {
-        charts: charts
-      };
-
-      // Invalidate GenericCross to force re-render
-      this.genericCrossKey++;
-
-      //console.log("Config:" + JSON.stringify(this.chartConfig));
+      
     },
     ///////////////////////////////////////////////////////
     async createTable() {

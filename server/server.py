@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 import services.duckDbService as duckDbService
 import services.apiService as apiService
@@ -122,12 +122,16 @@ def getTableSchema(tableName: str):
         return JSONResponse(content=[], status_code=200)
 
 @app.get("/getSampleData", response_class=Response)
-def getTableData(tableName: str, limit: int = 20):
+def getTableData(tableName: str, type: str = "First", records: int = 1000):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Getting data for table " + tableName)
-    r = duckDbService.runQuery("SELECT * FROM " + tableName + " LIMIT " + str(limit))
+    if (records==0):
+        LIMIT = ""
+    else:
+        LIMIT = " LIMIT " + str(records)
+    r = duckDbService.runQuery("SELECT * FROM " + tableName + LIMIT)
     if (r is not None):
         #return JSONResponse(content=r.to_csv(index=False), status_code=200)
         return Response(r.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
@@ -135,11 +139,16 @@ def getTableData(tableName: str, limit: int = 20):
         return ""
 
 @app.get("/runQuery")
-def runQuery(query: str):
+def runQuery(query: str, rows: int = 1000):
     #duckDbService.loadTable("__lastquery", fileName)
     duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
     duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
-    df = duckDbService.runQuery("SELECT *  FROM __lastQuery LIMIT 1000")
+    if (rows==0):
+        LIMIT = ""
+    else:
+        LIMIT = " LIMIT " + str(rows)
+
+    df = duckDbService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
     #return {"status": "ok", "rows": df.to_json()}
 
     if df is not None:
@@ -148,14 +157,7 @@ def runQuery(query: str):
     else:
         return Response(content="Query failed or returned no data", status_code=400)   
 
-@app.get("/lastQuerySchema")
-def lastQuerySchema():
-    df = duckDbService.runQuery("SELECT * FROM __lastQuery LIMIT 1")
-    if (df is not None):
-        schema_dict = df.dtypes.apply(lambda x: str(x)).to_dict()
-        return JSONResponse(content=schema_dict, status_code=200)
-    else:
-        return JSONResponse(content=[], status_code=200)
+
   
 @app.get("/createTableFromQuery")
 def createTableFromQuery(query: str, tableName: str):
@@ -326,6 +328,7 @@ def getProfile(tableName: str):
         return response
     else:
         return {"status": "error"}
+
 
 
 if __name__ == "__main__":
