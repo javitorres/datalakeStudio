@@ -13,7 +13,7 @@
   <!-- Data and metadata -->
   <div class="col-md-10">
     <div class="row-md-2">
-      
+
       <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
         Show sample data
@@ -31,25 +31,26 @@
     </div>
 
     <div class="row" v-if="sampleData && showSampleData">
-    <div class="col-md-6">
-      <i class="bi bi-arrows-vertical"></i>
-      <div class="btn-group">
-        <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
-        <button class="btn btn-primary" :class="{ active: type === 'Shuffle' }" @click="setType('Shuffle')">Shuffle</button>
-        <button class="btn btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
+      <div class="col-md-6">
+        <i class="bi bi-arrows-vertical"></i>
+        <div class="btn-group">
+          <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
+          <button class="btn btn-primary" :class="{ active: type === 'Shuffle' }"
+            @click="setType('Shuffle')">Shuffle</button>
+          <button class="btn btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
+        </div>
+        <i class="bi bi-grid-3x3-gap-fill"></i>
+        <div class="btn-group">
+          <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
+          <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
+          <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
+          <button class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
+        </div>
       </div>
-      <i class="bi bi-grid-3x3-gap-fill"></i>
-      <div class="btn-group">
-        <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
-        <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
-        <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
-        <button class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
+      <div class="col-md-6">
+
       </div>
     </div>
-    <div class="col-md-6">
-      
-    </div>
-  </div>
 
     <!-- Sample data -->
     <div v-if="sampleData && showSampleData">
@@ -64,10 +65,7 @@
     </div>
 
     <!-- Cross filters -->
-    <GenericCross 
-      v-if="sampleData && chartConfig && showCrossfilters" 
-      :key="genericCrossKey"
-      :dataStr="sampleData" 
+    <GenericCross v-if="sampleData && chartConfig && showCrossfilters" :key="genericCrossKey" :dataStr="sampleData"
       :chartConfig="chartConfig">
     </GenericCross>
 
@@ -97,7 +95,7 @@ export default {
       tableProfile: Object,
       type: 'First',
       records: 50,
-      
+
       chartConfig: null,
       genericCrossKey: 0,
     };
@@ -132,7 +130,7 @@ export default {
       this.getSampleData(this.tableName);
     },
 
-    async load(){
+    async load() {
       await this.getSampleData(this.tableName);
       await this.getTableSchema(this.tableName);
     },
@@ -170,7 +168,7 @@ export default {
     async getSampleData(table) {
       this.showSampleData = true;
       this.showProfile = false;
-      this.showCrossfilters =  false;
+      this.showCrossfilters = false;
 
 
       await axios.get(`http://${this.serverHost}:${this.serverPort}/getSampleData`, {
@@ -206,7 +204,7 @@ export default {
     async getTableProfile(table) {
       this.showSampleData = false;
       this.showProfile = true;
-      this.showCrossfilters =  false;
+      this.showCrossfilters = false;
 
       const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/getTableProfile`, {
         params: {
@@ -243,11 +241,11 @@ export default {
       });
     },
     ////////////////////////////////////////////////////
-   
-    async crossFilters(table){
+
+    async crossFilters(table) {
       this.showSampleData = false;
       this.showProfile = false;
-      this.showCrossfilters =  true;
+      this.showCrossfilters = true;
 
       await this.getTableSchema(table);
 

@@ -91,7 +91,8 @@ hostname:port:database:username:password
 
 ## Load data
 
-You can load data from local filesystem, from any URL or from S3
+You can load data from local filesystem, from any URL or from S3. 
+Try to load this example: https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/60c9761f-8f2f-42ee-819d-4b315566e57d)
 
