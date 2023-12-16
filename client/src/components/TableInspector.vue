@@ -1,7 +1,7 @@
 <template>
   <!-- Fields -->
   <div class="col-md-2" v-if="schema">
-    <h4>Table Fields</h4>
+    
     <div class="row" v-for="(type, field) in schema" :key="field">
       <button class="btn btn-secondary m-1 opcion-style" @click="analyzeField">
         <span v-html="imageSrc(type)"></span>
@@ -31,6 +31,10 @@
     </div>
 
     <div class="row" v-if="sampleData && showSampleData">
+      <!-- Sample data -->
+      <h4>Total rows: {{ rowcount }}.   Showing {{ records<rowcount?records:rowcount }}</h4>
+      
+    
       <div class="col-md-6">
         <i class="bi bi-arrows-vertical"></i>
         <div class="btn-group">
@@ -44,17 +48,12 @@
           <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
           <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
           <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
-          <button class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
+          <button v-if="records<1000" class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
         </div>
       </div>
       <div class="col-md-6">
 
       </div>
-    </div>
-
-    <!-- Sample data -->
-    <div v-if="sampleData && showSampleData">
-      <h4>Sample Data</h4>
       <div ref="table"></div>
     </div>
 
@@ -93,6 +92,7 @@ export default {
       sampleData: Object,
       schema: Object,
       tableProfile: Object,
+      rowcount: 0,
       type: 'First',
       records: 50,
 
@@ -132,6 +132,7 @@ export default {
 
     async load() {
       await this.getSampleData(this.tableName);
+      await this.getRowcount();
       await this.getTableSchema(this.tableName);
     },
     ////////////////////////////////////////////////////
@@ -144,6 +145,24 @@ export default {
       else if (type === 'null') return "PQR";
       else return type;
 
+    },
+    /////////////////////////////////////////////////
+    async getRowcount(){
+      await axios.get(`http://${this.serverHost}:${this.serverPort}/getRowCount`, {
+        params: {
+          tableName: this.tableName,
+        },
+      }).then((response) => {
+        if (response.status === 200) {
+          this.rowcount = response.data.rows;
+        } else {
+          toast.error(`Error: HTTP ${response.message}`);
+        }
+      }).catch((error) => {
+        toast.error(`Error: HTTP ${response.message}`);
+      }).finally(() => {
+        this.loading = false;
+      });
     },
     ////////////////////////////////////////////////////
     async getTableSchema(table) {

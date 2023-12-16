@@ -30,11 +30,6 @@
     </div>
 
     <div class="row" v-if="selectedTable">
-
-      <div class="row" v-if="selectedTable">
-        <TableInspector :tableName="selectedTable" />
-      </div>
-
       <!-- Delete button -->
       <div class="col-md-2">
         <button class="btn btn-danger m-1 opcion-style" @click="confirmDelete">
@@ -42,6 +37,12 @@
           Delete table
         </button>
       </div>
+
+      <div class="row" v-if="selectedTable">
+        <TableInspector :tableName="selectedTable" />
+      </div>
+
+      
     </div>
 
   </div>

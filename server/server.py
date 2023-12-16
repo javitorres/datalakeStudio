@@ -140,9 +140,14 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
 
 @app.get("/runQuery")
 def runQuery(query: str, rows: int = 1000):
-    #duckDbService.loadTable("__lastquery", fileName)
     duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
-    duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+    try:
+        duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+    except Exception as e:
+        print("Error runing query::: " + str(e))
+        response = {"status": "error", "message": "Error running query: " + str(e)}
+        return JSONResponse(content=response, status_code=400)
+    
     if (rows==0):
         LIMIT = ""
     else:
@@ -157,6 +162,21 @@ def runQuery(query: str, rows: int = 1000):
     else:
         return Response(content="Query failed or returned no data", status_code=400)   
 
+@app.get("/getRowCount")
+def getRowsCount(tableName: str):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting rows count for table " + tableName)
+    df = duckDbService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    if (df is not None):
+        print("DF:" + str(df))
+        # extract total
+        total = df["total"].values[0]
+        print("Total:" + str(total))
+        return {"status": "ok", "rows": str(total)}
+    else:
+        return {"status": "error"}
 
   
 @app.get("/createTableFromQuery")

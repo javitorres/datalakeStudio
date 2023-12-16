@@ -134,67 +134,81 @@ export default {
   methods: {
 
     async runQuery(table) {
-      
-      try {
-        const response = await axios.get(`http://${this.serverHost}:${this.serverPort}/runQuery`, {
-          params: { query: this.query, },
-        });
+      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/runQuery`, {
+        params: { query: this.query, },
+      });
 
-        if (response.status === 200) {
-          this.error = '';
-          
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Running query, please wait...',
+          success: 'Query executed',
+          error: 'Error running query'
+        },
+        {position: toast.POSITION.BOTTOM_RIGHT}
+      ).then((response) => {
           this.sampleData = response.data;
           this.querySuccesful = true;
-
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
+      }).catch((error) => {
+        if (error.response.data.message){
+          toast.error('Info' + `Error: ${error.response.data.message}`, {position: toast.POSITION.BOTTOM_RIGHT});
+        }else{
+          toast.error('Info:' + `Error: ${error.response.data}`, {position: toast.POSITION.BOTTOM_RIGHT});
         }
-      } catch (error) {
-        this.error = `Error: ${error.message}`;
-      } finally {
-        this.loading = false;
-      };
-      
+      });
     },
     ///////////////////////////////////////////////////////
     async createTable() {
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/createTableFromQuery`, {
+      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/createTableFromQuery`, {
         params: {
           query: this.query,
           tableName: this.tableFromQuery,
         },
-      }).then((response) => {
-        if (response.status === 200) {
-          toast.success('Table created successfully');
-          this.$emit('tableCreated');
-        } else {
-          toast.error('Table creation error::' + response.message);
-        }
+      });
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Creating table from query, please wait...',
+          success: 'Table created',
+          error: 'Error creting table from query'
+        },
+        {position: toast.POSITION.BOTTOM_RIGHT}
+      ).then((response) => {
+        this.$emit('tableCreated');
       }).catch((error) => {
-        toast.error('Table creation error:' + error);
-      }).finally(() => {
-        this.loading = false;
+        if (error.response.data.message){
+          toast.error('Info' + `Error: ${error.response.data.message}`, {position: toast.POSITION.BOTTOM_RIGHT});
+        }else{
+          toast.error('Info:' + `Error: ${error.response.data}`, {position: toast.POSITION.BOTTOM_RIGHT});
+        }
       });
 
     },
     ///////////////////////////////////////////////////////
     async askChatGPT() {
-      this.loading = true;
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/askGPT`, {
+      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/askGPT`, {
         params: {
           question: this.chatGPTInput,
         },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.error = '';
-          this.chatGPTOutput = response.data;
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-        }
+      });
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Asking ChatGPT, please wait...',
+          success: 'ChatGPT answered',
+          error: 'Error asking ChatGPT'
+        },
+        {position: toast.POSITION.BOTTOM_RIGHT}
+      ).then((response) => {
+        this.chatGPTOutput = response.data;
       }).catch((error) => {
-        this.error = `Error: ${error.message}`;
-      }).finally(() => {
-        this.loading = false;
+        if (error.response.data.message){
+          toast.error('Info' + `Error: ${error.response.data.message}`, {position: toast.POSITION.BOTTOM_RIGHT});
+        }else{
+          toast.error('Info:' + `Error: ${error.response.data}`, {position: toast.POSITION.BOTTOM_RIGHT});
+        }
       });
     },
     ///////////////////////////////////////////////////////
