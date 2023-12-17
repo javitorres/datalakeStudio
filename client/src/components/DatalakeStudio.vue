@@ -63,6 +63,8 @@
 
     <QueryPanel v-if="tables && tables.length > 0" @tableCreated="this.tableCreated"></QueryPanel>
 
+    <ApiRetriever v-if="tables && tables.length > 0" :tables="tables" ></ApiRetriever>
+
   </div> <!-- container-fluid -->
 </template>
 
@@ -71,10 +73,13 @@ import axios from 'axios';
 import TablesPanel from './TablesPanel.vue';
 import QueryPanel from './QueryPanel.vue';
 import RemoteDbPanel from './RemoteDbPanel.vue';
+import ApiRetriever from './ApiRetriever.vue';
+
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
-//import { get } from 'express/lib/response';
+import { API_HOST, API_PORT } from '../../config';
+const apiUrl = `${API_HOST}:${API_PORT}`;
 
 export default {
   name: 'DatalakeStudio',
@@ -93,15 +98,15 @@ export default {
   components: {
     TablesPanel,
     QueryPanel,
-    RemoteDbPanel
+    RemoteDbPanel,
+    ApiRetriever
   },
 
   data() {
     return {
       expanded: true,
       fileInput: '',
-      serverHost: 'localhost',
-      serverPort: '8000',
+
       loading: false,
       S3Files: [],
       tableNameInput: '',
@@ -124,7 +129,7 @@ export default {
       }
     },
     ////////////////////////////////////////////////////////////////
-    findFileInS3() {
+    async findFileInS3() {
       // If fileName length is less than 3 or fileName doesn start with 's3' don't search
       if (this.fileInput.length < 5 || this.fileInput.substring(0, 2) !== 's3') {
         this.S3Files = [];
@@ -143,7 +148,7 @@ export default {
       }
 
 
-      axios.get(`http://${this.serverHost}:${this.serverPort}/s3Search`, {
+      await axios.get(`${apiUrl}/s3Search`, {
         params: {
           bucket: 'madiva-datalake',
           fileName: fileInputCleaned,
@@ -167,10 +172,10 @@ export default {
       this.S3Files = [];
     },
     ////////////////////////////////////////////////////////////////
-    loadFile() {
+    async loadFile() {
       this.loading = true;
       this.info = 'Loading file please wait...';
-      axios.get(`http://${this.serverHost}:${this.serverPort}/loadFile`, {
+      axios.get(`${apiUrl}/loadFile`, {
         params: {
           tableName: this.tableNameInput,
           fileName: this.fileInput,
@@ -191,17 +196,13 @@ export default {
       });
     },
     ////////////////////////////////////////////////////////////////
-    getTables() {
-      axios.get(`http://${this.serverHost}:${this.serverPort}/getTables`, {
+    async getTables() {
+      await axios.get(`${apiUrl}/getTables`, {
         params: {
         },
       }).then((response) => {
-        if (response.status === 200) {
-          this.tables = response.data;
-        }
-        else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
+        this.tables = response.data;
+        
       }).catch((error) => {
         toast.error(`Error: HTTP ${response.data}`);
       }).finally(() => {
@@ -210,7 +211,7 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async deleteTable(table) {
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/deleteTable`, {
+      var response = await axios.get(`${apiUrl}/deleteTable`, {
         params: {
           tableName: table,
         },
@@ -227,7 +228,7 @@ export default {
         this.loading = false;
       });
     },
-
+    ////////////////////////////////////////////////////////////////
     async tableCreated() {
       this.getTables();
     },

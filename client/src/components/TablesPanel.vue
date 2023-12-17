@@ -39,7 +39,7 @@
       </div>
 
       <div class="row" v-if="selectedTable">
-        <TableInspector :tableName="selectedTable" />
+        <TableInspector :tableName="selectedTable" :showOptions="showOptions"/>
       </div>
 
       
@@ -76,6 +76,9 @@ import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
+import { API_HOST, API_PORT } from '../../config';
+const apiUrl = `${API_HOST}:${API_PORT}`;
+
 export default {
   name: 'TablesPanel',
   components: {
@@ -85,8 +88,7 @@ export default {
     return {
       showDialog: false,
       expanded: true,
-      serverHost: 'localhost',
-      serverPort: '8000',
+      showOptions: true,
 
       selectedTable: '',
     };
@@ -99,7 +101,6 @@ export default {
 
   methods: {
     imageSrc(type) {
-
       if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
       else if (type === 'float32') return '<i class="bi bi-123"></i>';
       else if (type === 'float64') return '<i class="bi bi-123"></i>';
@@ -107,7 +108,6 @@ export default {
       else if (type === 'boolean') return "MNO";
       else if (type === 'null') return "PQR";
       else return type;
-
     },
     confirmDelete() {
       this.showDialog = true;
@@ -120,9 +120,8 @@ export default {
       this.showDialog = false;
     },
     ////////////////////////////////////////////////////
-
     async analyzeField(field) {
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/analyzeField`, {
+      var response = await axios.get(`${apiUrl}/analyzeField`, {
         params: {
           tableName: this.selectedTable,
           fieldName: field,

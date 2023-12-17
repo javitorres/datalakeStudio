@@ -15,6 +15,18 @@ class dotdict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
+######################################################################
+def getServices(serviceName = None):
+    if (client is None):
+        print("If you want to connect to your AWS Codecommit account you have to configure your AWS credentials in secrets.toml file")
+        return []
+    print("Getting services")
+    if (serviceName is not None):
+        return [repo['repositoryName'] for repo in client.list_repositories()['repositories'] if serviceName.lower() in repo['repositoryName'].lower()]
+    else:
+        return [repo['repositoryName'] for repo in client.list_repositories()['repositories']]
+
+######################################################################
 def getDefinition(repositoryName, environment, api_domain, context):
     url = "http://" + repositoryName + "." + environment + "." + api_domain + "/" + context + "/swagger/doc"
     print("Getting method list of repository " + repositoryName + ":" + url)
@@ -25,108 +37,90 @@ def getDefinition(repositoryName, environment, api_domain, context):
         url = "http://" + repositoryName + "." + environment + "." + api_domain + "/v3/api-docs"
         print("Getting method list of repository " + repositoryName + ":" + url)
         swaggerJson = requests.get(url)
-        print("Status code: " + str(swaggerJson.status_code))
         data=json.loads(swaggerJson.content)
         return data
     data=json.loads(swaggerJson.content)
     return data
-
-def getRepositories(repositoryName = None):
-    if (client is None):
-        st.write("If you want to connect to your AWS Codecommit account you have to configure your AWS credentials in secrets.toml file")
-        return []
-    print("Getting repositories")
-    if (repositoryName is not None):
-        return [repo['repositoryName'] for repo in client.list_repositories()['repositories'] if repositoryName.lower() in repo['repositoryName'].lower()]
-    else:
-        return [repo['repositoryName'] for repo in client.list_repositories()['repositories']]
-    
+######################################################################
 # Return dataframe with methods in a service 
 def getRepositoryMethodList(repositoryName, methodName, environment, api_domain, context):
     data = getDefinition(repositoryName, environment, api_domain, context)
     # Check if swagger definition has property "openapi": "3.0.1" or swagger: "2.0"
     if ('openapi' in data):
         print("Swagger 3.0")
-        paths = data['paths']
-        resultList=[]
-        for path, methods in paths.items():
-            if (methodName is not None):
-                if (methodName.lower() in path.lower()):
-                    for method, info in methods.items():
-                        resultList.append(path)
-            else:
-                for method, info in methods.items():
-                    resultList.append(path)
-        df = pd.DataFrame(resultList)
-        return df
+        result = []
+        for path, methods in data["paths"].items():
+            if (methodName is not None and methodName.lower() in path.lower()):
+                for method, details in methods.items():
+                    if "tags" in details and details["tags"]:
+                        result.append({
+                            "controller": details["tags"][0],
+                            "method": method.upper(),
+                            "path": path
+                        })
+        return result
     else:
         print("Swagger 2.0")
         paths = data['paths']
-        resultList=[]
-        for path, methods in paths.items():
-            if (methodName is not None):
-                if (methodName.lower() in path.lower()):
-                    resultList.append(path)
-            else:
-                resultList.append(path)
-        df = pd.DataFrame(resultList)
-        return df
-
-
-def getMethodInfo(serviceName, methodName, environment, api_domain, context):
+        result = []
+        for path, methods in data["paths"].items():
+            if methodName is None or methodName.lower() in path.lower():
+                for method, details in methods.items():
+                    if "tags" in details and details["tags"]:
+                        result.append({
+                            "controller": details["tags"][0],
+                            "method": method.upper(),
+                            "path": path
+                        })
+        return result
+######################################################################
+def getMethodInfo(serviceName, methodPath, methodMethod, environment, api_domain, context):
+    
     try:
         data = getDefinition(serviceName, environment, api_domain, context)
         if ('openapi' in data):
             print("Swagger 3.0")
             paths = data['paths']
-            methodInfo = paths[methodName]
+            print("methodPath: " + methodPath)
+            print("methodMethod: " + methodMethod)
+            print("paths: " + str(paths))
+            methodInfo = paths[methodPath]
+            print("methodInfo: " + str(methodInfo))
             result = {}
-            result['summary'] = methodInfo['get']['responses']['200']['description']
-            result['parameters'] = methodInfo['get']['parameters']
-            result['responses'] = methodInfo['get']['responses']
-            result['method'] = "GET"
+            result['summary'] = methodInfo[methodMethod.lower()]['responses']['200']['description']
+            result['parameters'] = methodInfo[methodMethod.lower()]['parameters']
+            result['responses'] = methodInfo[methodMethod.lower()]['responses']
+            if (methodMethod.lower()=="get"):
+                result['method'] = "GET"
+            else:
+                result['method'] = "POST"
+            
+            
             result['origin'] = "SWAGGER"
-            result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodName
+            result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodPath
         else:
             print("Swagger 2.0")
             paths = data['paths']
-            methodInfo = paths[methodName]
+            methodInfo = paths[methodPath]
             result = {}
-            result['summary'] = methodInfo['get']['summary']
-            result['parameters'] = methodInfo['get']['parameters']
-            result['responses'] = methodInfo['get']['responses']
-            result['method'] = "GET"
+            result['summary'] = methodInfo[methodMethod.lower()]['summary']
+            result['parameters'] = methodInfo[methodMethod.lower()]['parameters']
+            result['responses'] = methodInfo[methodMethod.lower()]['responses']
+            if (methodMethod=="get"):
+                result['method'] = "GET"
+            else:
+                result['method'] = "POST"
+            
             result['origin'] = "SWAGGER"
-            result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodName
+            result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodPath
         return result
     except Exception as e:
-        try:
-            if ('openapi' in data):
-                print("Swagger 3.0")
-                paths = data['paths']
-                methodInfo = paths[methodName]
-                result = {}
-                result['summary'] = methodInfo['post']['responses']['200']['description']
-                result['requestBody'] = methodInfo['post']['requestBody']
-                result['responses'] = methodInfo['post']['responses']
-                result['method'] = "POST"
-                result['origin'] = "SWAGGER"
-                result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodName
-            else:
-                print("Swagger 2.0")
-                paths = data['paths']
-                methodInfo = paths[methodName]
-                result = {}
-                result['summary'] = methodInfo['post']['summary']
-                result['requestBody'] = methodInfo['post']['requestBody']
-                result['responses'] = methodInfo['post']['responses']
-                result['method'] = "POST"
-                result['origin'] = "SWAGGER"
-                result['url'] = "http://" + serviceName + "." + environment + "." + api_domain + methodName
-            return result
-        except Exception as e:
-            print("Error getting method info: " + str(e))
-            return None
+        print("Error getting method info: " + str(e))
+        return None
+
+####### NOT TESTED: ###############3    
+
+
 
 def getDescription(param):
     if ( 'description' in param and param["description"] is not None):

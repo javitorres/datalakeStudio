@@ -110,13 +110,14 @@ import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
+import { API_HOST, API_PORT } from '../../config';
+const apiUrl = `${API_HOST}:${API_PORT}`;
+
 export default {
   name: 'RemoteDbPanel',
   data() {
     return {
       expanded: true,
-      serverHost: 'localhost',
-      serverPort: '8000',
       tabulator: null,
       connectedDatabase: '',
       loading: false,
@@ -144,7 +145,7 @@ export default {
   methods: {
     async searchDatabase() {
       if (this.databaseInput.length > 0) {
-        axios.get(`http://${this.serverHost}:${this.serverPort}/getDatabaseList`, {
+        axios.get(`${apiUrl}/getDatabaseList`, {
           params: {
             databaseName: this.databaseInput
           },
@@ -171,7 +172,7 @@ export default {
     async clickDatabase(database) {
       console.log('clickDatabase()');
       console.log('database: ' + database);
-      axios.get(`http://${this.serverHost}:${this.serverPort}/connectDatabase`, {
+      axios.get(`${apiUrl}/connectDatabase`, {
         params: {
           databaseName: database
         },
@@ -202,7 +203,7 @@ export default {
       this.showSchemas = false;
       this.loading = true;
       this.schemaSelected = schema;
-      axios.get(`http://${this.serverHost}:${this.serverPort}/getTablesFromRemoteSchema`, {
+      axios.get(`${apiUrl}/getTablesFromRemoteSchema`, {
         params: {
           schema: schema
         },
@@ -230,7 +231,7 @@ export default {
     async runRemoteQuery(query) {
       this.loading = true;
       console.log('runRemoteQuery()');
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/runRemoteQuery`, {
+      var response = await axios.get(`${apiUrl}/runRemoteQuery`, {
         params: {
           database: this.database,
           query: this.query,
@@ -262,7 +263,7 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async createTableFromRemoteQuery() {
-      var response = await axios.get(`http://${this.serverHost}:${this.serverPort}/createTableFromRemoteQuery`, {
+      var response = await axios.get(`${apiUrl}/createTableFromRemoteQuery`, {
         params: {
           query: this.query,
           tableName: this.tableFromQuery,

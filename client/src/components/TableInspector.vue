@@ -1,6 +1,6 @@
 <template>
   <!-- Fields -->
-  <div class="col-md-2" v-if="schema">
+  <div class="col-md-2" v-if="schema && showOptions">
     
     <div class="row" v-for="(type, field) in schema" :key="field">
       <button class="btn btn-secondary m-1 opcion-style" @click="analyzeField">
@@ -12,7 +12,7 @@
 
   <!-- Data and metadata -->
   <div class="col-md-10">
-    <div class="row-md-2">
+    <div class="row-md-2" v-if="showOptions">
 
       <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
@@ -32,10 +32,10 @@
 
     <div class="row" v-if="sampleData && showSampleData">
       <!-- Sample data -->
-      <h4>Total rows: {{ rowcount }}.   Showing {{ records<rowcount?records:rowcount }}</h4>
+      <h4 v-if="showOptions">Total rows: {{ rowcount }}.   Showing {{ records<rowcount?records:rowcount }}</h4>
       
     
-      <div class="col-md-6">
+      <div class="col-md-6" v-if="showOptions">
         <i class="bi bi-arrows-vertical"></i>
         <div class="btn-group">
           <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
@@ -79,13 +79,13 @@ import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
 
+import { API_HOST, API_PORT } from '../../config';
+const apiUrl = `${API_HOST}:${API_PORT}`;
+
 export default {
   name: 'TableInspector',
   data() {
     return {
-      serverHost: 'localhost',
-      serverPort: '8000',
-
       showSampleData: true,
       showProfile: false,
       showCrossfilters: false,
@@ -94,7 +94,7 @@ export default {
       tableProfile: Object,
       rowcount: 0,
       type: 'First',
-      records: 50,
+      records: 10,
 
       chartConfig: null,
       genericCrossKey: 0,
@@ -106,10 +106,17 @@ export default {
   },
   props: {
     tableName: String,
+    showOptions: Boolean,
 
   },
   mounted() {
     this.load();
+    /*if (this.showOptionsProp === false) {
+      this.showOptions = false;
+    }else{
+      this.showOptions = true;
+    }*/
+    
   },
 
   emits: [],
@@ -148,7 +155,7 @@ export default {
     },
     /////////////////////////////////////////////////
     async getRowcount(){
-      await axios.get(`http://${this.serverHost}:${this.serverPort}/getRowCount`, {
+      await axios.get(`${apiUrl}/getRowCount`, {
         params: {
           tableName: this.tableName,
         },
@@ -166,7 +173,7 @@ export default {
     },
     ////////////////////////////////////////////////////
     async getTableSchema(table) {
-      await axios.get(`http://${this.serverHost}:${this.serverPort}/getTableSchema`, {
+      await axios.get(`${apiUrl}/getTableSchema`, {
         params: {
           tableName: table,
         },
@@ -190,7 +197,7 @@ export default {
       this.showCrossfilters = false;
 
 
-      await axios.get(`http://${this.serverHost}:${this.serverPort}/getSampleData`, {
+      await axios.get(`${apiUrl}/getSampleData`, {
         params: {
           tableName: table,
           type: this.type,
@@ -225,7 +232,7 @@ export default {
       this.showProfile = true;
       this.showCrossfilters = false;
 
-      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/getTableProfile`, {
+      const fetchData = () => axios.get(`${apiUrl}/getTableProfile`, {
         params: {
           tableName: table,
         },

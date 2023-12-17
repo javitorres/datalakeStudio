@@ -15,14 +15,14 @@
           </div>
 
           <div class="col-md-3">
-            <button v-if="!loading" type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
+            <button type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
           </div>
         </div>
 
         <br />
 
         <!-- ChatGPT Response -->
-        <div v-if="!loading && chatGPTOutput">
+        <div v-if="chatGPTOutput">
           <input type="text" class="form-control" id="chatGPTOutput" v-model="chatGPTOutput">
           <button type="button" class="btn btn-primary" @click="useChatGPTAnswer">Run this query</button>
         </div>
@@ -51,16 +51,9 @@
       </div>
 
       <div class="col-md-8">
-        <div class="row">
-          <div class="col-md-2">
-            <div class="spinner-border" role="status" v-if="loading">
-              <span class="visually-hidden">Loading...</span>
-            </div>
-          </div>
-        </div>
 
         <div class="row" v-if="querySuccesful">
-          <TableInspector :tableName="tableName" />
+          <TableInspector :tableName="tableName" :showOptions="showOptions"/>
         </div>
 
       </div>
@@ -78,6 +71,9 @@ import 'vue3-toastify/dist/index.css';
 import GenericCross from './GenericCross.vue';
 import TableInspector from './TableInspector.vue';
 
+import { API_HOST, API_PORT } from '../../config';
+const apiUrl = `${API_HOST}:${API_PORT}`;
+
 export default {
   name: 'QueryPanel',
 
@@ -88,12 +84,7 @@ export default {
   },
   data() {
     return {
-      expanded: true,
-      error: '',
-      info: '',
-      loading: false,
-      serverHost: 'localhost',
-      serverPort: '8000',
+      expanded: false,
       query: 'SELECT * FROM homecenter',
       sampleData: null,
 
@@ -105,6 +96,7 @@ export default {
 
       tableName: "__lastQuery",
       querySuccesful: false,
+      showOptions: true,
 
       cmOption: {
         tabSize: 4,
@@ -134,7 +126,7 @@ export default {
   methods: {
 
     async runQuery(table) {
-      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/runQuery`, {
+      const fetchData = () => axios.get(`${apiUrl}/runQuery`, {
         params: { query: this.query, },
       });
 
@@ -159,7 +151,7 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async createTable() {
-      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/createTableFromQuery`, {
+      const fetchData = () => axios.get(`${apiUrl}/createTableFromQuery`, {
         params: {
           query: this.query,
           tableName: this.tableFromQuery,
@@ -187,7 +179,7 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async askChatGPT() {
-      const fetchData = () => axios.get(`http://${this.serverHost}:${this.serverPort}/askGPT`, {
+      const fetchData = () => axios.get(`${apiUrl}/askGPT`, {
         params: {
           question: this.chatGPTInput,
         },
