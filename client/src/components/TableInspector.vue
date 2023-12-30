@@ -13,7 +13,7 @@
   <!-- Data and metadata -->
   <div class="col-md-10">
     <div class="row-md-2" v-if="showOptions">
-      <p>Row: {{ rowSelected }}</p>
+      <!--<p>Row: {{ rowSelected }}</p>-->
 
       <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>

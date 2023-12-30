@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from services import duckDbService
 from fastapi import Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 
 router = APIRouter()
 
@@ -130,3 +130,23 @@ def deleteTable(tableName: str):
     print("Deleting table " + tableName)
     duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     return {"status": "ok"}
+
+@router.get("/exportData")
+def exportData(tableName: str, format: str = "csv", fileName: str = None):
+    if fileName is None:
+        fileName = "data/" + tableName + "." + format
+
+    if (tableName is None or fileName is None):
+        response = {"status": "error", "message": "tableName and fileName are required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Exporting data from table " + tableName + " to file " + fileName + " in format " + format)
+    r = duckDbService.exportData(tableName, format, fileName)
+
+    if (r):
+        response = {"status": "ok", "message": "Exported"}
+        return FileResponse(path=fileName, media_type='application/octet-stream', filename=fileName)
+    else:
+        response = {"status": "error", "message": "tableName and fileName are required"}
+        return JSONResponse(content=response, status_code=500)
+    
+    

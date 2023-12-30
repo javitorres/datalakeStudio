@@ -98,3 +98,14 @@ def dropAllTables():
         tableListArray = tableList["name"].to_list()
         for table in tableListArray:
             runQuery("DROP TABLE IF EXISTS "+ table )
+
+def exportData(tableName, format, fileName):
+    if (format == "csv"):
+        runQuery("COPY (SELECT * FROM "+ tableName +") TO '"+ fileName +"' (FORMAT CSV, HEADER)")
+        return True
+    elif (format == "parquet"):
+        runQuery("COPY (SELECT * FROM "+ tableName +") TO '"+ fileName +"' (FORMAT PARQUET)")
+        return True
+    else:
+        print("Format not supported")
+        return False

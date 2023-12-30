@@ -31,10 +31,16 @@
 
     <div class="row" v-if="selectedTable">
       <!-- Delete button -->
-      <div class="col-md-2">
+      <div class="col-md-1">
         <button class="btn btn-danger m-1 opcion-style" @click="confirmDelete">
           <i class="bi bi-x-octagon"></i>
           Delete table
+        </button>
+      </div>
+      <div class="col-md-2">
+        <button class="btn btn-success m-1 opcion-style" @click="confirmDownload">
+          <i class="bi bi-x-octagon"></i>
+          Download data
         </button>
       </div>
 
@@ -65,6 +71,27 @@
       </div>
     </div>
   </div>
+
+  <div v-if="showDownloadDialog" class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Download data</h5>
+          <button type="button" class="btn-close" @click="showDownloadDialog = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Downloading {{ selectedTable }}, select format:</p>
+          <button class="btn btn-success m-1 opcion-style" @click="download('csv')"><i class="bi bi-filetype-csv"></i> CSV</button>
+          <button class="btn btn-success m-1 opcion-style" @click="download('parquet')"><i class="bi bi-table"></i> Parquet</button>
+          <button class="btn btn-success m-1 opcion-style" @click="download('excel')"><i class="bi bi-filetype-xlsx"></i> Excel</button>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showDownloadDialog = false">Cancel</button>
+          <!--<button type="button" class="btn btn-danger" @click="deleteTable">Yes, delete it</button>-->
+        </div>
+      </div>
+    </div>
+  </div>
   <div v-if="showDialog" class="modal-backdrop fade show"></div>
 
 
@@ -87,6 +114,7 @@ export default {
   data() {
     return {
       showDialog: false,
+      showDownloadDialog: false,
       expanded: true,
       showOptions: true,
 
@@ -109,8 +137,57 @@ export default {
       else if (type === 'null') return "PQR";
       else return type;
     },
+    ////////////////////////////////////////////////////
     confirmDelete() {
       this.showDialog = true;
+    },
+    ////////////////////////////////////////////////////
+    confirmDownload() {
+      this.showDownloadDialog = true;
+
+    },
+    ////////////////////////////////////////////////////
+    download(format) {
+      console.log('downloading ' + format);
+
+      const fetchData = async () => await axios.get(`${apiUrl}/exportData`, {
+        params: {
+          format: format,
+          tableName: this.selectedTable,
+        },
+        responseType: 'blob'
+        
+      });
+        
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Exporting data, please wait...',
+          success: 'Data exported successfully',
+          error: 'Error creating export'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        this.showDownloadDialog = false;  
+
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', 'exported_data.' + format); 
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        
+      }).catch((error) => {
+        if (error.response.data.message) {
+          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
+
+
+      
     },
     
     ////////////////////////////////////////////////////
@@ -138,6 +215,8 @@ export default {
         this.loading = false;
       });
     },
+    ////////////////////////////////////////////////////
+    
 
   }
 }
