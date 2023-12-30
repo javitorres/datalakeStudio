@@ -119,8 +119,8 @@ Explore your data using automatic and interactive charts:
 
 
 
-
-
+# Shape files
+https://duckdb.org/2023/04/28/spatial.html
 
 
 

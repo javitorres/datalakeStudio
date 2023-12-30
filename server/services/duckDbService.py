@@ -83,9 +83,8 @@ def getTableDescriptionForChatGpt(tableName):
 def createTableFromDataFrame(df, tableName):
     print("Creating table " + tableName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
-    #db.register("df", df)
-    db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM df)")
-    #db.deregister("df")
+    db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM "+ df +")")
+
 
 '''
 METODOS NO PROBADOS AUN TRAS REFACTOR

@@ -13,6 +13,7 @@
   <!-- Data and metadata -->
   <div class="col-md-10">
     <div class="row-md-2" v-if="showOptions">
+      <p>Row: {{ rowSelected }}</p>
 
       <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
@@ -95,6 +96,7 @@ export default {
       rowcount: 0,
       type: 'First',
       records: 10,
+      rowSelected: null,
 
       chartConfig: null,
       genericCrossKey: 0,
@@ -215,7 +217,16 @@ export default {
             reactiveData: true,
             importFormat: "csv",
             autoColumns: true,
+            rowClick: function (e, row) {
+              console.log("ROW1" + JSON.stringify(row));
+            },
+            
           });
+          table.on("rowClick", function(row){
+            // TODO get tow data and emit row info
+            console.log("ROW2" + JSON.stringify(row));
+            this.rowSelected = row;
+        });
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }

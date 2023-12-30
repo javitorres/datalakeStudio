@@ -1,9 +1,8 @@
 from fastapi import APIRouter
-from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.apiService as apiService
-
 from config import Config
+from model.apiEnrichmentRequestDTO import ApiEnrichmentRequestDTO
 
 router = APIRouter()
 
@@ -24,7 +23,7 @@ def getRepositoryMethodList(serviceName: str,
                             environment: str = "pro", 
                             api_domain: str  = None, 
                             api_context: str = None):
-    print("XXXXXXXXXXXXXX")
+    
     if api_domain is None:
         api_domain = Config.get_instance().get_secrets.get("api_domain")
     if api_context is None:
@@ -54,3 +53,35 @@ def getMethodInfo(serviceName: str,
 
     result = apiService.getMethodInfo(serviceName, methodPath, methodMethod, environment, api_domain, api_context)
     return JSONResponse(content=result, status_code=200)
+
+'''
+curl 'http://localhost:8000/runApiEnrichment' \
+  -H 'Accept: application/json, text/plain, */*' \
+  -H 'Accept-Language: es-ES,es;q=0.9,en;q=0.8' \
+  -H 'Connection: keep-alive' \
+  -H 'Content-Type: application/json' \
+  -H 'Origin: http://localhost:8080' \
+  -H 'Referer: http://localhost:8080/' \
+  -H 'Sec-Fetch-Dest: empty' \
+  -H 'Sec-Fetch-Mode: cors' \
+  -H 'Sec-Fetch-Site: same-site' \
+  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' \
+  -H 'sec-ch-ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"' \
+  -H 'sec-ch-ua-mobile: ?0' \
+  -H 'sec-ch-ua-platform: "Linux"' \
+  --data-raw '{"tableName":"mini","parameters":{"refCat":"COD_REFCAT"},"mappings":[{"jsonField":"idEspacio","newFieldName":"idEspacio"},{"jsonField":"","newFieldName":""}],"recordsToProcess":10,"service":"ServiceCRMData","method":{"controller":"crm-data-controller","method":"GET","path":"/getDataByRefCat"},"url":"http://ServiceCRMData.pro.madiva.vpn/getDataByRefCat","newTableName":"enrichedTable"}' \
+  --compressed
+'''
+
+@router.post("/runApiEnrichment")
+async def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO):
+    print("Body: " + str(apiEnrichmentRequestDTO))
+    apiService.runApiEnrichment(apiEnrichmentRequestDTO, Config.get_instance().get_secrets.get("api_domain"), "pro")
+    
+
+    
+
+
+    return JSONResponse(content="OK", status_code=200)
+
+

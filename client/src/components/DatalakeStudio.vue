@@ -63,7 +63,7 @@
 
     <QueryPanel v-if="tables && tables.length > 0" @tableCreated="this.tableCreated"></QueryPanel>
 
-    <ApiRetriever v-if="tables && tables.length > 0" :tables="tables" ></ApiRetriever>
+    <ApiRetriever v-if="tables && tables.length > 0" :tables="tables" @tableCreated="this.tableCreated"></ApiRetriever>
 
   </div> <!-- container-fluid -->
 </template>

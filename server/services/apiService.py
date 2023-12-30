@@ -3,6 +3,10 @@ import requests
 import json
 import pandas as pd
 
+from model.apiEnrichmentRequestDTO import ApiEnrichmentRequestDTO
+
+from services import duckDbService
+
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codecommit.html
 client = None
 try:
@@ -188,5 +192,94 @@ def getMethodInfoFromExample(url):
         result['origin'] = "EXAMPLE"
         result['url'] = url
         return result
-            
 
+'''
+{
+    "tableName": "mini",
+    "parameters": {
+        "refCat": "COD_REFCAT"
+    },
+    "mappings": [
+        {
+            "jsonField": "aaa",
+            "newFieldName": "bbb"
+        },
+        {
+            "jsonField": "",
+            "newFieldName": ""
+        }
+    ],
+    "recordsToProcess": 10,
+    "service": "ServiceCRMData",
+    "method": {
+        "controller": "crm-data-controller",
+        "method": "GET",
+        "path": "/getDataByRefCat"
+    },
+    "url": "http://ServiceCRMData.pro.madiva.vpn/getDataByRefCat?refCat=00000000000006767170&"
+}
+'''            
+def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO , api_domain, environment):
+    print("ApiEnrichmentRequestDTO: " + str(apiEnrichmentRequestDTO))
+
+    query = "SELECT * FROM " + apiEnrichmentRequestDTO.tableName
+    if (apiEnrichmentRequestDTO.recordsToProcess is not None and apiEnrichmentRequestDTO.recordsToProcess != ""):
+        query = "SELECT * FROM " + apiEnrichmentRequestDTO.tableName + " LIMIT " + str(apiEnrichmentRequestDTO.recordsToProcess)
+    print("Query: " + query)
+    
+    dfNew = duckDbService.runQuery(query)
+    
+    if (dfNew is not None):
+        # For each row in the table
+        for index, row in dfNew.iterrows():
+            queryString=""
+            if (apiEnrichmentRequestDTO.method is not None and apiEnrichmentRequestDTO.parameters is not None):
+                for param in apiEnrichmentRequestDTO.parameters.items():
+                    # if param value is not none:
+                    if (param[1] is not None and param[1] != ""):
+                        queryString += param[0] + "=" + str(row[param[1]]) + "&"
+
+            if(apiEnrichmentRequestDTO.method.method=="GET"):
+                #url = "http://" + ses["service"] + "." + environment + "." + st.secrets["api_domain"] + ses["method"] + "?" + queryString
+                url = apiEnrichmentRequestDTO.url + "?" + queryString
+                r = getApi(url)
+            elif(apiEnrichmentRequestDTO.method.method=="POST"):
+                #if (apiEnrichmentRequestDTO.method == "SWAGGER"):
+                url = "http://" + apiEnrichmentRequestDTO.service + "." + environment + "." + api_domain + apiEnrichmentRequestDTO.method
+                #elif (apiEnrichmentRequestDTO.method == "EXAMPLE"):
+                #    url = apiEnrichmentRequestDTO.manualApiUrl
+                
+                bodyTemplate = apiEnrichmentRequestDTO.jsonBody
+                for col in dfFields:
+                    bodyTemplate = bodyTemplate.replace("${"+col+"}", str(row[col]))
+
+                r = postApi(url, bodyTemplate)
+                if (r is not None):
+                    if (r.status_code != 200):
+                        print("Error calling API: " + str(r.status_code))
+                    else:
+                        jsonString = json.dumps(r.json(), indent=4)
+
+            percent_complete = int((index+1) / len(dfNew) * 100)
+            #my_bar.progress(percent_complete, text="Processing file..." + str(percent_complete) + "%" + " (" + str(index+1) + "/" + str(len(dfNew)) + ")")
+            
+        
+            if (r is not None):
+                if (apiEnrichmentRequestDTO.mappings is not None):
+                    for mapping in apiEnrichmentRequestDTO.mappings:
+                        if (mapping.jsonField is not None and mapping.jsonField != ""):
+                            try:
+                                dfNew.loc[index, mapping.newFieldName] = str(r.json()[mapping.jsonField])
+                            except Exception as e:
+                                print("Error getting field " + mapping.jsonField + " from json: " + str(e))
+                            
+                        else:
+                            dfNew.loc[index, mapping.newFieldName] = str(r.json())
+                else:
+                    dfNew.loc[index, "RESPONSE"] = str(r.json())
+                dfNew.loc[index, "RESPONSE_STATUS"] = str(r.status_code)
+                
+    # Create table with the dataframe dfNew
+    print("Creating table " + apiEnrichmentRequestDTO.newTableName + "...")
+    duckDbService.createTableFromDataFrame("dfNew", apiEnrichmentRequestDTO.newTableName)
+    return dfNew
