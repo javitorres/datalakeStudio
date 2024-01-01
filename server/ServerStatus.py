@@ -19,14 +19,5 @@ class ServerStatus:
         self.serverStatus = {}
         self.serverStatus["databaseReady"] = True
     
-    '''def _load_config(self):
-        try:
-            with open('config.yml', 'r') as file:
-                self.config = yaml.safe_load(file)
-        except Exception as e:
-            print(f"Error loading configuration: {e}")
-            self.config = {}
-            '''
-
     def get(self):
         return self.serverStatus

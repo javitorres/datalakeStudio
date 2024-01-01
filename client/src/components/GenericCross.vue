@@ -99,6 +99,7 @@ export default {
         var row = document.createElement('div');
         row.className = 'row';
         row.id = 'row-' + Math.floor(index / 2);
+        
         document.getElementById('charts-container').appendChild(row);
       }
 

@@ -35,6 +35,8 @@ def getDbList(database_search_text, pgpassfile):
     print("Database List:"+ str(databaseList))
     return databaseList  # Si no se encuentra la base de datos
 
+#########################################################
+
 def connectDatabase(database_name, pgpassfile):
     with open(pgpassfile, 'r') as f:
         lines = f.readlines()
@@ -69,6 +71,8 @@ def connectDatabase(database_name, pgpassfile):
             pass
     return None  # Si no se encuentra la base de datos
 
+#########################################################
+
 def getSchemas(connection):
     if (connection is None or connection.closed):
         return []
@@ -79,6 +83,8 @@ def getSchemas(connection):
     print("Schemas:"+ str(schemas))
     cursor.close()
     return schemas
+
+#########################################################
 
 def getTables(connection, schema):
     if (connection is None or connection.closed):
@@ -92,6 +98,8 @@ def getTables(connection, schema):
     print("Tables:"+ str(tablesArr))
     cursor.close()
     return tablesArr
+
+#########################################################
 
 def runRemoteQuery(connection, query):
     cursor = connection.cursor()
@@ -112,7 +120,6 @@ def runRemoteQuery(connection, query):
 
     return None
 
-
 ######################################################### PROBADAS
 
 def getPassword(host, port, db, user):
@@ -131,6 +138,7 @@ def getPassword(host, port, db, user):
             pass
     return None  
 
+#########################################################
 
 def getConnection(selectedDatabase):
     host, port, db, user = selectedDatabase.strip().split(' - ')
@@ -148,9 +156,7 @@ def getConnection(selectedDatabase):
         print("Error connecting to database with config:"+ str(databaseConfig))
     return connection
 
-
-
-
+#########################################################
 
 def closeConnection(connection):
     if connection is not None:

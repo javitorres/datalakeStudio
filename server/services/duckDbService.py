@@ -26,6 +26,7 @@ def init(secrets, config):
     global configLoaded
     configLoaded = True
 
+####################################################
 def loadTable(tableName, fileName):
     global configLoaded
     if (configLoaded == False):
@@ -47,7 +48,7 @@ def loadTable(tableName, fileName):
         r.show()
     else:
         print("duckDbService: No tables loaded")
-
+####################################################
 def runQuery(query, logQuery=True):
     try:
         if (logQuery):
@@ -64,14 +65,14 @@ def runQuery(query, logQuery=True):
             print("Error running query XXXXXXX")
         # Raise exception to be handled by caller
         raise e
-
+####################################################
 def getTableList():
     tableList = runQuery("SHOW TABLES")
     tableListArray = None
     if (tableList is not None):
         tableListArray = tableList["name"].to_list()
     return tableListArray
-
+####################################################
 def getTableDescriptionForChatGpt(tableName):
     fields = db.query("DESCRIBE "+ tableName).df()
     tableDescription = ""
@@ -79,25 +80,12 @@ def getTableDescriptionForChatGpt(tableName):
         tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
     tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
     return tableDescriptionForGPT
-    
+####################################################    
 def createTableFromDataFrame(df, tableName):
     print("Creating table " + tableName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
     db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM "+ df +")")
-
-
-'''
-METODOS NO PROBADOS AUN TRAS REFACTOR
-'''    
-
- 
-def dropAllTables():
-    tableList = runQuery("SHOW TABLES")
-    tableListArray = None
-    if (tableList is not None):
-        tableListArray = tableList["name"].to_list()
-        for table in tableListArray:
-            runQuery("DROP TABLE IF EXISTS "+ table )
+####################################################
 
 def exportData(tableName, format, fileName):
     if (format == "csv"):

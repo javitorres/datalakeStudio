@@ -7,6 +7,7 @@ from routes import s3_controller
 from routes import chatgpt_controller
 from routes import api_controller
 from routes import profiler_controller
+from routes import queries_controller
 
 from ServerStatus import ServerStatus
 
@@ -39,6 +40,8 @@ app.include_router(s3_controller.router)
 app.include_router(chatgpt_controller.router)
 app.include_router(api_controller.router)
 app.include_router(profiler_controller.router)
+app.include_router(queries_controller.router)
+
 
 if __name__ == "__main__":
     import uvicorn

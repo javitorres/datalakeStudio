@@ -13,10 +13,6 @@ def getServices(serviceName: str = None):
     services = apiService.getServices(serviceName)
     return JSONResponse(content=services, status_code=200)
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=serverStatus.config["port"])
-
 @router.get("/getRepositoryMethodList")
 def getRepositoryMethodList(serviceName: str, 
                             methodPath: str = "", 

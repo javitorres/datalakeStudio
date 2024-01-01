@@ -1,6 +1,6 @@
 <template>
   <!-- Fields -->
-  <div class="col-md-2" v-if="schema && showOptions">
+  <div class="col-md-1" v-if="schema && showOptions">
     
     <div class="row" v-for="(type, field) in schema" :key="field">
       <button class="btn btn-secondary m-1 opcion-style" @click="analyzeField">
@@ -11,21 +11,21 @@
   </div>
 
   <!-- Data and metadata -->
-  <div class="col-md-10">
+  <div class="col-md-10 custom-col">
     <div class="row-md-2" v-if="showOptions">
       <!--<p>Row: {{ rowSelected }}</p>-->
 
-      <button class="btn btn-primary m-1 opcion-style" @click="getSampleData(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showSampleData }"   @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
         Show sample data
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" @click="getTableProfile(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showProfile }" @click="getTableProfile(tableName)">
         <i class="bi bi-search"></i>
         Show table profile
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" @click="crossFilters(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showCrossfilters }" @click="crossFilters(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
@@ -33,10 +33,17 @@
 
     <div class="row" v-if="sampleData && showSampleData">
       <!-- Sample data -->
-      <h4 v-if="showOptions">Total rows: {{ rowcount }}.   Showing {{ records<rowcount?records:rowcount }}</h4>
       
+      <div class="col-md-3" v-if="showOptions">
+        <button class="btn btn-secondary m-1 opcion-style" >
+          {{ rowcount }} rows
+        </button>
+        <button class="btn btn-secondary m-1 opcion-style" >
+          <span v-html="imageSrc(type)"></span> {{ records<rowcount?records:rowcount }} showed
+        </button>
+      </div>
     
-      <div class="col-md-6" v-if="showOptions">
+      <div class="col-md-2" v-if="showOptions">
         <i class="bi bi-arrows-vertical"></i>
         <div class="btn-group">
           <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
@@ -44,6 +51,9 @@
             @click="setType('Shuffle')">Shuffle</button>
           <button class="btn btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
         </div>
+        
+      </div>
+      <div class="col-md-2">
         <i class="bi bi-grid-3x3-gap-fill"></i>
         <div class="btn-group">
           <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
@@ -51,9 +61,6 @@
           <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
           <button v-if="records<1000" class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
         </div>
-      </div>
-      <div class="col-md-6">
-
       </div>
       <div ref="table"></div>
     </div>
@@ -214,9 +221,10 @@ export default {
           }
           var table = new Tabulator(this.$refs.table, {
             data: this.sampleData,
-            reactiveData: true,
             importFormat: "csv",
             autoColumns: true,
+            layout: "fitColumns",
+            persistence:true, // TODO: Review this, not working
             rowClick: function (e, row) {
               console.log("ROW1" + JSON.stringify(row));
             },
@@ -268,7 +276,8 @@ export default {
           }
           new Tabulator(this.$refs.tableProfile, {
             data: this.tableProfile,
-            reactiveData: true,
+            //reactiveData: true,
+            layout: "fitColumns",
             importFormat: "csv",
             autoColumns: true,
           });
@@ -318,4 +327,20 @@ export default {
 }
 
 </script>
-<style scoped></style>
+<style scoped>
+
+.tabulator{
+  background-color: #ffffff;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  border: #ffffff;
+}
+
+.custom-col{
+  padding-left: 20px;
+  
+}
+
+</style>

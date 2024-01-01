@@ -8,12 +8,7 @@
         <div v-if="tables && tables.length > 0">
           <ul class="list-unstyled d-flex flex-wrap">
             <li v-for="table in tables" :key="table.id">
-              <button v-if="selectedTable !== table" class="btn btn-primary m-1 opcion-style" @click="selectedTable=table">
-                <i class="bi bi-table"></i>
-                {{ table }}
-              </button>
-              <!-- if table selected then  button green -->
-              <button v-if="selectedTable === table" class="btn btn-success m-1 opcion-style" @click="clickTable(table)">
+              <button class="btn btn-primary m-1 opcion-style" :class="{ active: selectedTable === table }" @click="selectedTable=table">
                 <i class="bi bi-table"></i>
                 {{ table }}
               </button>
@@ -39,11 +34,11 @@
       </div>
       <div class="col-md-2">
         <button class="btn btn-success m-1 opcion-style" @click="confirmDownload">
-          <i class="bi bi-x-octagon"></i>
+          <i class="bi bi-cloud-arrow-down"></i>
           Download data
         </button>
       </div>
-
+      <br/><br/><br/>
       <div class="row" v-if="selectedTable">
         <TableInspector :tableName="selectedTable" :showOptions="showOptions"/>
       </div>
@@ -177,7 +172,7 @@ export default {
         document.body.appendChild(link);
         link.click();
         link.parentNode.removeChild(link);
-        
+
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
