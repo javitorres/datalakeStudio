@@ -98,31 +98,33 @@ Try to load this example: https://raw.githubusercontent.com/javitorres/GenericCr
 
 ## Table explorer
 
-Inspect data and profile loaded data
+Inspect loaded data. Export data to CSV or Parquet
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5301e4ca-d2ae-4d34-a417-dbb946edbe55)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/6994281c-d59a-4962-8337-6248239ec35f)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/592bc7d9-45da-4e29-a02c-a35470124a11)
+Get data profile
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/34a260d5-396a-4e08-a782-e26f0067e75f)
+
+Use crossfilter to play with your data
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/2e08c714-7f03-4610-9e92-7151fd42cf7b)
+
 
 ## Query panel
 
-Query your data and generate new tables.
+Query your data and generate new tables. Save or load your queries. Use ChatGPT to create new queries
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/f5341884-f7a0-478d-98bb-8ee9a549adfd)
-
-Use GPT assistant to generate SQL
-
-Explore your data using automatic and interactive charts:
-
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/a8e888f6-e3c8-4f5c-9923-262b1cb620fd)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/a1cc0a77-78cb-405e-bad5-2cac1c2f8f4a)
 
 
+# Load data from APIs
 
+Enrich your datasets calling external APIs
 
-# Shape files
-https://duckdb.org/2023/04/28/spatial.html
+# Load data from remote databases
 
-
+Explore your external databases and load data into Datalake Studio for local analysis
 
 
 
