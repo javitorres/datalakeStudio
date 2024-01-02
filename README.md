@@ -115,7 +115,7 @@ Use crossfilter to play with your data
 
 Query your data and generate new tables. Save or load your queries. Use ChatGPT to create new queries
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/a1cc0a77-78cb-405e-bad5-2cac1c2f8f4a)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/1ae4eb9a-15db-4f4b-b6c6-170635cdd2d1)
 
 
 # Load data from APIs
