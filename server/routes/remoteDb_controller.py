@@ -80,9 +80,9 @@ def createTableFromRemoteQuery(query: str, tableName: str):
         response = {"status": "error", "message": "You must connect to a database first"}
         return JSONResponse(content=response, status_code=400)
     print("Creating table " + tableName + " from query " + query)
-    df = remoteDbService.runRemoteQuery(connection, query)
-    if (df is not None):
-        duckDbService.createTableFromDataFrame(df, tableName)
+    dfRemoteDb = remoteDbService.runRemoteQuery(connection, query)
+    if (dfRemoteDb is not None):
+        duckDbService.createTableFromDataFrame("dfRemoteDb", tableName)
         return {"status": "ok"}
     else:
         return {"status": "error"}

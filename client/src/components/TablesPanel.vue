@@ -1,8 +1,6 @@
 <template>
-  <!-- Table list -->
-  <hr>
-  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Table explorer</h1>
-  <div v-if="expanded">
+
+  <div v-if="tables && tables.length > 0">
     <div class="row">
       <div class="col-md-12">
         <div v-if="tables && tables.length > 0">
@@ -42,10 +40,11 @@
       <div class="row" v-if="selectedTable">
         <TableInspector :tableName="selectedTable" :showOptions="showOptions"/>
       </div>
-
-      
     </div>
+  </div>
 
+  <div v-else>
+    <h2>No tables to show. Load some data</h2>
   </div>
 
   <!-- Diálogo de confirmación -->

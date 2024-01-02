@@ -1,11 +1,8 @@
 <template>
-  <hr>
-  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Get data from external API</h1>
-  <div class="row" v-if="expanded">
-
+  <div class="row" v-if="tables && tables.length > 0">
     <div class="col-md-6">
-      <h3>Dataset</h3>
-      <div class="row" v-if="tables && tables.length > 0">
+      <h3>Select Dataset</h3>
+      <div class="row">
         <!-- Table selector -->
         <div class="row">
           <div class="col-md-6">
@@ -64,7 +61,6 @@
       <div v-if="service">
         Service: {{ service }}
 
-        
         <div class="input-group mb-3">
             <span class="input-group-text" id="basic-addon1">Method name</span>
         <input id="methodPath" type="text" class="form-control" placeholder="Method name" aria-label="File"
@@ -100,8 +96,6 @@
               </div>
             </ul>
           </div>
-
-
         </div>
 
         <div v-if="mode === 'write'">
@@ -109,7 +103,6 @@
         </div>
       </div>
     </div>
-
 
     <div class="row" v-if="methodInfo">
       <div class="col-md-4">
@@ -147,7 +140,6 @@
         <p><i class="bi bi-check2-square"></i> Extract fields</p>
         <p>Write field to load, example : data.car.model. If the field is empty the whole response will be loaded in RESPONSE_JSON field</p>
       
-
         <div>
           <div v-for="(mapping, index) in mappings" :key="index" class="row">
             <div class="col-md-6">
@@ -164,11 +156,9 @@
             </div>
           </div>
         
-        
           <button class="btn btn-primary m-1 opcion-style" @click="addMapping">Add new</button>
           <button class="btn btn-primary m-1 opcion-style" @click="deleteAllMappings">Delete all mappings</button>
         </div>
-      
       </div>
     </div> <!-- process config -->
     <div class="row" v-if="table && mappings.length > 0">
@@ -185,6 +175,9 @@
       </div>
       
     </div>
+  </div>
+  <div v-else>
+    <h2>No tables to enrich with extrnal APIs. Load some data before</h2>
   </div>
 </template>
 

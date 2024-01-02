@@ -1,14 +1,13 @@
 <template>
-  <hr>
-  <h1 v-on:click="expanded = !expanded">{{ expanded ? "-" : "+" }} Query</h1>
-  <div class="row" v-if="expanded">
+  <div class="row" v-if="tables && tables.length > 0">
     <div class="row">
       <div class="col-md-4">
 
-        <h4>Query</h4>
+        <h4>SQL Query</h4>
         <div class="form-group">
           <codemirror v-model="query" :options="cmOption" style="height: 300px;" />
         </div>
+        <br />
         <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
         <br /><br />
 
@@ -94,9 +93,6 @@
                 </li>
               </ul>
             </div> 
-
-            
-            
           </div>
         </div>
 
@@ -129,6 +125,9 @@
       </div>
     </div>
 
+  </div>
+  <div v-else>
+    <h2>No tables to query on. Load some data before</h2>
   </div>
 </template>
 

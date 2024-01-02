@@ -4,7 +4,8 @@
 
 <p align="center">
     <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Latest Release">
-    <img src="https://img.shields.io/badge/DuckDB-0.9.0-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/Vue-3.3.4-blue" alt="Vue3">
+    <img src="https://img.shields.io/badge/DuckDB-0.9.2-yellow" alt="DuckDB">
     <img src="https://img.shields.io/badge/OpenAI-0.27.6-green" alt="OpenAI">
 </p>
 

@@ -36,12 +36,15 @@ def loadTable(tableName, fileName):
     print("Loading table " + tableName + " from " + fileName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
     
-    if (fileName.endswith(".csv") or fileName.endswith(".tsv")):
+    if (fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv")):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet") or fileName.endswith(".pq.gz")):
+    elif (fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz")):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif (fileName.endswith(".json")):
-        ss = db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+    elif (fileName.lower().endswith(".json")):
+        db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+    elif (fileName.lower().endswith(".shp")):
+        # https://duckdb.org/2023/04/28/spatial.html
+        db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
     r = db.sql('SHOW TABLES')
     if (r is not None):
@@ -52,7 +55,7 @@ def loadTable(tableName, fileName):
 def runQuery(query, logQuery=True):
     try:
         if (logQuery):
-            print("Executing query: " + query)
+            print("Executing query: " + str(query))
         else:
             print("Executing query XXXXXXX")
         r = db.query(query)
@@ -66,10 +69,14 @@ def runQuery(query, logQuery=True):
         # Raise exception to be handled by caller
         raise e
 ####################################################
-def getTableList():
+def getTableList(hideMeta: bool = True):
     tableList = runQuery("SHOW TABLES")
     tableListArray = None
     if (tableList is not None):
+        if (hideMeta):
+            # Remove __lastQuery table form the list
+            tableList = tableList[tableList["name"] != "__lastQuery"]
+            tableList = tableList[tableList["name"] != "__queries"]
         tableListArray = tableList["name"].to_list()
     return tableListArray
 ####################################################

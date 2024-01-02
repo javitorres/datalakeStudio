@@ -1,6 +1,6 @@
 {
   "name": "datalake-studio",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,6 @@
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore"
   },
   "dependencies": {
-    "@duckdb/duckdb-wasm": "^1.28.0",
     "aws-sdk": "^2.1507.0",
     "axios": "^1.6.2",
     "bootstrap": "^5.3.2",
