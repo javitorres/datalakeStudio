@@ -95,7 +95,7 @@ hostname:port:database:username:password
 You can load data from local filesystem, from any URL or from S3. 
 Try to load this example: https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/60c9761f-8f2f-42ee-819d-4b315566e57d)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/6954818b-94f6-4438-b7b7-012f42edeb63)
 
 ## Table explorer
 
@@ -123,9 +123,16 @@ Query your data and generate new tables. Save or load your queries. Use ChatGPT 
 
 Enrich your datasets calling external APIs
 
-# Load data from remote databases
+# Load data from remote databases
 
 Explore your external databases and load data into Datalake Studio for local analysis
+
+# Talk to ChatGPT 
+Talk to explore your data (experimental)
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
+
+
 
 
 
