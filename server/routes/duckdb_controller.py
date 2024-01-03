@@ -54,10 +54,10 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
         LIMIT = ""
     else:
         LIMIT = " LIMIT " + str(records)
-    r = duckDbService.runQuery("SELECT * FROM " + tableName + LIMIT)
-    if (r is not None):
+    df = duckDbService.runQuery("SELECT * FROM " + tableName + LIMIT)
+    if (df is not None):
         #return JSONResponse(content=r.to_csv(index=False), status_code=200)
-        return Response(r.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
+        return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
     else:
         return ""
 

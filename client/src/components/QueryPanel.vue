@@ -200,7 +200,7 @@ export default {
   emits: ['tableCreated'],
   methods: {
 
-    async runQuery(table) {
+    async runQuery() {
       this.querySuccesful = false;
       const fetchData = () => axios.get(`${apiUrl}/runQuery`, {
         params: { query: this.query, },

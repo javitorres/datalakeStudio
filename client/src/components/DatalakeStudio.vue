@@ -6,7 +6,7 @@
       <!-- Side Menu https://getbootstrap.com/docs/5.0/examples/sidebars/ -->
       <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem;">
         <a href="/" class="d-block p-3 link-dark text-decoration-none" 
-        title="Icon-only" data-bs-toggle="tooltip"
+        title="DatalakeStudio" data-bs-toggle="tooltip"
         @click.prevent="activeMenu = 'welcome'"
           data-bs-placement="right">
             <img src="../assets/logo.svg" alt="Logo" width="45" height="45" class="rounded mx-auto d-block">
@@ -59,6 +59,25 @@
               <h2><i class="bi bi-boxes"></i></h2>
             </a>
           </li>
+
+          <li>
+            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'chatgpt' }"
+              @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <img src="../assets/ChatGPT.svg" alt="Logo" width="45" height="45" class="rounded mx-auto d-block">
+            </a>
+          </li>
+
+          <li>
+            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 's3' }"
+              @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <h2><i class="bi bi-bucket"></i></h2>
+              
+            </a>
+          </li>
+
+          
         </ul>
       </div>
     </div>
@@ -84,6 +103,8 @@ import QueryPanel from './QueryPanel.vue';
 import RemoteDbPanel from './RemoteDbPanel.vue';
 import ApiRetriever from './ApiRetriever.vue';
 import ApiServer from './ApiServer.vue';
+import ChatGptAgent from './ChatGptAgent.vue';
+import S3Explorer from './S3Explorer.vue';
 
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -102,6 +123,8 @@ export default {
     RemoteDbPanel,
     ApiRetriever,
     ApiServer,
+    ChatGptAgent,
+    S3Explorer,
   },
 
   data() {
@@ -134,6 +157,10 @@ export default {
           return 'ApiRetriever';
         case 'apiServer':
           return 'ApiServer';
+        case 'chatgpt':
+          return 'ChatGptAgent';
+        case 's3':
+          return 'S3Explorer';
         default:
           return 'Welcome';
       }
@@ -150,6 +177,12 @@ export default {
           return { tables: this.tables };
         case 'apiRetriever':
           return { tables: this.tables };
+        case 'apiServer':
+          return {  };
+        case 'chatgpt':
+          return {  };
+        case 's3':
+          return {  };
         default:
           return {  };
       }
@@ -166,6 +199,12 @@ export default {
           return { tableCreated: this.tableCreated, };
         case 'apiRetriever':
           return { tableCreated: this.tableCreated, };
+        case 'apiServer':
+          return {  };
+        case 'chatgpt':
+          return {  };
+        case 's3':
+          return {  };
         default:
           return {  };
       }
