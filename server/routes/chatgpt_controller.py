@@ -10,7 +10,7 @@ import io
 
 from config import Config
 
-router = APIRouter()
+router = APIRouter(prefix="/gpt")
 
 @router.get("/askGPT")
 def askGPT(question: str):
@@ -60,6 +60,7 @@ async def askGPTWhisper(file: UploadFile = File(...)):
     transcription = transcription.replace("\n", "").strip()
     print("Transcription: '" + transcription + "'")
 
+    # Why "you"?: Because this is the answer when empty audio is sent. TODO: Detect if audio es empty (mic muted, etc)
     if (transcription is not None and transcription != "you"):
         return JSONResponse(content={"transcription" : transcription}, status_code=200)
     else:

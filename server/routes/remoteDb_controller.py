@@ -6,7 +6,7 @@ import services.remoteDbService as remoteDbService
 
 from config import Config
 
-router = APIRouter()
+router = APIRouter(prefix="/remotedb")
 
 
 @router.get("/getDatabaseList")

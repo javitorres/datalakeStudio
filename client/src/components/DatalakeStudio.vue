@@ -2,7 +2,7 @@
   <div class="main-container"> <!-- Contenedor Flex Principal -->
 
     <!-- Menú Lateral -->
-    <div class="side-menu">
+    <div class="side-menu custom-padding">
       <!-- Side Menu https://getbootstrap.com/docs/5.0/examples/sidebars/ -->
       <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem;">
         <a href="/" class="d-block p-3 link-dark text-decoration-none" 
@@ -83,13 +83,13 @@
     </div>
 
     <!-- Contenido Principal -->
-    <div class="content-container">
-      <div class="container-fluid">
+    
+      <div class="container-fluid" style="padding-left: 2rem;">
         <keep-alive>
           <component :is="currentComponent" v-bind="currentProps" v-on="currentListeners"></component>
         </keep-alive>
       </div> <!-- container-fluid -->
-    </div>
+    
   </div>
 </template>
 
@@ -213,8 +213,9 @@ export default {
   
 
   methods: {
+    ////////////////////////////////////////////////////////////////
     async getTables() {
-      await axios.get(`${apiUrl}/getTables`, {
+      await axios.get(`${apiUrl}/database/getTables`, {
         params: {
         },
       }).then((response) => {
@@ -228,7 +229,7 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async deleteTable(table) {
-      var response = await axios.get(`${apiUrl}/deleteTable`, {
+      var response = await axios.get(`${apiUrl}/database/deleteTable`, {
         params: {
           tableName: table,
         },
@@ -269,5 +270,9 @@ export default {
 .content-container {
   flex-grow: 1;
   /* Permite que el contenido ocupe el espacio restante */
+}
+
+.custom-padding {
+  padding-right: 2rem;
 }
 </style>

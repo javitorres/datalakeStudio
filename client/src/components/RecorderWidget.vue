@@ -7,6 +7,7 @@
       <button class="btn btn-primary m-1 opcion-style" v-else name="mic" @click="toggleRecording">
         <h1><i class="bi bi-record-fill"></i></h1></button>
     </div>
+    <br />
     <div>{{ recordedTime }}</div>
     <div class="text-sm font-bold">{{ successMessage }}</div>
     <div class="text-sm">{{ instructionMessage }}</div>

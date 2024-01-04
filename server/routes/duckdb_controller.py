@@ -2,8 +2,9 @@ from fastapi import APIRouter
 from services import duckDbService
 from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
+from model.QueryRequestDTO import QueryRequest
 
-router = APIRouter()
+router = APIRouter(prefix="/database")
 
 # Load file into duckdb endpoint (get)
 @router.get("/loadFile")
@@ -22,9 +23,11 @@ def loadFile(fileName: str, tableName: str):
 @router.get("/getTables")
 def getTables():
     tableList = duckDbService.getTableList()
-    # Remove __lastQuery table form the list
-    tableList = [x for x in tableList if x != "__lastQuery"]
+    # Remove all metatables starting from "__" from the list
+    tableList = [x for x in tableList if not x.startswith("__")]
+    
     print("Tables: " + str(tableList))
+    #tableList=["iris"]
 
     if (tableList is not None):
         return JSONResponse(content=tableList, status_code=200)
@@ -62,9 +65,17 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
         return ""
 
 ####################################################
-@router.get("/runQuery")
-def runQuery(query: str, rows: int = 1000):
+@router.post("/runQuery")
+def runQuery(queryRequest: QueryRequest):
+    print("Running query " + str(queryRequest))
+
     duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
+
+    # Replace ' with " to avoid problems
+    #query = queryRequest.query.replace("'", '"')
+    query = queryRequest.query
+    
+
     try:
         duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
     except Exception as e:
@@ -72,10 +83,10 @@ def runQuery(query: str, rows: int = 1000):
         response = {"status": "error", "message": "Error running query: " + str(e)}
         return JSONResponse(content=response, status_code=400)
     
-    if (rows==0):
+    if (queryRequest.rows==0):
         LIMIT = ""
     else:
-        LIMIT = " LIMIT " + str(rows)
+        LIMIT = " LIMIT " + str(queryRequest.rows)
 
     df = duckDbService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
     #return {"status": "ok", "rows": df.to_json()}

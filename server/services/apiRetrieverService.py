@@ -121,24 +121,7 @@ def getMethodInfo(serviceName, methodPath, methodMethod, environment, api_domain
     except Exception as e:
         print("Error getting method info: " + str(e))
         return None
-
-####### NOT TESTED: ###############3    
-
-
-
-def getDescription(param):
-    if ( 'description' in param and param["description"] is not None):
-        return str(param["description"])
-
-def getApiAsDf(url):
-    try:
-        print("Calling API: " + url)
-        df = pd.read_json(url)
-        return df
-    except Exception as e:
-        st.write("Error calling API: " + str(e))
-        return None
-    
+######################################################################    
 def getApi(url):
     try:
         print("Calling API: " + url)
@@ -147,7 +130,7 @@ def getApi(url):
     except Exception as e:
         print("Error calling API: " + str(e))
         return None   
-    
+######################################################################
 def postApi(url, body):
     try:
         print("Calling API: " + url + " with body: " + str(body))
@@ -165,7 +148,24 @@ def postApi(url, body):
         print ("Something went wrong", err)
     except Exception as e:
         print("Error calling API: " + str(e))
-    return None
+    return None    
+
+####### NOT TESTED: ###############
+'''
+def getDescription(param):
+    if ( 'description' in param and param["description"] is not None):
+        return str(param["description"])
+
+def getApiAsDf(url):
+    try:
+        print("Calling API: " + url)
+        df = pd.read_json(url)
+        return df
+    except Exception as e:
+        st.write("Error calling API: " + str(e))
+        return None
+    
+
     
 def getMethodInfoFromExample(url):
     result = {}
@@ -192,33 +192,9 @@ def getMethodInfoFromExample(url):
         result['origin'] = "EXAMPLE"
         result['url'] = url
         return result
-
 '''
-{
-    "tableName": "mini",
-    "parameters": {
-        "refCat": "COD_REFCAT"
-    },
-    "mappings": [
-        {
-            "jsonField": "aaa",
-            "newFieldName": "bbb"
-        },
-        {
-            "jsonField": "",
-            "newFieldName": ""
-        }
-    ],
-    "recordsToProcess": 10,
-    "service": "ServiceCRMData",
-    "method": {
-        "controller": "crm-data-controller",
-        "method": "GET",
-        "path": "/getDataByRefCat"
-    },
-    "url": "http://ServiceCRMData.pro.madiva.vpn/getDataByRefCat?refCat=00000000000006767170&"
-}
-'''            
+
+        
 def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO , api_domain, environment):
     print("ApiEnrichmentRequestDTO: " + str(apiEnrichmentRequestDTO))
 

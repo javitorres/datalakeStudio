@@ -141,7 +141,7 @@ export default {
   methods: {
     async searchDatabase() {
       if (this.databaseInput.length > 0) {
-        axios.get(`${apiUrl}/getDatabaseList`, {
+        axios.get(`${apiUrl}/remotedb/getDatabaseList`, {
           params: {
             databaseName: this.databaseInput
           },
@@ -168,7 +168,7 @@ export default {
     async clickDatabase(database) {
       console.log('clickDatabase()');
       console.log('database: ' + database);
-      axios.get(`${apiUrl}/connectDatabase`, {
+      axios.get(`${apiUrl}/remotedb/connectDatabase`, {
         params: {
           databaseName: database
         },
@@ -199,7 +199,7 @@ export default {
       this.showSchemas = false;
       this.loading = true;
       this.schemaSelected = schema;
-      axios.get(`${apiUrl}/getTablesFromRemoteSchema`, {
+      axios.get(`${apiUrl}/remotedb/getTablesFromRemoteSchema`, {
         params: {
           schema: schema
         },
@@ -227,7 +227,7 @@ export default {
     async runRemoteQuery(query) {
       this.loading = true;
       console.log('runRemoteQuery()');
-      var response = await axios.get(`${apiUrl}/runRemoteQuery`, {
+      var response = await axios.get(`${apiUrl}/remotedb/runRemoteQuery`, {
         params: {
           database: this.database,
           query: this.query,
@@ -259,7 +259,7 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async createTableFromRemoteQuery() {
-      var response = await axios.get(`${apiUrl}/createTableFromRemoteQuery`, {
+      var response = await axios.get(`${apiUrl}/remotedb/createTableFromRemoteQuery`, {
         params: {
           query: this.query,
           tableName: this.tableFromQuery,

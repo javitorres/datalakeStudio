@@ -5,7 +5,10 @@
 
         <h4>SQL Query</h4>
         <div class="form-group">
-          <codemirror v-model="query" :options="cmOption" style="height: 300px;" />
+          <codemirror v-model="query.query" :options="cmOption" style="height: 300px;" />
+        </div>
+        <div v-if="queryError">
+          <p style="color: red;">{{ queryError }}</p>
         </div>
         <br />
         <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
@@ -57,9 +60,8 @@
           </div>
         </div>
 
-
         <!-- Save query  -->
-        <div class="col-md-8" v-if="activeTab === 'saveSql'">
+        <div class="col-md-12" v-if="activeTab === 'saveSql'">
           <div class="form-group">
             <br />
             <div class="input-group mb-3">
@@ -76,7 +78,7 @@
         </div>
 
         <!-- Load query  -->
-        <div class="col-md-8" v-if="activeTab === 'loadSql'">
+        <div class="col-md-12" v-if="activeTab === 'loadSql'">
           <div class="form-group">
             <br />
             <div class="input-group mb-3">
@@ -89,7 +91,6 @@
                 <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item" @click="selectQuery(queryCandidate)">
                   <i class="bi bi-trash" @click.stop="deleteQuery(queryCandidate)"> Delete</i> <br/>
                   <b>Name:</b> {{ queryCandidate.name }}<br/><b>Description:</b>{{ queryCandidate.description }}<br/><b>SQL:</b>{{ queryCandidate.query }}
-
                 </li>
               </ul>
             </div> 
@@ -98,7 +99,7 @@
 
         <!-- Ask GPT -->
         <div class="row" v-if="activeTab === 'askGpt'">
-          <div class="col-md-8">
+          <div class="col-md-12">
             <br />
             <div class="input-group mb-8">
               <span class="input-group-text" id="basic-addon1">Your question</span>
@@ -173,6 +174,8 @@ export default {
       querySuccesful: false,
       showOptions: true,
 
+      queryError: null,
+
       cmOption: {
         tabSize: 4,
         styleActiveLine: true,
@@ -201,9 +204,10 @@ export default {
   methods: {
 
     async runQuery() {
+      this.queryError = null;
       this.querySuccesful = false;
-      const fetchData = () => axios.get(`${apiUrl}/runQuery`, {
-        params: { query: this.query, },
+      const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
+        query: this.query,
       });
 
       toast.promise(
@@ -219,15 +223,16 @@ export default {
         this.querySuccesful = true;
       }).catch((error) => {
         if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+          this.queryError = error.response.data.message;
         } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+          this.queryError = error.response.data;
         }
+        
       });
     },
     ///////////////////////////////////////////////////////
     async createTable() {
-      const fetchData = () => axios.get(`${apiUrl}/createTableFromQuery`, {
+      const fetchData = () => axios.get(`${apiUrl}/database/createTableFromQuery`, {
         params: {
           query: this.query,
           tableName: this.tableFromQuery,
@@ -255,7 +260,7 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async askChatGPT() {
-      const fetchData = () => axios.get(`${apiUrl}/askGPT`, {
+      const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
         params: {
           question: this.chatGPTInput,
         },

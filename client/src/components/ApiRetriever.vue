@@ -243,7 +243,7 @@ export default {
   methods: {
     async searchService(apiServiceName) {
       this.methods = [];
-      const fetchData = async () => await axios.get(`${apiUrl}/getServices`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getServices`, {
         params: {
           serviceName: apiServiceName,
         },
@@ -272,7 +272,7 @@ export default {
     async searchMethod(service, methodPath) {
       this.service = service;
       this.selectedFields = {};
-      const fetchData = async () => await axios.get(`${apiUrl}/getRepositoryMethodList`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getRepositoryMethodList`, {
         params: {
           serviceName: service,
           methodPath: methodPath
@@ -302,7 +302,7 @@ export default {
       this.method = method;
       this.selectedFields = {};
       console.log('clickMethod', method);
-      const fetchData = async () => await axios.get(`${apiUrl}/getMethodInfo`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getMethodInfo`, {
         params: {
           serviceName: service,
           methodPath: method.path,
@@ -330,7 +330,7 @@ export default {
     },
     ////////////////////////////////////////////////////
     async getTableSchema(table) {
-      const fetchData = async () => await axios.get(`${apiUrl}/getTableSchema`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/database/getTableSchema`, {
         params: {
           tableName: table,
         },
@@ -360,7 +360,7 @@ export default {
       this.showProfile = false;
       this.showCrossfilters = false;
 
-      await axios.get(`${apiUrl}/getSampleData`, {
+      await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
           tableName: table,
           type: this.type,
@@ -420,8 +420,6 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
-
-
     },
 
     ////////////////////////////////////////////////////
@@ -439,7 +437,7 @@ export default {
       console.log('mappings to json:', JSON.stringify(this.mappings));
       console.log('recordsToProcess:', this.recordsToProcess);
 
-      const fetchData = async () => await axios.post(`${apiUrl}/runApiEnrichment`, {
+      const fetchData = async () => await axios.post(`${apiUrl}/apiRetriever/runApiEnrichment`, {
         tableName: this.table,
         parameters: this.selectedFields,
         mappings: this.mappings,

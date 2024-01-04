@@ -15,11 +15,13 @@ def init(secrets, config):
 
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
+        runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'", False)
         print("Loaded S3 credentials")
     except Exception as e:
         print("Could not load S3 credentials from secrets.yml file")
         runQuery("INSTALL httpfs;LOAD httpfs")
+        runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("INSTALL aws;LOAD aws")
         runQuery("CALL load_aws_credentials();")
     
@@ -42,7 +44,7 @@ def loadTable(tableName, fileName):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif (fileName.lower().endswith(".json")):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    elif (fileName.lower().endswith(".shp")):
+    elif (fileName.lower().endswith(".shp") or fileName.lower().endswith(".shx")):
         # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
@@ -53,11 +55,15 @@ def loadTable(tableName, fileName):
         print("duckDbService: No tables loaded")
 ####################################################
 def runQuery(query, logQuery=True):
+    
+
     try:
         if (logQuery):
             print("Executing query: " + str(query))
         else:
             print("Executing query XXXXXXX")
+        
+
         r = db.query(query)
         if (r is not None):
             return r.df()

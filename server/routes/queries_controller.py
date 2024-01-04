@@ -4,15 +4,15 @@ from config import Config
 from model.SaveQueryRequestDTO import SaveQueryRequestDTO
 from services import queriesService
 
-router = APIRouter()
+router = APIRouter(prefix="/queries")
 
-@router.post("/queries/saveSqlQuery")
+@router.post("/saveSqlQuery")
 def saveSqlQuery(saveQueryRequestDTO: SaveQueryRequestDTO):
     queriesService.saveSqlQuery(saveQueryRequestDTO)
 
 ####################################################
     
-@router.get("/queries/searchQuery")
+@router.get("/searchQuery")
 def searchQuery(query: str):
     df = queriesService.searchQuery(query)
     
@@ -26,7 +26,7 @@ def searchQuery(query: str):
 
 ####################################################
     
-@router.get("/queries/deleteQuery")
+@router.get("/deleteQuery")
 def deleteQuery(id_query: int):
     print("Deleting query " + str(id_query))
     result=[]

@@ -37,7 +37,7 @@
         </button>
       </div>
       <br/><br/><br/>
-      <div class="row" v-if="selectedTable">
+      <div class="row custom-col" v-if="selectedTable">
         <TableInspector :tableName="selectedTable" :showOptions="showOptions"/>
       </div>
     </div>

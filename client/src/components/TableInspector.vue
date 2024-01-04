@@ -35,17 +35,17 @@
       <!-- Sample data -->
       
       <div class="col-md-3" v-if="showOptions">
-        <button class="btn btn-secondary m-1 opcion-style" >
-          {{ rowcount }} rows
-        </button>
-        <button class="btn btn-secondary m-1 opcion-style" >
-          <span v-html="imageSrc(type)"></span> {{ records<rowcount?records:rowcount }} showed
-        </button>
+        <div class="btn-group">
+          <button class="btn btn-secondary" ><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
+          <button class="btn btn-secondary" ><i class="bi bi-eyedropper"></i>{{ records<rowcount?records:rowcount }} showed</button>
+        </div>
       </div>
     
       <div class="col-md-2" v-if="showOptions">
-        <i class="bi bi-arrows-vertical"></i>
+        
         <div class="btn-group">
+          
+          <button class="btn btn-primary"><i class="bi bi-arrows-vertical"></i></button>
           <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
           <button class="btn btn-primary" :class="{ active: type === 'Shuffle' }"
             @click="setType('Shuffle')">Shuffle</button>
@@ -53,9 +53,10 @@
         </div>
         
       </div>
-      <div class="col-md-2">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
+      <div class="col-md-2" v-if="showOptions">
+        
         <div class="btn-group">
+          <button class="btn btn-primary"><i class="bi bi-grid-3x3-gap-fill"></i></button>
           <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
           <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
           <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
@@ -164,7 +165,7 @@ export default {
     },
     /////////////////////////////////////////////////
     async getRowcount(){
-      await axios.get(`${apiUrl}/getRowCount`, {
+      await axios.get(`${apiUrl}/database/getRowCount`, {
         params: {
           tableName: this.tableName,
         },
@@ -182,7 +183,7 @@ export default {
     },
     ////////////////////////////////////////////////////
     async getTableSchema(table) {
-      await axios.get(`${apiUrl}/getTableSchema`, {
+      await axios.get(`${apiUrl}/database/getTableSchema`, {
         params: {
           tableName: table,
         },
@@ -206,7 +207,7 @@ export default {
       this.showCrossfilters = false;
 
 
-      await axios.get(`${apiUrl}/getSampleData`, {
+      await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
           tableName: table,
           type: this.type,
@@ -251,7 +252,7 @@ export default {
       this.showProfile = true;
       this.showCrossfilters = false;
 
-      const fetchData = () => axios.get(`${apiUrl}/getTableProfile`, {
+      const fetchData = () => axios.get(`${apiUrl}/profiler/getTableProfile`, {
         params: {
           tableName: table,
         },

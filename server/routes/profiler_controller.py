@@ -4,7 +4,7 @@ from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.profilerService as profilerService
 
-router = APIRouter()
+router = APIRouter(prefix="/profiler")
 
 
 @router.get("/getTableProfile")

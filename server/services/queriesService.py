@@ -8,8 +8,11 @@ def saveSqlQuery(saveQueryRequestDTO):
         print("Creating table __queries")
         duckDbService.runQuery("CREATE TABLE __queries (id_query INTEGER PRIMARY KEY, name VARCHAR, query VARCHAR, description VARCHAR);CREATE SEQUENCE seq_id_query START 1;")
     
+    # Scape single quotes
+    query = saveQueryRequestDTO.query.replace("'","''")
+
     # Insert query into __queries table
-    duckDbService.runQuery("INSERT INTO __queries (id_query, name, query, description) VALUES (nextval('seq_id_query'), '" + saveQueryRequestDTO.sqlQueryName + "', '" + saveQueryRequestDTO.query + "', '" + saveQueryRequestDTO.description + "')")
+    duckDbService.runQuery("INSERT INTO __queries (id_query, name, query, description) VALUES (nextval('seq_id_query'), '" + saveQueryRequestDTO.sqlQueryName + "', '" + query + "', '" + saveQueryRequestDTO.description + "')")
 
     return True
 ####################################################

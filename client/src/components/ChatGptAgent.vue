@@ -1,10 +1,7 @@
 <template>
-  <div class="md-col-6">
-    <recorder-widget :time="2" buttonColor="green" @newRecording="processRecording" />
-  </div>
-
+  
   <!-- Show conversation -->
-  <div v-if="conversation">
+  <div v-if="conversation && !blindMode">
     <div v-for="(message, index) in conversation" :key="index">
       <div v-if="message.speaker == 'user'">
         <div class="row">
@@ -26,13 +23,25 @@
           </div>
 
           <div class="col-md-10" v-if="message.table">
-            <TableInspector :tableName="tableName" :showOptions="showOptions" />
+            <TableInspector :tableName="tableName" :showOptions="false" />
           </div>
 
 
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="md-col-6">
+    <recorder-widget :time="2" buttonColor="green" @newRecording="processRecording" />
+  </div>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="blindMode" @click="blindMode=!blindMode">
+    <label class="form-check-label" for="flexSwitchCheckChecked">Blind mode</label>
+  </div>
+  <div class="form-check form-switch">
+    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="tts" @click="tts=!tts">
+    <label class="form-check-label" for="flexSwitchCheckChecked">TTS</label>
   </div>
 </template>
 
@@ -58,6 +67,8 @@ export default {
 
   data() {
     return {
+      blindMode: true,
+      tts: true,
       url: apiUrl,
       userQuestion: null,
       conversation: [],
@@ -189,7 +200,9 @@ export default {
       ).then((response) => {
         this.interpretation = response.data.answer;
         this.conversation.push({ "speaker": "bot", "text": this.interpretation });
-        this.getText2Speech(this.interpretation)
+        if (this.tts){
+          this.getText2Speech(this.interpretation)
+        }
 
       }).catch((error) => {
         if (error.response.data.message) {
