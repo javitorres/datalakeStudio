@@ -101,22 +101,24 @@ Try to load this example: https://raw.githubusercontent.com/javitorres/GenericCr
 
 Inspect loaded data. Export data to CSV or Parquet
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/6994281c-d59a-4962-8337-6248239ec35f)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5625c1e9-a399-4089-acd1-73381174089c)
 
 Get data profile
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/34a260d5-396a-4e08-a782-e26f0067e75f)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/959a1fae-2740-488e-b9ac-5e3c8079e8dd)
 
-Use crossfilter to play with your data
+or use crossfilter to play with your data
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/2e08c714-7f03-4610-9e92-7151fd42cf7b)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5b66e0bb-40a7-49c6-b3be-c1fc95c050df)
+
 
 
 ## Query panel
 
 Query your data and generate new tables. Save or load your queries. Use ChatGPT to create new queries
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/1ae4eb9a-15db-4f4b-b6c6-170635cdd2d1)
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/13de8f41-e002-4f2a-811b-a64a3fdeca19)
+
 
 
 # Load data from APIs
