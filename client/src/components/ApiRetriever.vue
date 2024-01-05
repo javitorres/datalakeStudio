@@ -182,7 +182,8 @@
 </template>
 
 <script>
-import { Codemirror } from 'vue-codemirror'
+//import { Codemirror } from "vue-codemirror";
+//import { sql } from "@codemirror/lang-sql";
 import TableInspector from './TableInspector.vue';
 
 import axios from 'axios';
@@ -196,9 +197,10 @@ export default {
   name: 'ApiRetriever',
 
   components: {
-    Codemirror,
+    
     TableInspector
   },
+  
   data() {
     return {
       expanded: true,
@@ -241,6 +243,7 @@ export default {
     }
   },
   methods: {
+    ////////////////////////////////////////////////////
     async searchService(apiServiceName) {
       this.methods = [];
       const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getServices`, {

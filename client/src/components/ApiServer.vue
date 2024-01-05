@@ -50,6 +50,10 @@
     </div>
   </div>
 
+
+
+
+
   <!-- New endpoint  -->
   <div class="form-group" v-if="activeTab === 'newEndpoint'">
     <br />
@@ -69,28 +73,55 @@
       </ul>
     </div>
 
-    <div v-if="query">
-      <h4>SQL Query</h4><p>Add any {parameter} in your SQL query to add parameters:</p>
-        <div class="form-group">
-          <codemirror v-model="query.query" :options="cmOption" style="height: 300px;" />
-        </div>
+    <div v-if="endpoint.query">
+
+      <p>Add any {parameter} in your SQL query to add query params:</p>
+      <div class="form-group">
+        <codemirror v-model="endpoint.query" placeholder="code goes here..." :style="{ height: '300px' }" :autofocus="true"
+          :indent-with-tab="true" :tab-size="4" :extensions="extensions" @change="sqlChanged('change', $event)" />
+      </div>
       <br />
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon1">Endpoint</span>
-        <input type="text" class="form-control" placeholder="Query name" v-model="endpoint">
+      <div class="col-md-3">
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="basic-addon1">Endpoint</span>
+          <input type="text" class="form-control" placeholder="Query name" v-model="endpoint.endpoint">
+        </div>
+      </div>
+    </div>
+    <h3>URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ? endpoint.queryStringTest : "" }}</h3>
+
+    <!-- For each parameter an imput -->
+    <div v-if="endpoint.query && endpoint.parameters.length > 0">
+      <br />
+      <div class="col-md-4" v-for="parameter in parameters" :key="parameter">
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="basic-addon1">{{ parameter }}</span>
+          <input type="text" class="form-control" placeholder="Write an example value for testing"
+            v-model="parameter.exampleValue" @keyup="rebuildQueryStringTest">
+        </div>
       </div>
     </div>
 
+    VOY PORQUE ME FALLA EL UPDATE
+
+    <!-- Description -->
+    <div>
+        <br />
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="basic-addon1">Description</span>
+          <input type="text" class="form-control" placeholder="Description" v-model="description">
+        </div>
+      </div>
+
     <!-- Simulate endpoint -->
-    <div v-if="query">
-      <button type="button" class="btn btn-primary" @click="runQuery">Simulate endpoint</button>
+    <div v-if="endpoint.query">
+      <button type="button" class="btn btn-primary" @click="testEndpoint">Test endpoint</button>
     </div>
     <br />
 
     <!-- Show json response -->
     <div v-if="query && response">
-      <p>URL: {{ apiUrl }}/api/{{ endpoint }}</p>
-      <p>Parameters: {{ parameters }}</p>
+
       <br />
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Response</span>
@@ -99,32 +130,12 @@
     </div>
 
     <!-- Parameters -->
-    <div v-if="query">
-      <br />
-      <p>Add parameters to filter output. All parameters will be used with '==' operator and will be mandatory</p>
-      <div>
-        <ul class="list-group d-flex flex-wrap">
-          <li v-for="field in getFields" :key="field" class="list-group-item">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="false"
-                @click="toggleField(field)">
-              <label class="form-check-label" for="flexSwitchCheckChecked">{{ field }}</label>
-            </div>
-          </li>
-        </ul>
-      </div>
+    <div v-if="endpoint.query">
 
-      <!-- Description -->
-      <div>
-        <br />
-        <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">Description</span>
-          <input type="text" class="form-control" placeholder="Description" v-model="description">
-        </div>
-      </div>
+      
 
       <!-- Publish button -->
-      <div v-if="query && query.id_query && endpoint && description">
+      <div v-if="endpoint.query && endpoint.endpoint && endpoint.description">
         <br />
         <button type="button" class="btn btn-primary" @click="publish">Publish</button>
       </div>
@@ -136,7 +147,9 @@
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-import { Codemirror } from 'vue-codemirror'
+
+import { Codemirror } from "vue-codemirror";
+import { sql } from "@codemirror/lang-sql";
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
@@ -144,39 +157,32 @@ const apiUrl = `${API_HOST}:${API_PORT}`;
 export default {
   name: 'ApiServer',
 
+  setup() {
+    const extensions = [sql()]
+    return { extensions }
+  },
+
   data() {
     return {
       sqlSearchQuery: null,
       queries: [],
 
       query: null,
-      parameters: [],
-      description: null,
-
+      endpoint: 
+        {
+          id_query: null,
+          endpointId: null,
+          endpoint: null,
+          parameters: [],
+          description: null,
+          queryStringTest: null,
+          status: 'DEV'
+       },
+      
       response: null,
       apiUrl: apiUrl,
-      published: false,
       activeTab: 'listEndpoints',
-
       availableEndpoints: null,
-
-      cmOption: {
-        tabSize: 4,
-        styleActiveLine: true,
-        lineNumbers: true,
-        line: true,
-        foldGutter: true,
-        styleSelectedText: true,
-        mode: 'text/python',
-        keyMap: "sublime",
-        matchBrackets: true,
-        showCursorWhenSelecting: true,
-        theme: "monokai",
-        extraKeys: { "Ctrl": "autocomplete" },
-        hintOptions: {
-          completeSingle: false
-        }
-      }
     };
   },
   props: {},
@@ -199,9 +205,39 @@ export default {
   },
 
   methods: {
+    sqlChanged(event, editor) {
+      // TODO There is a delay of one keypressed 
+      // console.log('sqlChanged: ' + this.query.query);
+
+      // Find all {parameters} in the query and add them to the parameters array
+      this.parameters = [];
+      const regex = /{([^}]+)}/g;
+      let m;
+      while ((m = regex.exec(this.query.query)) !== null) {
+        // This is necessary to avoid infinite loops with zero-width matches
+        if (m.index === regex.lastIndex) {
+          regex.lastIndex++;
+        }
+
+        m.forEach((match, groupIndex) => {
+          if (groupIndex == 1) {
+            this.parameters.push({ "name": match, "exampleValue": null });
+          }
+        });
+      }
+      this.rebuildQueryStringTest();
+    },
+    /////////////////////////////////////////////////
+    rebuildQueryStringTest() {
+      this.queryStringTest = "?";
+      for (let i = 0; i < this.parameters.length; i++) {
+        this.queryStringTest += this.parameters[i].name + "=" + this.parameters[i].exampleValue + "&";
+      }
+      this.queryStringTest = this.queryStringTest.slice(0, -1);
+    },
     /////////////////////////////////////////////////
     async searchQuery(query) {
-      const fetchData = () => axios.get(`${apiUrl}/queries/searchQuery`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/queries/searchQuery`, {
         params: {
           query: this.sqlSearchQuery,
         },
@@ -227,32 +263,34 @@ export default {
     },
     /////////////////////////////////////////////////
     async selectQuery(queryCandidate) {
-      this.query = queryCandidate;
+      
       this.sqlSearchQuery = queryCandidate.name;
       this.queries = [];
-      this.endpoint = queryCandidate.name;
+
+      this.endpoint.endpoint = queryCandidate.name;
+      this.endpoint.id_query = queryCandidate.id_query;
+      this.endpoint.query = queryCandidate.query;
+
 
     },
     /////////////////////////////////////////////////
-    async runQuery() {
-      const fetchData = () => axios.get(`${apiUrl}/apiserver/runQuery`, {
-        params: {
-          id_query: this.query.id_query,
-        },
+    async createEmptyEndpoint() {
+      // Create new endpoint and get the id
+      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/create`, {
 
       });
 
       toast.promise(
         fetchData(),
         {
-          pending: 'Testing query, please wait...',
-          success: 'Query tested',
-          error: 'Error testing query'
+          pending: 'Creating new endpoint, please wait...',
+          success: 'New endpoint created',
+          error: 'Error creating new endpoint'
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
-        //toast.success('Info:' + `Query result: ${response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        this.response = JSON.stringify(response.data, null, 2);
+        console.log('createEmptyEndpoint: ' + response.data.id_endpoint);
+        this.endpoint.endpointId = response.data.id_endpoint;
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
@@ -261,21 +299,27 @@ export default {
         }
       });
     },
+
     /////////////////////////////////////////////////
-    toggleField(field) {
-      if (this.parameters.includes(field)) {
-        this.parameters = this.parameters.filter(item => item !== field);
-      } else {
-        this.parameters.push(field);
+    async testEndpoint() {
+      if (this.endpoint.endpointId == null) {
+        await this.createEmptyEndpoint();
       }
+      this.update(this.endpoint)
+      
+
     },
     /////////////////////////////////////////////////
-    async publish() {
-      const fetchData = () => axios.post(`${apiUrl}/apiserver/publish`, {
-        id_query: this.query.id_query,
-        endpoint: this.endpoint,
+    async update() {
+      const fetchData = async () => await axios.post(`${apiUrl}/apiserver/update`, {
+        id_query: this.endpoint.id_query,
+        endpointId: this.endpoint.endpointId,
+        endpoint: this.endpoint.endpoint,
         parameters: this.parameters,
         description: this.description,
+        queryStringTest: this.queryStringTest,
+        status: this.endpoint.status,
+
       });
 
       toast.promise(
@@ -287,6 +331,8 @@ export default {
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
+        // get id_endpoint
+        this.newEndpointId = response.data;
 
         this.published = true;
       }).catch((error) => {
@@ -300,7 +346,7 @@ export default {
 
     /////////////////////////////////////////////////
     async reloadAvailableEndpoints() {
-      const fetchData = () => axios.get(`${apiUrl}/apiserver/listEndpoints`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/listEndpoints`, {
 
       });
 
@@ -325,11 +371,11 @@ export default {
     },
     /////////////////////////////////////////////////
     async deleteEndpoint(id_endpoint) {
-      const fetchData = () => axios.get(`${apiUrl}/apiserver/deleteEndpoint`, {
-        params: { 
-          id_endpoint: id_endpoint 
+      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/deleteEndpoint`, {
+        params: {
+          id_endpoint: id_endpoint
         },
-        
+
       });
 
       toast.promise(

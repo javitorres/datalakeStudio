@@ -4,7 +4,7 @@ from services import queriesService
 import json
 from fastapi.responses import JSONResponse
 
-def publish(publishEndpointRequestDTO: PublishEndpointRequestDTO):
+def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
     
     # Convert publishEndpointRequestDTO.parameters array to json
@@ -41,8 +41,6 @@ def getAndRunEndpoint(path, query_params, body):
     print("Getting and running endpoint " + path)
 
     endpoint = getEndpointConfiguration(path)
-    
-
 
     if (endpoint is not None):
         print("endpoint: ", endpoint)
@@ -78,15 +76,38 @@ def listEndpoints():
         df = duckDbService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
     except:
         createTable()
-        df = None
-    
+        df = duckDbService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
 
     if (df is not None):
-        result = df.to_dict(orient="records")
+        result = df.dropna().to_dict(orient="records")
         print("Result:" + str(result))
         return result
     else:
-        None                
+        None      
+
+####################################################
+def createEndpoint():
+    print("Creating empty endpoint")
+    r = None
+    try:
+        r = duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
+    except:
+        createTable()
+        r = duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
+        return False  
+
+    if (r is not None):
+        
+        # get id_endpoint
+        d = r.to_dict(orient="records")
+        id_endpoint = d[0]["id_endpoint"]
+        print("Result:" + str(id))
+        
+        print("id:" + str(id_endpoint))
+        return id_endpoint
+    else: 
+        return None
+
 ####################################################
 def deleteEndpoint(id_endpoint: int):
     print("Deleting endpoint " + str(id_endpoint))
@@ -107,4 +128,4 @@ def createTable():
     # check if meta data table __endpoints exists
     if "__endpoints" not in tableList:
         print("Creating table __endpoints")
-        duckDbService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255));CREATE SEQUENCE seq_id_endpoint START 1;")
+        duckDbService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));CREATE SEQUENCE seq_id_endpoint START 1;")

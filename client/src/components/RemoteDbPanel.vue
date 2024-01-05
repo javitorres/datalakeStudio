@@ -73,7 +73,17 @@
     <div class="col-md-6">
       <h4>Query on remote database</h4>
       <div class="form-group">
-        <codemirror v-model="query" style="height: 300px;" />
+
+        <codemirror
+              v-model="query" 
+              placeholder="code goes here..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"
+          />
+
       </div>
       <button type="button" class="btn btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
 
@@ -101,7 +111,10 @@
 
 <script>
 import axios from 'axios';
-import { Codemirror } from 'vue-codemirror'
+
+import { Codemirror } from "vue-codemirror";
+import { sql } from "@codemirror/lang-sql";
+
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -134,6 +147,11 @@ export default {
   },
   components: {
     Codemirror,
+  },
+
+  setup() {
+      const extensions = [sql()]
+      return { extensions }
   },
 
   emits: ['tableCreated'],

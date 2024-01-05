@@ -33,8 +33,24 @@ def getServices(id_query: int):
         return JSONResponse(content=[], status_code=200)
     
 ####################################################
+@router.get("/create")
+def create(  ):
+    print("Creating empty endpoint")
+    
+    id_endpoint = apiServerService.createEndpoint()
 
-@router.post("/publish")
+    if (id is not None):
+        result = {"id_endpoint" : id_endpoint}
+        print("Result:" + str(result))
+        return JSONResponse(content=result, status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
+
+
+
+####################################################
+
+@router.post("/update")
 def publish( publishEndpointRequestDTO: PublishEndpointRequestDTO ):
     print("Publishing query " + str(publishEndpointRequestDTO))
     apiServerService.publish(publishEndpointRequestDTO)

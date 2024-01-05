@@ -5,8 +5,21 @@
 
         <h4>SQL Query</h4>
         <div class="form-group">
-          <codemirror v-model="query.query" :options="cmOption" style="height: 300px;" />
+            <!-- https://dev.to/medilies/codemirror-v6-on-vue3-hooked-to-pinia-store-g8j 
+              https://github.com/surmon-china/vue-codemirror  -->
+
+            <codemirror
+              v-model="query" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '200px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"
+              
+          />
         </div>
+        
         <div v-if="queryError">
           <p style="color: red;">{{ queryError }}</p>
         </div>
@@ -37,8 +50,6 @@
           <li class="nav-item">
             <a :class="{ 'nav-link': true, active: activeTab === 'askGpt' }" aria-current="page" href="#"
               @click.prevent="activeTab = 'askGpt'">Ask GPT</a>
-
-
           </li>
         </ul>
 
@@ -130,16 +141,21 @@
   <div v-else>
     <h2>No tables to query on. Load some data before</h2>
   </div>
+
+  <!-- <CodeEditor  /> -->
 </template>
 
 <script>
-import { Codemirror } from 'vue-codemirror'
+import { Codemirror } from "vue-codemirror";
+import { sql } from "@codemirror/lang-sql";
+
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
 import TableInspector from './TableInspector.vue';
+import CodeEditor from './CodeEditor.vue';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
@@ -150,8 +166,15 @@ export default {
   components: {
     Codemirror,
     GenericCross,
-    TableInspector
+    TableInspector,
+    CodeEditor
   },
+
+  setup() {
+      const extensions = [sql()]
+      return { extensions }
+  },
+
   data() {
     return {
       expanded: true,
@@ -175,34 +198,16 @@ export default {
       showOptions: true,
 
       queryError: null,
-
-      cmOption: {
-        tabSize: 4,
-        styleActiveLine: true,
-        lineNumbers: true,
-        line: true,
-        foldGutter: true,
-        styleSelectedText: true,
-        mode: 'text/python',
-        keyMap: "sublime",
-        matchBrackets: true,
-        showCursorWhenSelecting: true,
-        theme: "monokai",
-        extraKeys: { "Ctrl": "autocomplete" },
-        hintOptions: {
-          completeSingle: false
-        }
-      }
     };
   },
   props: {
     tables: Object,
     secrets: Object,
-
   },
   emits: ['tableCreated'],
-  methods: {
 
+  methods: {
+    ///////////////////////////////////////////////////////
     async runQuery() {
       this.queryError = null;
       this.querySuccesful = false;
@@ -377,11 +382,8 @@ export default {
         }
       });
     },
-
-
   }
 }
-
 </script>
 
 <style scoped>
