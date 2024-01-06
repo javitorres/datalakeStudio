@@ -25,7 +25,13 @@ async def catch_all(request: Request, path: str):
     else:
         body = None
     
-    df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
+    try:
+        df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
+    except Exception as e:
+        print("Error running endpoint:" + str(e))
+        return JSONResponse(content={"error": str(e)}, status_code=400)
+
+
     result = df_result.to_dict(orient="records")
 
     if (result is not None):

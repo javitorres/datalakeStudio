@@ -3,18 +3,37 @@ from model.PublishEndpointRequestDTO import PublishEndpointRequestDTO
 from services import queriesService
 import json
 from fastapi.responses import JSONResponse
+import base64
 
 def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
     
     # Convert publishEndpointRequestDTO.parameters array to json
-    parametersJson = json.dumps(publishEndpointRequestDTO.parameters)        
+    # parametersJson = json.dumps(publishEndpointRequestDTO.parameters)
+    parametersJson = json.dumps([param.model_dump() for param in publishEndpointRequestDTO.parameters])
+
+    publishEndpointRequestDTO.query = base64.b64decode(publishEndpointRequestDTO.query).decode('utf-8')  
+
+    if (publishEndpointRequestDTO.description is None):
+        publishEndpointRequestDTO.description = ""
+    if (publishEndpointRequestDTO.queryStringTest is None):
+        publishEndpointRequestDTO.queryStringTest = ""
+
+    publishEndpointRequestDTO.query = publishEndpointRequestDTO.query.replace("'","''")                
 
     try:
-        duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint, id_query, endpoint, parameters, description) VALUES (nextval('seq_id_endpoint'), " + str(publishEndpointRequestDTO.id_query) + ", '" + publishEndpointRequestDTO.endpoint + "', '" + parametersJson + "', '" + publishEndpointRequestDTO.description + "')")
-    except:
-        createTable()
-        duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint, id_query, endpoint, parameters, description) VALUES (nextval('seq_id_endpoint'), " + str(publishEndpointRequestDTO.id_query) + ", '" + publishEndpointRequestDTO.endpoint + "', '" + parametersJson + "', '" + publishEndpointRequestDTO.description + "')")
+        updateQuery = "UPDATE __endpoints  SET id_query = " + str(publishEndpointRequestDTO.id_query) + ", \
+                               endpoint = '" + publishEndpointRequestDTO.endpoint + "', \
+                               parameters = '" + parametersJson + "', \
+                               description = '" + publishEndpointRequestDTO.description + "', \
+                               query = '" + publishEndpointRequestDTO.query + "', \
+                               queryStringTest = '" + publishEndpointRequestDTO.queryStringTest + "', \
+                               status = '" + publishEndpointRequestDTO.status + "' \
+                                WHERE id_endpoint = " + str(publishEndpointRequestDTO.id_endpoint)
+        print("updateQuery: " + updateQuery)
+        duckDbService.runQuery(updateQuery)
+    except Exception as e:
+        print("Error updating endpoint:" + str(e))
         return False        
 
     return True
@@ -45,12 +64,20 @@ def getAndRunEndpoint(path, query_params, body):
     if (endpoint is not None):
         print("endpoint: ", endpoint)
 
-        # Get query
-        query = queriesService.getQuery(endpoint.id_query)
-        print("query: ", query)
+        # Query contains expressoins like {marca} or {marca_id} replace with query_params
+        query = endpoint.query
+        if (query_params is not None):
+            for param in query_params:
+                query = query.replace("{" + param + "}", query_params[param])
 
+        # Check if any parameter remains in query, if so raise exception
+        if ("{" in query):
+            raise Exception("Query contains parameters that are not present in query_params: " + query)
+        
+        
         # Run query
-        df = duckDbService.runQuery(query["query"])
+        print("Running query: " + query)
+        df = duckDbService.runQuery(query)
 
         if (df is not None):
             return df

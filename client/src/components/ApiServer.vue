@@ -27,6 +27,11 @@
             <th>Description</th>
             <th>URL</th>
             <th>Parameters</th>
+            <th>id_query</th>
+            <th>status</th>
+            <th>query</th>
+            <th>queryStringTest</th>
+
             <th>Actions</th>
           </tr>
         </thead>
@@ -39,6 +44,10 @@
               <a :href="`${apiUrl}/api/${endpoint.endpoint}`" target="_blank">{{ apiUrl }}/api/{{ endpoint.endpoint }}</a>
             </td>
             <td>{{ endpoint.parameters }}</td>
+            <td>{{ endpoint.id_query }}</td>
+            <td>{{ endpoint.status }}</td>
+            <td>{{ endpoint.query }}</td>
+            <td>{{ endpoint.queryStringTest }}</td>
             <td>
               <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpoint.id_endpoint)">Delete</button>
             </td>
@@ -88,12 +97,12 @@
         </div>
       </div>
     </div>
-    <h3>URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ? endpoint.queryStringTest : "" }}</h3>
+    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ? endpoint.queryStringTest : "" }}</h3>
 
     <!-- For each parameter an imput -->
     <div v-if="endpoint.query && endpoint.parameters.length > 0">
       <br />
-      <div class="col-md-4" v-for="parameter in parameters" :key="parameter">
+      <div class="col-md-4" v-for="parameter in endpoint.parameters" :key="parameter">
         <div class="input-group mb-3">
           <span class="input-group-text" id="basic-addon1">{{ parameter }}</span>
           <input type="text" class="form-control" placeholder="Write an example value for testing"
@@ -102,14 +111,14 @@
       </div>
     </div>
 
-    VOY PORQUE ME FALLA EL UPDATE
+    
 
     <!-- Description -->
-    <div>
+    <div v-if="endpoint.endpoint">
         <br />
         <div class="input-group mb-3">
           <span class="input-group-text" id="basic-addon1">Description</span>
-          <input type="text" class="form-control" placeholder="Description" v-model="description">
+          <input type="text" class="form-control" placeholder="Description" v-model="endpoint.description">
         </div>
       </div>
 
@@ -120,8 +129,7 @@
     <br />
 
     <!-- Show json response -->
-    <div v-if="query && response">
-
+    <div v-if="endpoint.query && response">
       <br />
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Response</span>
@@ -131,9 +139,6 @@
 
     <!-- Parameters -->
     <div v-if="endpoint.query">
-
-      
-
       <!-- Publish button -->
       <div v-if="endpoint.query && endpoint.endpoint && endpoint.description">
         <br />
@@ -171,8 +176,9 @@ export default {
       endpoint: 
         {
           id_query: null,
-          endpointId: null,
+          id_endpoint: null,
           endpoint: null,
+          query: null,
           parameters: [],
           description: null,
           queryStringTest: null,
@@ -207,33 +213,34 @@ export default {
   methods: {
     sqlChanged(event, editor) {
       // TODO There is a delay of one keypressed 
-      // console.log('sqlChanged: ' + this.query.query);
+      //console.log('sqlChanged: ' + this.endpoint.query);
 
       // Find all {parameters} in the query and add them to the parameters array
-      this.parameters = [];
+      this.endpoint.parameters = [];
       const regex = /{([^}]+)}/g;
       let m;
-      while ((m = regex.exec(this.query.query)) !== null) {
+      while ((m = regex.exec(this.endpoint.query)) !== null) {
         // This is necessary to avoid infinite loops with zero-width matches
         if (m.index === regex.lastIndex) {
           regex.lastIndex++;
         }
-
+        
         m.forEach((match, groupIndex) => {
           if (groupIndex == 1) {
-            this.parameters.push({ "name": match, "exampleValue": null });
+            this.endpoint.parameters.push({ "name": match, "exampleValue": null });
           }
         });
       }
+      
       this.rebuildQueryStringTest();
     },
     /////////////////////////////////////////////////
     rebuildQueryStringTest() {
-      this.queryStringTest = "?";
-      for (let i = 0; i < this.parameters.length; i++) {
-        this.queryStringTest += this.parameters[i].name + "=" + this.parameters[i].exampleValue + "&";
+      this.endpoint.queryStringTest = "?";
+      for (let i = 0; i < this.endpoint.parameters.length; i++) {
+        this.endpoint.queryStringTest += this.endpoint.parameters[i].name + "=" + this.endpoint.parameters[i].exampleValue + "&";
       }
-      this.queryStringTest = this.queryStringTest.slice(0, -1);
+      this.endpoint.queryStringTest = this.endpoint.queryStringTest.slice(0, -1);
     },
     /////////////////////////////////////////////////
     async searchQuery(query) {
@@ -263,15 +270,12 @@ export default {
     },
     /////////////////////////////////////////////////
     async selectQuery(queryCandidate) {
-      
       this.sqlSearchQuery = queryCandidate.name;
       this.queries = [];
 
       this.endpoint.endpoint = queryCandidate.name;
       this.endpoint.id_query = queryCandidate.id_query;
       this.endpoint.query = queryCandidate.query;
-
-
     },
     /////////////////////////////////////////////////
     async createEmptyEndpoint() {
@@ -280,7 +284,8 @@ export default {
 
       });
 
-      toast.promise(
+      // This return is needed because this method is called from a wait method
+      return toast.promise(
         fetchData(),
         {
           pending: 'Creating new endpoint, please wait...',
@@ -289,8 +294,8 @@ export default {
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
-        console.log('createEmptyEndpoint: ' + response.data.id_endpoint);
-        this.endpoint.endpointId = response.data.id_endpoint;
+        this.endpoint.id_endpoint = response.data.id_endpoint;
+        
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
@@ -302,27 +307,56 @@ export default {
 
     /////////////////////////////////////////////////
     async testEndpoint() {
-      if (this.endpoint.endpointId == null) {
+      if (this.endpoint.id_endpoint == null) {
         await this.createEmptyEndpoint();
       }
-      this.update(this.endpoint)
       
+      await this.update(this.endpoint)
 
+      var url = this.apiUrl + "/api/" + this.endpoint.endpoint + ((this.endpoint.parameters.length > 0) ? this.endpoint.queryStringTest : "");
+
+      toast.info('Info' + `Testing endpoint: ${url}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      const fetchData = async () => await axios.get(url, {
+
+      });
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Testing endpoint, please wait...',
+          success: 'Endpoint tested',
+          error: 'Error testing endpoint'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        this.response = JSON.stringify(response.data, null, 2);
+      }).catch((error) => {
+        if (error.response && error.response.status === 400) {
+          this.response = JSON.stringify(error.response.data, null, 2);
+          console.log(JSON.stringify(error.response.data, null, 2));          
+          toast.error('Info' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          this.response = JSON.stringify(error, null, 2);
+          console.log(JSON.stringify(error, null, 2));          
+          toast.error('Info' + `Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
     },
     /////////////////////////////////////////////////
     async update() {
       const fetchData = async () => await axios.post(`${apiUrl}/apiserver/update`, {
         id_query: this.endpoint.id_query,
-        endpointId: this.endpoint.endpointId,
+        id_endpoint: this.endpoint.id_endpoint,
         endpoint: this.endpoint.endpoint,
-        parameters: this.parameters,
-        description: this.description,
-        queryStringTest: this.queryStringTest,
+        parameters: this.endpoint.parameters,
+        description: this.endpoint.description,
+        queryStringTest: this.endpoint.queryStringTest,
         status: this.endpoint.status,
+        query: btoa(this.endpoint.query)
 
       });
 
-      toast.promise(
+      return toast.promise(
         fetchData(),
         {
           pending: 'Publishing endpoint, please wait...',
@@ -332,7 +366,7 @@ export default {
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
         // get id_endpoint
-        this.newEndpointId = response.data;
+        //this.newEndpointId = response.data;
 
         this.published = true;
       }).catch((error) => {

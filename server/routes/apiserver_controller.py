@@ -52,8 +52,8 @@ def create(  ):
 
 @router.post("/update")
 def publish( publishEndpointRequestDTO: PublishEndpointRequestDTO ):
-    print("Publishing query " + str(publishEndpointRequestDTO))
-    apiServerService.publish(publishEndpointRequestDTO)
+    print("Updating query " + str(publishEndpointRequestDTO))
+    apiServerService.update(publishEndpointRequestDTO)
 
     if (True):
         result = "ok"
