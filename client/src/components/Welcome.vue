@@ -3,8 +3,12 @@
     <div style="display: flex; justify-content: center;">
         <a href="https://github.com/javitorres/datalakeStudio" target="_blank">
             <img src="../assets/datalakeStudio.png" width="800"/>
+            <br/><br/><br/><br/><br/>
+            <img src="../assets/data_to_api_in_seconds.png" width="800"/>
         </a>
+        
     </div>
+    
     
 
 </template>

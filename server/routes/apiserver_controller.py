@@ -34,17 +34,22 @@ def getServices(id_query: int):
     
 ####################################################
 @router.get("/create")
-def create(  ):
-    print("Creating empty endpoint")
+def create(endpoint: str  ):
+    print("Checking if endpoint exists " + str(endpoint))
+    exists = apiServerService.checkIfEndPointExists(endpoint)
     
-    id_endpoint = apiServerService.createEndpoint()
+    if (not exists):
+        print("Creating empty endpoint")
+        id_endpoint = apiServerService.createEndpoint()
 
-    if (id is not None):
-        result = {"id_endpoint" : id_endpoint}
-        print("Result:" + str(result))
-        return JSONResponse(content=result, status_code=200)
+        if (id is not None):
+            result = {"id_endpoint" : id_endpoint}
+            print("Result:" + str(result))
+            return JSONResponse(content=result, status_code=200)
+        else:
+            return JSONResponse(content=[], status_code=200)
     else:
-        return JSONResponse(content=[], status_code=200)
+        return JSONResponse(content={"error": "Endpoint exists"}, status_code=400)
 
 
 

@@ -104,7 +104,7 @@
       <br />
       <div class="col-md-4" v-for="parameter in endpoint.parameters" :key="parameter">
         <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">{{ parameter }}</span>
+          <span class="input-group-text" id="basic-addon1">{{ parameter.name }}</span>
           <input type="text" class="form-control" placeholder="Write an example value for testing"
             v-model="parameter.exampleValue" @keyup="rebuildQueryStringTest">
         </div>
@@ -281,6 +281,9 @@ export default {
     async createEmptyEndpoint() {
       // Create new endpoint and get the id
       const fetchData = async () => await axios.get(`${apiUrl}/apiserver/create`, {
+        params: {
+          endpoint: this.endpoint.endpoint,
+        },
 
       });
 

@@ -156,3 +156,16 @@ def createTable():
     if "__endpoints" not in tableList:
         print("Creating table __endpoints")
         duckDbService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));CREATE SEQUENCE seq_id_endpoint START 1;")
+
+####################################################
+# Return True if endpoint exists        
+def checkIfEndPointExists(endpoint):
+    print("Checking if endpoint exists " + str(endpoint))
+    
+    # Search query into __queries table lower case
+    df = duckDbService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + endpoint + "'")
+
+    if (df is not None and len(df) > 0):
+        return True
+    else:
+        return False
