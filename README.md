@@ -1,5 +1,9 @@
 <div align="center">
 <img src="https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4" height="200">
+<br/>
+<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/3306a67f-91d3-4427-8214-96f8a1f02eb1" width=60% height=auto>
+<br/><br/>
+    
 </div>
 
 <p align="center">
@@ -8,7 +12,6 @@
     <img src="https://img.shields.io/badge/DuckDB-0.9.2-yellow" alt="DuckDB">
     <img src="https://img.shields.io/badge/OpenAI-1.6.1-green" alt="OpenAI">
 </p>
-
 
 # Datalake Studio
 Datalake Studio is a Python/HTML/Javascript application to explore datasets. You can explore your datafiles using the incredible DuckDB engine. 
@@ -21,7 +24,6 @@ Frontend is built with Vue.js and backend with Python Flask.
 
 
 # Project build with Docker
-
 
 ```
 docker-compose up --build
@@ -109,8 +111,7 @@ Get data profile
 
 or use crossfilter to play with your data
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5b66e0bb-40a7-49c6-b3be-c1fc95c050df)
-
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/392f50f8-6d8d-4a4f-a1fa-9e70c7fc652b)
 
 
 ## Query panel
@@ -119,15 +120,34 @@ Query your data and generate new tables. Save or load your queries. Use ChatGPT 
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/13de8f41-e002-4f2a-811b-a64a3fdeca19)
 
-
-
 # Load data from APIs
 
 Enrich your datasets calling external APIs
 
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/8a81495b-0e40-4829-af9e-f1081f871bb9)
+
+New table:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/d367ddfa-089d-4670-8277-0693899b50cd)
+
+
 # Load data from remote databases
 
 Explore your external databases and load data into Datalake Studio for local analysis
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/948a0165-a908-43ce-b195-cdd17839f45e)
+
+
+# Expose your data via API
+
+Publish endpoints serving your data with parametrized queries:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/34537cf8-c59c-4167-940c-3c07a71e2cc5)
+
+Keep control of endpoints published:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/32ee7182-228c-4130-8ce7-482e464c3c0d)
+
 
 # Talk to ChatGPT 
 Talk to explore your data (experimental)
