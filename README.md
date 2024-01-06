@@ -14,14 +14,20 @@
 </p>
 
 # Datalake Studio
-Datalake Studio is a Python/HTML/Javascript application to explore datasets. You can explore your datafiles using the incredible DuckDB engine. 
 
-You can load files directly from your computer, from a URL, or from an S3 bucket. You also can download data from your PostgreSQL Databases
+Datalake Studio is an enhanced Data Exploration and Management tool
 
-If you have ChatGPT credentials, you can use the SQL assistant, which will have context about the tables and their fields.
+## Key Features of Datalake Studio:
 
-Frontend is built with Vue.js and backend with Python Flask.
+<b>Versatile Data Loading Options:</b> Users can effortlessly upload data from a several sources: directly from local computer, via a URL, or from an Amazon S3 bucket. Additionally, it supports direct data downloads from PostgreSQL databases, enhancing its utility for database administrators and data analysts.
 
+<b>Several data formats and origins:</b> Embracing a wide range of data formats, the platform is compatible with CSV, TSV, and Shapefile formats. This flexibility ensures that users can work with their preferred data types without the need for tedious conversions.
+
+<b>ChatGPT Integration with SQL Assistants:</b> Users with ChatGPT credentials can use the power of SQL assistants. These assistants provide contextual understanding about tables and their fields, making data manipulation and query formulation more intuitive and efficient.
+
+<b>Enhancement through Remote APIs:</b> Users have the ability to enrich their data by integrating information from remote APIs. This feature opens up endless possibilities for data augmentation and cross-referencing, providing a more holistic view of the data landscape.
+
+<b>API Exposure for Data Sharing:</b> After completing data transformation processes, users can conveniently expose their data through APIs. This feature allows for easy sharing and collaboration, making Datalake Studio not just a tool for data exploration, but also a platform for data distribution.
 
 # Project build with Docker
 
