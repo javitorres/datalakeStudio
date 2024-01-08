@@ -95,7 +95,7 @@ export default {
         }
       };
 
-      const fetchData = async () => await axios.post(`${apiUrl}/askGPTWhisper`, formData, config);
+      const fetchData = async () => await axios.post(`${apiUrl}/gpt/askGPTWhisper`, formData, config);
 
       toast.promise(
         fetchData(),
@@ -122,7 +122,7 @@ export default {
 
     ///////////////////////////////////////////////////////
     async askChatGPT() {
-      const fetchData = () => axios.get(`${apiUrl}/askGPT`, {
+      const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
         params: {
           question: this.chatGPTInput,
         },
@@ -151,9 +151,10 @@ export default {
     },
     ///////////////////////////////////////////////////////
     async runQuery() {
+      this.queryError = null;
       this.querySuccesful = false;
-      const fetchData = () => axios.get(`${apiUrl}/runQuery`, {
-        params: { query: this.query, },
+      const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
+        query: this.query,
       });
 
       toast.promise(
@@ -175,15 +176,19 @@ export default {
         }else{
           this.conversation.push({ "speaker": "bot", "text": "It seems there is something wrong with the query, please checkit" });
         }
-        
-
       }).catch((error) => {
-        toast.error(`Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        if (error.response.data.message) {
+          this.queryError = error.response.data.message;
+        } else {
+          this.queryError = error.response.data;
+        }
+        
       });
+    
     },
     ///////////////////////////////////////////////////////
     async askChatGPTGenericQuestion(question) {
-      const fetchData = () => axios.get(`${apiUrl}/genericQuestion`, {
+      const fetchData = () => axios.get(`${apiUrl}/gpt/genericQuestion`, {
         params: {
           question: question,
         },
@@ -215,7 +220,7 @@ export default {
 
     /////////////////////////////////////////////////
     async getText2Speech(text) {
-      const fetchData = () => axios.get(`${apiUrl}/text2speech`, {
+      const fetchData = () => axios.get(`${apiUrl}/gpt/text2speech`, {
         params: {
           text: text,
         },
