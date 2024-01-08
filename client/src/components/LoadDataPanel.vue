@@ -125,7 +125,7 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async loadFile() {
-      const fetchData = () => axios.get(`${apiUrl}/loadFile`, {
+      const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
         params: {
           tableName: this.tableNameInput,
           fileName: this.fileInput,
