@@ -171,7 +171,7 @@ export default {
         console.log("Number of rows: " + this.data.split('\n').length );
         this.conversation.push({ "speaker": "bot", "table": this.data });
         if (this.data) {
-          this.questionForGptInterpretation = "User question is: " + this.userQuestion + " and ChatGPT answer is: " + this.query + " and SQL answer is: " + this.data + ". Returned data is: " + this.data + ", please give me a verbalized answer to the questoin using the provided data";
+          this.questionForGptInterpretation = "User question is: " + this.userQuestion + " and ChatGPT answer is: " + this.query + " and SQL result: " + this.data + ". Please give me a verbalized answer to the questoin using the provided data";
           this.askChatGPTGenericQuestion(this.questionForGptInterpretation);
         }else{
           this.conversation.push({ "speaker": "bot", "text": "It seems there is something wrong with the query, please checkit" });

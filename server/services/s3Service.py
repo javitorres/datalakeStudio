@@ -19,6 +19,8 @@ def buildIndex(bucket_name):
 
     return indice
 
+############################################################################################################
+
 def s3Search(bucket, fileName):
     global index
     global indexBuildingTime
@@ -40,3 +42,20 @@ def s3Search(bucket, fileName):
 
     return results
 
+############################################################################################################
+def getContent(bucket, path):
+    s3 = boto3.client("s3")
+    results = []
+
+    
+    respuesta = s3.list_objects_v2(Bucket=bucket, Prefix=path, Delimiter='/')
+
+    for objeto in respuesta.get('Contents', []):
+        print("Obj:" + objeto['Key'])
+        results.append(objeto['Key'])
+
+    for prefijo in respuesta.get('CommonPrefixes', []):
+        print("Pref:" + prefijo['Prefix'])
+        results.append(prefijo['Prefix'])
+
+    return results

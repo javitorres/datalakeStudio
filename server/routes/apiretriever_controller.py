@@ -54,25 +54,6 @@ def getMethodInfo(serviceName: str,
     result = apiRetrieverService.getMethodInfo(serviceName, methodPath, methodMethod, environment, api_domain, api_context)
     return JSONResponse(content=result, status_code=200)
 
-'''
-curl 'http://localhost:8000/runApiEnrichment' \
-  -H 'Accept: application/json, text/plain, */*' \
-  -H 'Accept-Language: es-ES,es;q=0.9,en;q=0.8' \
-  -H 'Connection: keep-alive' \
-  -H 'Content-Type: application/json' \
-  -H 'Origin: http://localhost:8080' \
-  -H 'Referer: http://localhost:8080/' \
-  -H 'Sec-Fetch-Dest: empty' \
-  -H 'Sec-Fetch-Mode: cors' \
-  -H 'Sec-Fetch-Site: same-site' \
-  -H 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' \
-  -H 'sec-ch-ua: "Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"' \
-  -H 'sec-ch-ua-mobile: ?0' \
-  -H 'sec-ch-ua-platform: "Linux"' \
-  --data-raw '{"tableName":"mini","parameters":{"refCat":"COD_REFCAT"},"mappings":[{"jsonField":"idEspacio","newFieldName":"idEspacio"},{"jsonField":"","newFieldName":""}],"recordsToProcess":10,"service":"ServiceCRMData","method":{"controller":"crm-data-controller","method":"GET","path":"/getDataByRefCat"},"url":"http://ServiceCRMData.pro.madiva.vpn/getDataByRefCat","newTableName":"enrichedTable"}' \
-  --compressed
-'''
-
 ####################################################
 
 @router.post("/runApiEnrichment")

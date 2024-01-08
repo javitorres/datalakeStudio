@@ -2,9 +2,10 @@ from fastapi import APIRouter
 from services import duckDbService
 from fastapi import Response
 from fastapi.responses import JSONResponse
-import services.s3IndexService as s3Service
+import services.s3Service as s3Service
 
-router = APIRouter()
+
+router = APIRouter(prefix="/s3")
 
 
 
@@ -27,5 +28,19 @@ def s3Search(bucket: str, fileName: str):
     # If  results array is greter than 100 items, return first 10
     if (len(results) > 10):
         results = results[:10]
+    
+    return {"results": results}
+
+############################################################################################################
+
+@router.get("/getContent")
+def getContent(bucket: str, path: str):
+    print("getContent bucket '" + bucket + "'" + " path '" + path + "'")
+    if (bucket is None):
+        response = {"status": "error", "message": "bucket is required"}
+        return JSONResponse(content=response, status_code=400)
+    
+    results = []
+    results = s3Service.getContent(bucket, path)
     
     return {"results": results}

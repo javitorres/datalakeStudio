@@ -1,6 +1,16 @@
 <template>
   <div class="row">
     <div class="col-md-6">
+      <div class="col-md-6">
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
+        <input id="bucket" type="text" class="form-control"
+          placeholder="s3 bucket" aria-label="File"
+          aria-describedby="basic-addon1" v-model="bucket">
+      </div>
+    </div>
+
+    <div class="col-md-6">
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Data file to load</span>
         <input id="fileInput" type="text" class="form-control"
@@ -40,6 +50,7 @@
         </div> <!-- row -->
       </div> <!-- col-md-6 -->
     </div> <!-- if expanded -->
+    </div> <!-- col-md-6 -->
   </div> <!-- row -->
 </template>
 
@@ -55,7 +66,7 @@ export default {
   name: 'LoadDataPanel',
   data() {
     return {
-      expanded: true,
+      bucket: '',
       fileInput: '',
       S3Files: [],
       tableNameInput: '',
@@ -92,9 +103,9 @@ export default {
         fileInputCleaned = this.fileInput.substring(3, this.fileInput.length);
       }
 
-      const fetchData = () => axios.get(`${apiUrl}/s3Search`, {
+      const fetchData = () => axios.get(`${apiUrl}/s3/s3Search`, {
         params: {
-          bucket: 'madiva-datalake',
+          bucket: this.bucket,
           fileName: fileInputCleaned,
         },
       });

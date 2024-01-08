@@ -37,7 +37,7 @@
       <div class="col-md-3" v-if="showOptions">
         <div class="btn-group">
           <button class="btn btn-secondary" ><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
-          <button class="btn btn-secondary" ><i class="bi bi-eyedropper"></i>{{ records<rowcount?records:rowcount }} showed</button>
+          <button class="btn btn-secondary" ><i class="bi bi-eyedropper"></i>{{ records!=0?records:rowcount }} showed</button>
         </div>
       </div>
     
