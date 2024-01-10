@@ -19,6 +19,8 @@ Datalake Studio is an enhanced Data Exploration and Management tool
 
 ## Key Features of Datalake Studio:
 
+<b>Quick for big data:</b> Datalake Studio is built on top of DuckDB, a high-performance, embedded SQL OLAP database management system. DuckDB is designed to handle large datasets, making it ideal for data exploration and analysis.
+
 <b>Versatile Data Loading Options:</b> Users can effortlessly upload data from a several sources: directly from local computer, via a URL, or from an Amazon S3 bucket. Additionally, it supports direct data downloads from PostgreSQL databases, enhancing its utility for database administrators and data analysts.
 
 <b>Several data formats and origins:</b> Embracing a wide range of data formats, the platform is compatible with CSV, TSV, and Shapefile formats. This flexibility ensures that users can work with their preferred data types without the need for tedious conversions.

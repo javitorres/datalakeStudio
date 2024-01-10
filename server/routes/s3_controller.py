@@ -44,3 +44,16 @@ def getContent(bucket: str, path: str):
     results = s3Service.getContent(bucket, path)
     
     return {"results": results}
+
+############################################################################################################
+@router.get("/getFilePreview")
+def getContent(bucket: str, path: str):
+    print("getFilePreview bucket '" + bucket + "'" + " path '" + path + "'")
+    if (bucket is None):
+        response = {"status": "error", "message": "bucket is required"}
+        return JSONResponse(content=response, status_code=400)
+    
+    results = []
+    results = s3Service.getFilePreview(bucket, path)
+    
+    return results

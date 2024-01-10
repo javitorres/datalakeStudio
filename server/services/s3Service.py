@@ -59,3 +59,15 @@ def getContent(bucket, path):
         results.append(prefijo['Prefix'])
 
     return results
+
+############################################################################################################
+def getFilePreview(bucket, path):
+    s3 = boto3.client("s3")
+    results = []
+    byte_range = 'bytes=0-1000'
+    response = s3.get_object(Bucket=bucket, Key=path)
+    response = s3.get_object(Bucket=bucket, Key=path, Range=byte_range)
+
+    results.append(response['Body'].read())
+
+    return results

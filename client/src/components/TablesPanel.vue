@@ -144,7 +144,7 @@ export default {
     download(format) {
       console.log('downloading ' + format);
 
-      const fetchData = async () => await axios.get(`${apiUrl}/exportData`, {
+      const fetchData = async () => await axios.get(`${apiUrl}/database/exportData`, {
         params: {
           format: format,
           tableName: this.selectedTable,
@@ -192,7 +192,7 @@ export default {
     },
     ////////////////////////////////////////////////////
     async analyzeField(field) {
-      var response = await axios.get(`${apiUrl}/analyzeField`, {
+      var response = await axios.get(`${apiUrl}/database/analyzeField`, {
         params: {
           tableName: this.selectedTable,
           fieldName: field,

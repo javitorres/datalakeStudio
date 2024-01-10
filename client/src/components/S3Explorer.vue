@@ -10,25 +10,60 @@
       </div>
 
       <!-- Show list of folders -->
-      <div class="col-md-6">
-        <div v-if="path == null">
+      <div class="col-md-8">
+        <!--path: {{ path }}
+        <br />
+        selectedElement: {{ selectedElement }}
+        <br />
+        selectionType: {{ selectionType }}
+        <br />
+        -->
+        
+
+        <div v-if=" path == null">
           <button class="btn btn-primary m-1 opcion-style" @click="getContent">
             List S3 content
           </button>
         </div>
         <div v-else>
-          <h3>{{ path }}</h3>
-          <h3 v-if="path!=''" @click="backFolder()"><i class="bi bi-arrow-up"></i> Back</h3>
+          <h3>Folder: {{ path ? path : "/" }}</h3>
+          <br />
+          <h3 v-if="path != ''" @click="back()"><i class="bi bi-arrow-left"> Back</i></h3>
+          <br />
           <!-- For every content in content -->
           <div v-for="item in content" :key="item.id">
-            <p @click="clickS3Element(item)">
-              <i v-if="isFolder(item)" class="bi bi-folder"></i>
-              <i v-else class="bi bi-file"></i>
-              {{ item }}
-            </p>
+            <h4 @click="clickS3Element(item)" v-if="item != path">
+              <i v-if="isFolder(item)" class="bi bi-folder" style="color:blue;"> {{ itemWithoutPath(item) }}</i>
+              <i v-if="!isFolder(item)" class="bi bi-file-earmark-text-fill" style="color:green;"> {{ itemWithoutPath(item) }}</i>
+            </h4>
           </div>
         </div>
+      </div>
 
+    </div>
+    <div class="col-md-6">
+      <div v-if="selectedElement != null">
+        <h3>Details of {{ selectionType }} {{ selectedElement }}</h3>
+        
+        <div v-if="selectionType === 'file'">
+          <h3>File preview:</h3>
+          <textarea class="form-control" id="exampleFormControlTextarea1" rows="30" v-model="fileContent"></textarea>
+        </div>
+
+        <div v-if="selectionType === 'folder'">
+          <br />
+          <h3>Folder metadata:</h3>
+          <br />
+          <div v-if=" ! folderMetadata ">
+            <h2>No metadata found</h2>
+            <p>Metadata is relevant convenient to maintain your datalake well documented. Also, if documentation is clear, SQL AI assistant will give you more accurate results</p>
+            <!-- Button create metadata -->
+            <button class="btn btn-primary m-1 opcion-style" @click="createMetadata">
+              Create metadata
+            </button>
+          </div>
+          
+        </div>
       </div>
     </div>
   </div>
@@ -47,26 +82,31 @@ export default {
 
   data() {
     return {
-      bucket: '',
+      bucket: 'madiva-datalake',
       path: null,
       content: [],
-      selectedFile: null,
+      selectedElement: null,
+      selectionType: null,
+      fileContent: null,
+      folderMetadata: null,
 
     };
   },
-  props: {
-
-
-  },
+  props: {},
 
   methods: {
+    itemWithoutPath(item) {
+      if (item == null) {
+        return '';
+      }
+      const regex = new RegExp(this.path, 'g');
+      return item.replace(regex, '');
+    },
+    //////////////////////////////////////////////////////////////////
     async getContent() {
       if (this.path == null) {
         this.path = '';
       }
-
-      this.S3Files = [];
-      var response = '';
 
       const fetchData = () => axios.get(`${apiUrl}/s3/getContent`, {
         params: {
@@ -92,7 +132,6 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
-
     },
 
     //////////////////////////////////////////////////////////////////
@@ -101,23 +140,104 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async clickS3Element(item) {
+      this.content = [];
+      this.selectedElement = item;
       if (this.isFolder(item)) {
         this.path = item;
+        this.selectionType = "folder";
         this.getContent();
       } else {
-        this.selectedFile = item;
+        this.selectedElement = item;
+        this.selectionType = "file";
+        await this.getFilePreview(item);
       }
     },
     ////////////////////////////////////////////////////////////////
-    async backFolder() {
-      var path = this.path;
-      var index = path.lastIndexOf('/');
-      this.path = path.substring(0, index);
-      this.getContent();
+    async getFilePreview(item) {
+      const fileExtension = item.toLowerCase().split('.').pop();
+      console.log("fileExtension:" + fileExtension);
+      if (!['csv', 'txt', 'json'].includes(fileExtension)) {
+        this.fileContent = 'File preview not available for this file type (' + fileExtension + '). Only .csv, .txt and .json files are supported.';
+        return;
+      }
+      var response = '';
+      const fetchData = () => axios.get(`${apiUrl}/s3/getFilePreview`, {
+        params: {
+          bucket: this.bucket,
+          path: item,
+        },
+      });
+
+      return toast.promise(
+        fetchData(),
+        {
+          pending: 'Getting file content, please wait...',
+          success: 'File content retrieved',
+          error: 'Error getting file content'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        //return response.data.results;
+        this.fileContent = response.data;
+      }).catch((error) => {
+        if (error.response.data.message) {
+          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
     },
 
+    ////////////////////////////////////////////////////////////////
+    async back() {
+      //console.log("PRE back:" + "path:" + this.path + " selectedElement:" + this.selectedElement + " selectionType:" + this.selectionType);
+      this.content = [];
+      if (this.isFolder(this.selectedElement)) {
+        var folders = this.path.split('/').filter(Boolean);
+        folders.pop();
 
+        this.selectionType = "folder";
+        this.selectedElement = this.path;
+        this.path = folders.join('/');
+        this.path = this.path + '/';
+        if (this.path == '/') {
+          this.path = '';
+        }
+      }
+      else {
+        this.selectionType = 'folder';
+        this.selectedElement = this.path;
+      }
+      //console.log("POST back:" + "path:" + this.path + " selectedElement:" + this.selectedElement + " selectionType:" + this.selectionType);
+      this.getContent();
+    },
+    ////////////////////////////////////////////////////////////////
+    async createMetadata() {
+      const fetchData = () => axios.get(`${apiUrl}/s3/createMetadata`, {
+        params: {
+          bucket: this.bucket,
+          path: this.selectedElement,
+        },
+      });
 
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Creating metadata, please wait...',
+          success: 'Metadata created',
+          error: 'Error creating metadata'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        this.folderMetadata = response.data;
+      }).catch((error) => {
+        if (error.response.data.message) {
+          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
+    },
   }
 }
 
