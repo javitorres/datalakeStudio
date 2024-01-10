@@ -30,7 +30,7 @@
 
     <div class="col-md-2" v-if="fileInput && tableNameInput">
       <!-- Load file button -->
-      <button class="btn btn-primary m-1 opcion-style" @click="loadFile">
+      <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInput, fileInput)">
         Load file
       </button>
     </div> <!-- col-md-2 -->
@@ -135,11 +135,11 @@ export default {
       this.S3Files = [];
     },
     ////////////////////////////////////////////////////////////////
-    async loadFile() {
+    async loadFile(tableNameInput, fileInput) {
       const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
         params: {
-          tableName: this.tableNameInput,
-          fileName: this.fileInput,
+          tableName: tableNameInput,
+          fileName: fileInput,
         },
       });
 

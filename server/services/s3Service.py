@@ -45,20 +45,29 @@ def s3Search(bucket, fileName):
 ############################################################################################################
 def getContent(bucket, path):
     s3 = boto3.client("s3")
-    results = []
+    content = []
 
     
     respuesta = s3.list_objects_v2(Bucket=bucket, Prefix=path, Delimiter='/')
 
+    # Get metadata.json  from bucket and path
+    try:
+        response = s3.get_object(Bucket=bucket, Key=path + "metadata.json")
+        metadata = json.loads(response['Body'].read())
+        
+    except Exception as e:
+        metadata = None
+
+
     for objeto in respuesta.get('Contents', []):
         print("Obj:" + objeto['Key'])
-        results.append(objeto['Key'])
+        content.append(objeto['Key'])
 
     for prefijo in respuesta.get('CommonPrefixes', []):
         print("Pref:" + prefijo['Prefix'])
-        results.append(prefijo['Prefix'])
+        content.append(prefijo['Prefix'])
 
-    return results
+    return {"content": content, "metadata": metadata}
 
 ############################################################################################################
 def getFilePreview(bucket, path):
@@ -71,3 +80,25 @@ def getFilePreview(bucket, path):
     results.append(response['Body'].read())
 
     return results
+
+############################################################################################################
+def updateMetadata(metadata):
+    # Create JSON file in bucket metadata.bucket and key metadata.path  with name metadata.json. The content of the file is metadata itself in JSON format
+    s3 = boto3.client("s3")
+
+    # Create file in bucket
+    try:
+        s3.put_object(Bucket=metadata.bucket, Key=metadata.path + "metadata.json", Body=json.dumps(metadata.dict()))
+        return True
+    except Exception as e:
+        print("Error creating file in bucket: " + str(e))
+        return False
+
+
+
+
+
+
+
+
+

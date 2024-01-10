@@ -3,15 +3,10 @@ from services import duckDbService
 from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.s3Service as s3Service
-
+from model.Metadata import Metadata
 
 router = APIRouter(prefix="/s3")
 
-
-
-
-############################################################################################################
-# S3
 ############################################################################################################
 
 @router.get("/s3Search")
@@ -40,10 +35,10 @@ def getContent(bucket: str, path: str):
         response = {"status": "error", "message": "bucket is required"}
         return JSONResponse(content=response, status_code=400)
     
-    results = []
-    results = s3Service.getContent(bucket, path)
+    result = {}
+    result = s3Service.getContent(bucket, path)
     
-    return {"results": results}
+    return result
 
 ############################################################################################################
 @router.get("/getFilePreview")
@@ -57,3 +52,21 @@ def getContent(bucket: str, path: str):
     results = s3Service.getFilePreview(bucket, path)
     
     return results
+
+############################################################################################################
+@router.post("/updateMetadata")
+def updateMetadata(metadata: Metadata):
+    print("updateMetadata '" + metadata.bucket + "'" + " path '" + metadata.path + "'" + " metadata '" + str(metadata) + "'")
+    if (metadata.bucket is None or metadata.path is None):
+        response = {"status": "error", "message": "bucket and path are required"}
+        return JSONResponse(content=response, status_code=400)
+    
+    
+    result = s3Service.updateMetadata(metadata)
+    
+    if result:
+        response = {"status": "ok", "message": "metadata updated"}
+        return JSONResponse(content=response, status_code=200)
+    else:
+        response = {"status": "error", "message": "metadata not updated"}
+        return JSONResponse(content=response, status_code=400)

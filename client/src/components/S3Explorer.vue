@@ -11,7 +11,7 @@
 
       <!-- Show list of folders -->
       <div class="col-md-8">
-        <!--path: {{ path }}
+        <!--Debug: path: {{ path }}
         <br />
         selectedElement: {{ selectedElement }}
         <br />
@@ -31,6 +31,7 @@
           <h3 v-if="path != ''" @click="back()"><i class="bi bi-arrow-left"> Back</i></h3>
           <br />
           <!-- For every content in content -->
+          <p v-if=" content.length == 1">No content in this folder</p>
           <div v-for="item in content" :key="item.id">
             <h4 @click="clickS3Element(item)" v-if="item != path">
               <i v-if="isFolder(item)" class="bi bi-folder" style="color:blue;"> {{ itemWithoutPath(item) }}</i>
@@ -47,22 +48,41 @@
         
         <div v-if="selectionType === 'file'">
           <h3>File preview:</h3>
-          <textarea class="form-control" id="exampleFormControlTextarea1" rows="30" v-model="fileContent"></textarea>
+          <textarea class="form-control" id="exampleFormControlTextarea1" v-model="fileContent"></textarea>
+          <br />
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Load data as table</span>
+            <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File" aria-describedby="basic-addon1" v-model="newTableName">
+            <button class="btn btn-primary m-1 opcion-style" @click="loadFile(newTableName, selectedElement)">
+              Load file {{ newTableName }}
+            </button>
+          </div>
+
         </div>
 
         <div v-if="selectionType === 'folder'">
           <br />
-          <h3>Folder metadata:</h3>
+          <h3>Folder info:</h3>
           <br />
           <div v-if=" ! folderMetadata ">
             <h2>No metadata found</h2>
             <p>Metadata is relevant convenient to maintain your datalake well documented. Also, if documentation is clear, SQL AI assistant will give you more accurate results</p>
             <!-- Button create metadata -->
-            <button class="btn btn-primary m-1 opcion-style" @click="createMetadata">
+            <button class="btn btn-primary m-1 opcion-style" @click="createEmptyMetadata">
               Create metadata
             </button>
           </div>
-          
+          <div v-else>
+            
+            <div class="form-floating mb-3">
+              <textarea v-model="folderMetadata.description" style="height: 200px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
+              <label for="floatingInput">Description</label>
+            </div>
+            
+            <button class="btn btn-primary m-1 opcion-style" @click="updateMetadata">
+              Update metadata
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -82,13 +102,15 @@ export default {
 
   data() {
     return {
-      bucket: 'madiva-datalake',
+      bucket: '',
       path: null,
       content: [],
       selectedElement: null,
       selectionType: null,
       fileContent: null,
       folderMetadata: null,
+      loading: false,
+      newTableName: null,
 
     };
   },
@@ -104,6 +126,7 @@ export default {
     },
     //////////////////////////////////////////////////////////////////
     async getContent() {
+      
       if (this.path == null) {
         this.path = '';
       }
@@ -119,12 +142,13 @@ export default {
         fetchData(),
         {
           pending: 'Listing S3 content, please wait...',
-          success: 'S3 search finished',
+          success: '',
           error: 'Error searching in S3'
         },
-        { position: toast.POSITION.BOTTOM_RIGHT }
+        { position: toast.POSITION.BOTTOM_RIGHT, timeout: 1000 }
       ).then((response) => {
-        this.content = response.data.results;
+        this.content = response.data.content;
+        this.folderMetadata = response.data.metadata;
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
@@ -132,6 +156,7 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
+      
     },
 
     //////////////////////////////////////////////////////////////////
@@ -139,23 +164,36 @@ export default {
       return item.endsWith('/');
     },
     ////////////////////////////////////////////////////////////////
+    getOnlyFileNameWithOutExtension(fileName) {
+      //  In: clientes/bbva/marcas.csv
+      // Out: marcas
+      return fileName.split('/').pop().split('.').slice(0, -1).join('.');
+
+      
+    },
+
+    ////////////////////////////////////////////////////////////////
     async clickS3Element(item) {
-      this.content = [];
+      this.loading = true;
       this.selectedElement = item;
       if (this.isFolder(item)) {
+        this.content = [];
         this.path = item;
         this.selectionType = "folder";
         this.getContent();
       } else {
+        this.newTableName = this.getOnlyFileNameWithOutExtension(item);
+        
         this.selectedElement = item;
         this.selectionType = "file";
         await this.getFilePreview(item);
       }
+      this.loading = false;
     },
     ////////////////////////////////////////////////////////////////
     async getFilePreview(item) {
       const fileExtension = item.toLowerCase().split('.').pop();
-      console.log("fileExtension:" + fileExtension);
+      //console.log("fileExtension:" + fileExtension);
       if (!['csv', 'txt', 'json'].includes(fileExtension)) {
         this.fileContent = 'File preview not available for this file type (' + fileExtension + '). Only .csv, .txt and .json files are supported.';
         return;
@@ -209,27 +247,62 @@ export default {
         this.selectedElement = this.path;
       }
       //console.log("POST back:" + "path:" + this.path + " selectedElement:" + this.selectedElement + " selectionType:" + this.selectionType);
+      this.metadata = null;
       this.getContent();
     },
+    //////////////////////////////////////////////////////////////////////
+    createEmptyMetadata(){
+      this.folderMetadata = {
+        description: '',
+      }
+    },
+
     ////////////////////////////////////////////////////////////////
-    async createMetadata() {
-      const fetchData = () => axios.get(`${apiUrl}/s3/createMetadata`, {
+    async updateMetadata() {
+      this.folderMetadata.path = this.path;
+      this.folderMetadata.bucket = this.bucket;
+
+      const fetchData = () => axios.post(`${apiUrl}/s3/updateMetadata`, 
+         this.folderMetadata,
+      );
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Updating metadata, please wait...',
+          success: 'Metadata updated',
+          error: 'Error updating metadata'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        this.getContent();
+      }).catch((error) => {
+        if (error.response.data.message) {
+          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
+    },
+    //////////////////////////////////////////////////////////////////////
+    async loadFile(tableNameInput, fileInput) {
+      const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
         params: {
-          bucket: this.bucket,
-          path: this.selectedElement,
+          tableName: tableNameInput,
+          fileName: "s3://" + this.bucket + "/" + fileInput,
         },
       });
 
       toast.promise(
         fetchData(),
         {
-          pending: 'Creating metadata, please wait...',
-          success: 'Metadata created',
-          error: 'Error creating metadata'
+          pending: 'Creating table from file, please wait...',
+          success: 'Table created',
+          error: 'Error creting table from file'
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
-        this.folderMetadata = response.data;
+        this.$emit('tableCreated');
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });

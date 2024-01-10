@@ -61,6 +61,14 @@
           </li>
 
           <li>
+            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 's3' }"
+              @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <h2><i class="bi bi-bucket"></i></h2>
+            </a>
+          </li>
+
+          <li>
             <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'chatgpt' }"
               @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -68,14 +76,6 @@
             </a>
           </li>
 
-          <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 's3' }"
-              @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
-              data-bs-placement="right">
-              <h2><i class="bi bi-bucket"></i></h2>
-              
-            </a>
-          </li>
 
           
         </ul>
@@ -204,7 +204,7 @@ export default {
         case 'chatgpt':
           return {  };
         case 's3':
-          return {  };
+          return { tableCreated: this.tableCreated, };
         default:
           return {  };
       }

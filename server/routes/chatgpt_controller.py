@@ -32,6 +32,7 @@ def askGPT(question: str):
 
 @router.post("/askGPTWhisper")
 async def askGPTWhisper(file: UploadFile = File(...)):
+    print("askGPTWhisper")
     if file.content_type != "audio/wav":
         content = {"error": "File is not WAV"}
         return JSONResponse(content=content, status_code=400)
