@@ -17,9 +17,10 @@
 
 
   <div class="section">
-    <div class="container" id="charts-container">
-      <!-- Charts will be generated here -->
-
+    <div class="container" >
+      <div  class="row" id="charts-container" >
+        <!-- Charts will be generated here with col-md-6 -->
+      </div>
     </div>
   </div>
 
@@ -95,13 +96,14 @@ export default {
         container.appendChild(rangeContainer);
       }
 
-      if (index % 2 === 0) {
+      //if (index % 2 === 0) {
         var row = document.createElement('div');
-        row.className = 'row';
-        row.id = 'row-' + Math.floor(index / 2);
+        row.className = 'col-sm-4';
+        //row.id = 'row-' + Math.floor(index / 2);
+        row.id = 'row-' + index;
         
         document.getElementById('charts-container').appendChild(row);
-      }
+      //}
 
       var rowContainer = document.getElementById('row-' + Math.floor(index / 2));
       rowContainer.appendChild(container);
@@ -287,7 +289,6 @@ export default {
       if (elementId.startsWith('#')) {
         elementId = elementId.slice(1);
       }
-      console.log('Reset chart ' + elementId);
       var chart = dc.chartRegistry.list().find(c => c.anchor() === '#' + elementId);
       if (chart) {
         chart.filterAll();
@@ -299,6 +300,9 @@ export default {
 
     initializeDashboard(config) {
       let data = csvParse(this.dataStr);
+
+      // Clean chart registry
+      dc.chartRegistry.clear();
       
 
       data.forEach(function (d) {

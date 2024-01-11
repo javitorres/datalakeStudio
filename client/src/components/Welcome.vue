@@ -2,9 +2,24 @@
     <br/><br/><br/><br/><br/><br/><br/>
     <div style="display: flex; justify-content: center;">
         <a href="https://github.com/javitorres/datalakeStudio" target="_blank">
-            <img src="../assets/datalakeStudio.png" width="800"/>
+            <!--<img src="../assets/datalakeStudio.png" width="800"/>-->
             <br/><br/><br/><br/><br/>
-            <h1 class="title">DATA TO API IN SECONDS</h1>    
+
+            <div class="row" style="justify-content: center;">
+                <div class="col-md-2">
+                    <img src="../assets/logo.svg" width="200"/>
+                </div>
+                <div class="col-md-4">
+                    <h1 class="logo">DATALAKE</h1>
+                    <h1 class="logo" style="font-size: 100px;">STUDIO</h1>
+                </div>
+            </div>
+            <br/>
+            <div class="row" style="justify-content: center;">
+                <div class="col-md-12">
+                    <h1 class="title">DATA TO API IN SECONDS</h1>
+                </div>
+            </div>
         </a>
     </div>
 
@@ -16,12 +31,25 @@ a, a:hover, a:active, a:visited {
      text-decoration: none;
 }
 
+
+.logo{
+    font-family: 'Orbitron', sans-serif;
+    text-decoration: none;
+    color: #000;
+    font-size: 80px;
+    font-weight: 700; 
+    font-style: normal; 
+    font-stretch: normal; 
+    font-optical-sizing: auto; 
+    opacity: 1; 
+    line-height: initial;
+}
+
 .title {
     font-family: 'Lexend Peta', sans-serif;
     text-decoration: none;
     color: #000;
-    font-size: 50px;
-    font-family: 'Lexend Peta', sans-serif; 
+    font-size: 80px;
     font-weight: 300; 
     font-style: normal; 
     font-stretch: normal; 
