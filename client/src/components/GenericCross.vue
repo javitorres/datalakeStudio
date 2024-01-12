@@ -41,6 +41,7 @@ export default {
   props: {
     dataStr: String,
     chartConfig: Object,
+    //selectedFields: Array,
     key: Number,
   },
 
@@ -83,13 +84,13 @@ export default {
         minInput.type = 'number';
         minInput.className = 'input is-small';
         minInput.placeholder = 'Min';
-        minInput.onchange = function () { setChartDomain(elementId, 'min', minInput.value); };
+        minInput.onchange = () => { setChartDomain(elementId, 'min', minInput.value); };
 
         var maxInput = document.createElement('input');
         maxInput.type = 'number';
         maxInput.className = 'input is-small';
         maxInput.placeholder = 'Max';
-        maxInput.onchange = function () { setChartDomain(elementId, 'max', maxInput.value); };
+        maxInput.onchange = () => { this.setChartDomain(elementId, 'max', maxInput.value); };
 
         rangeContainer.appendChild(minInput);
         rangeContainer.appendChild(maxInput);

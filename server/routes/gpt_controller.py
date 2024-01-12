@@ -64,6 +64,8 @@ async def askGPTWhisper(file: UploadFile = File(...)):
     # Why "you"?: Because this is the answer when empty audio is sent. TODO: Detect if audio es empty (mic muted, etc)
     if (transcription is not None and transcription != "you"):
         return JSONResponse(content={"transcription" : transcription}, status_code=200)
+    elif (transcription == "you"):
+        return JSONResponse(content={"transcription" : "EMPTY_AUDIO"}, status_code=200)
     else:
         return JSONResponse(content="Could not get transcription", status_code=500)
 

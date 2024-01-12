@@ -1,9 +1,20 @@
 <template>
   <!-- Fields -->
   <div class="col-md-1" v-if="schema && showOptions">
-    
+
+    <!-- Check all and check none buttons -->
+    <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(false)">
+      <i class="bi bi-x-square"></i>
+      None
+    </button>
+    <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(true)">
+      <i class="bi bi-check-square"></i>
+      All
+    </button>
+
     <div class="row" v-for="(type, field) in schema" :key="field">
-      <button class="btn btn-secondary m-1 opcion-style" @click="analyzeField">
+      <button class="btn m-1 opcion-style" :class="selectedFields.includes(field) ? 'btn-primary' : 'btn-secondary'"
+        @click="toggleField(field)">
         <span v-html="imageSrc(type)"></span>
         {{ field }}
       </button>
@@ -15,17 +26,20 @@
     <div class="row-md-2" v-if="showOptions">
       <!--<p>Row: {{ rowSelected }}</p>-->
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showSampleData }"   @click="getSampleData(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showSampleData }"
+        @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
         Show sample data
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showProfile }" @click="getTableProfile(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showProfile }"
+        @click="getTableProfile(tableName)">
         <i class="bi bi-search"></i>
         Show table profile
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showCrossfilters }" @click="crossFilters(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showCrossfilters }"
+        @click="crossFilters(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
@@ -33,36 +47,35 @@
 
     <div class="row" v-if="sampleData && showSampleData">
       <!-- Sample data -->
-      
       <div class="col-md-3" v-if="showOptions">
         <div class="btn-group">
-          <button class="btn btn-secondary" ><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
-          <button class="btn btn-secondary" ><i class="bi bi-eyedropper"></i>{{ records!=0?records:rowcount }} showed</button>
+          <button class="btn btn-secondary"><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
+          <button class="btn btn-secondary"><i class="bi bi-eyedropper"></i>{{ records != 0 ? records : rowcount }}
+            showed</button>
         </div>
       </div>
-    
+
       <div class="col-md-2" v-if="showOptions">
-        
         <div class="btn-group">
-          
           <button class="btn btn-primary"><i class="bi bi-arrows-vertical"></i></button>
           <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
           <button class="btn btn-primary" :class="{ active: type === 'Shuffle' }"
             @click="setType('Shuffle')">Shuffle</button>
           <button class="btn btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
         </div>
-        
+
       </div>
       <div class="col-md-2" v-if="showOptions">
-        
         <div class="btn-group">
           <button class="btn btn-primary"><i class="bi bi-grid-3x3-gap-fill"></i></button>
           <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
           <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
           <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
-          <button v-if="records<1000" class="btn btn-primary" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
+          <button v-if="records < 1000" class="btn btn-primary" :class="{ active: records === 0 }"
+            @click="setRecords(0)">All</button>
         </div>
       </div>
+      <!-- Data Table -->
       <div ref="table"></div>
     </div>
 
@@ -95,6 +108,7 @@ export default {
   name: 'TableInspector',
   data() {
     return {
+      selectedFields: [],
       showSampleData: true,
       showProfile: false,
       showCrossfilters: false,
@@ -117,16 +131,9 @@ export default {
   props: {
     tableName: String,
     showOptions: Boolean,
-
   },
   mounted() {
     this.load();
-    /*if (this.showOptionsProp === false) {
-      this.showOptions = false;
-    }else{
-      this.showOptions = true;
-    }*/
-    
   },
 
   emits: [],
@@ -138,15 +145,34 @@ export default {
   },
 
   methods: {
+    selectAllFields(all) {
+      this.selectedFields = [];
+      if (all) {
+        this.selectedFields = Object.keys(this.schema)
+      }
+      this.generateCharts();
+    },
+    ////////////////////////////////////////////////////
+    toggleField(field) {
+      if (this.selectedFields.includes(field)) {
+        this.selectedFields = this.selectedFields.filter(item => item !== field);
+        this.generateCharts();
+      } else {
+        this.selectedFields.push(field);
+        this.generateCharts();
+      }
+    },
+    ////////////////////////////////////////////////////
     setType(newType) {
       this.type = newType;
       this.getSampleData(this.tableName);
     },
+    ////////////////////////////////////////////////////
     setRecords(newRecords) {
       this.records = newRecords;
       this.getSampleData(this.tableName);
     },
-
+    ////////////////////////////////////////////////////
     async load() {
       await this.getSampleData(this.tableName);
       await this.getRowcount();
@@ -161,10 +187,9 @@ export default {
       else if (type === 'boolean') return "MNO";
       else if (type === 'null') return "PQR";
       else return type;
-
     },
     /////////////////////////////////////////////////
-    async getRowcount(){
+    async getRowcount() {
       await axios.get(`${apiUrl}/database/getRowCount`, {
         params: {
           tableName: this.tableName,
@@ -190,6 +215,11 @@ export default {
       }).then((response) => {
         if (response.status === 200) {
           this.schema = response.data;
+          // All fields selected by default. Fill selectedFields with fields from schema
+          for (var key in this.schema) {
+            this.selectedFields.push(key).field;
+          }
+          //console.log("Fields:" + this.selectedFields + " this.schema:" + this.schema);
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -198,14 +228,12 @@ export default {
       }).finally(() => {
         this.loading = false;
       });
-
     },
     ////////////////////////////////////////////////////
     async getSampleData(table) {
       this.showSampleData = true;
       this.showProfile = false;
       this.showCrossfilters = false;
-
 
       await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
@@ -220,22 +248,45 @@ export default {
           for (var key in this.sampleData[0]) {
             columns.push({ title: key, field: key });
           }
+
+          /*
+
+          Rellenar columns con fields de selectedFields
+
+          columns: [ // Define aquí las columnas que deseas mostrar
+              {title: "Nombre", field: "nombre"},
+              {title: "Edad", field: "edad"},
+              // ... otras columnas que quieras incluir
+          ],
+          TODO: No funciona ocultar columnas porque aqui se acaba de cargar.  Ver como actualizar el objeto desde fuera de este metodo
+          */
+         columns = [];
+          for (var key in this.schema) {
+            // if key in selectedFields
+            if (this.selectedFields.includes(key)) {
+              columns.push({ title: key, field: key });
+            }
+          }
+          console.log("Columns:" + columns);
+
           var table = new Tabulator(this.$refs.table, {
             data: this.sampleData,
             importFormat: "csv",
             autoColumns: true,
             layout: "fitColumns",
-            persistence:true, // TODO: Review this, not working
+            columns: columns,
+            // Skip all columns except selectedFields
+            // TODO
+            persistence: true, // TODO: Review this, not working
             rowClick: function (e, row) {
               console.log("ROW1" + JSON.stringify(row));
             },
-            
           });
-          table.on("rowClick", function(row){
+          table.on("rowClick", function (row) {
             // TODO get tow data and emit row info
             console.log("ROW2" + JSON.stringify(row));
             this.rowSelected = row;
-        });
+          });
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -246,7 +297,6 @@ export default {
       });
     },
     ////////////////////////////////////////////////////
-
     async getTableProfile(table) {
       this.showSampleData = false;
       this.showProfile = true;
@@ -277,7 +327,7 @@ export default {
           }
           new Tabulator(this.$refs.tableProfile, {
             data: this.tableProfile,
-            //reactiveData: true,
+            reactiveData: true,
             layout: "fitColumns",
             importFormat: "csv",
             autoColumns: true,
@@ -288,31 +338,36 @@ export default {
       });
     },
     ////////////////////////////////////////////////////
-
     async crossFilters(table) {
       this.showSampleData = false;
       this.showProfile = false;
       this.showCrossfilters = true;
 
-      await this.getTableSchema(table);
-
+      //await this.getTableSchema(table);
+      this.generateCharts();
+    },
+    ////////////////////////////////////////////////////
+    generateCharts() {
       var charts = [];
       for (var key in this.schema) {
-        var chart = {
-          title: key,
-          type: this.schema[key],
-          fields: key
-        };
-        if (chart.type === 'object' || chart.type === 'bool') {
-          chart.type = 'categorical';
-        } else if (chart.type === 'int64' || chart.type === 'float64') {
-          chart.type = 'numerical';
-        } else if (chart.type === 'datetime64[ns]') {
-          chart.type = 'date';
-        } else {
-          chart.type = 'categorical';
+        // if key in selectedFields
+        if (this.selectedFields.includes(key)) {
+          var chart = {
+            title: key,
+            type: this.schema[key],
+            fields: key
+          };
+          if (chart.type === 'object' || chart.type === 'bool') {
+            chart.type = 'categorical';
+          } else if (chart.type === 'int64' || chart.type === 'float64') {
+            chart.type = 'numerical';
+          } else if (chart.type === 'datetime64[ns]') {
+            chart.type = 'date';
+          } else {
+            chart.type = 'categorical';
+          }
+          charts.push(chart);
         }
-        charts.push(chart);
       }
       this.chartConfig = {
         charts: charts
@@ -320,17 +375,13 @@ export default {
 
       // Invalidate GenericCross to force re-render
       this.genericCrossKey++;
-
     }
-
-  }
-
+  },
 }
 
 </script>
 <style scoped>
-
-.tabulator{
+.tabulator {
   background-color: #ffffff;
   padding-left: 20px;
   padding-right: 20px;
@@ -339,9 +390,8 @@ export default {
   border: #ffffff;
 }
 
-.custom-col{
+.custom-col {
   padding-left: 20px;
-  
-}
 
+}
 </style>

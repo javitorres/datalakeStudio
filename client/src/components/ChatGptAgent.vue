@@ -1,5 +1,4 @@
 <template>
-  
   <!-- Show conversation -->
   <div v-if="conversation && !blindMode">
     <div v-for="(message, index) in conversation" :key="index">
@@ -35,12 +34,15 @@
   <div class="md-col-6">
     <recorder-widget :time="2" buttonColor="green" @newRecording="processRecording" />
   </div>
+
   <div class="form-check form-switch">
-    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="blindMode" @click="blindMode=!blindMode">
+    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="blindMode"
+      @click="blindMode = !blindMode">
     <label class="form-check-label" for="flexSwitchCheckChecked">Blind mode</label>
   </div>
   <div class="form-check form-switch">
-    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="tts" @click="tts=!tts">
+    <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="tts"
+      @click="tts = !tts">
     <label class="form-check-label" for="flexSwitchCheckChecked">TTS</label>
   </div>
 </template>
@@ -106,10 +108,16 @@ export default {
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
-        this.userQuestion = response.data.transcription;
-        this.conversation.push({ "speaker": "user", "text": this.userQuestion });
-        this.chatGPTInput = this.userQuestion;
-        this.askChatGPT();
+        if (response.data.transcription == "EMPTY_AUDIO") {
+          // Toast error
+          toast.error('Info: ' + "Audio is empty, please check your microphone", { position: toast.POSITION.BOTTOM_RIGHT });
+          return;
+        } else {
+          this.userQuestion = response.data.transcription;
+          this.conversation.push({ "speaker": "user", "text": this.userQuestion });
+          this.chatGPTInput = this.userQuestion;
+          this.askChatGPT();
+        }
 
       }).catch((error) => {
         if (error.response.data.message) {
@@ -168,12 +176,12 @@ export default {
       ).then((response) => {
         this.data = response.data;
         // this.data is CSV data, print number of rows
-        console.log("Number of rows: " + this.data.split('\n').length );
+        console.log("Number of rows: " + this.data.split('\n').length);
         this.conversation.push({ "speaker": "bot", "table": this.data });
         if (this.data) {
           this.questionForGptInterpretation = "User question is: " + this.userQuestion + " and ChatGPT answer is: " + this.query + " and SQL result: " + this.data + ". Please give me a verbalized answer to the questoin using the provided data";
           this.askChatGPTGenericQuestion(this.questionForGptInterpretation);
-        }else{
+        } else {
           this.conversation.push({ "speaker": "bot", "text": "It seems there is something wrong with the query, please checkit" });
         }
       }).catch((error) => {
@@ -182,9 +190,9 @@ export default {
         } else {
           this.queryError = error.response.data;
         }
-        
+
       });
-    
+
     },
     ///////////////////////////////////////////////////////
     async askChatGPTGenericQuestion(question) {
@@ -205,7 +213,7 @@ export default {
       ).then((response) => {
         this.interpretation = response.data.answer;
         this.conversation.push({ "speaker": "bot", "text": this.interpretation });
-        if (this.tts){
+        if (this.tts) {
           this.getText2Speech(this.interpretation)
         }
 

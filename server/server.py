@@ -2,9 +2,9 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from routes import remoteDb_controller
-from routes import duckdb_controller
+from routes import database_controller
 from routes import s3_controller
-from routes import chatgpt_controller
+from routes import gpt_controller
 from routes import apiretriever_controller
 from routes import profiler_controller
 from routes import queries_controller
@@ -36,10 +36,10 @@ serverStatus = ServerStatus()
 
 
 # Include routes
-app.include_router(duckdb_controller.router)
+app.include_router(database_controller.router)
 app.include_router(remoteDb_controller.router)
 app.include_router(s3_controller.router)
-app.include_router(chatgpt_controller.router)
+app.include_router(gpt_controller.router)
 app.include_router(apiretriever_controller.router)
 app.include_router(profiler_controller.router)
 app.include_router(queries_controller.router)

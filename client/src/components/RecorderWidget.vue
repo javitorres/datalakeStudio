@@ -1,11 +1,11 @@
 <template>
   <div class="text-center font-sans w-96 mx-auto rounded-lg shadow-lg border-solid border-2 p-8">
     <div>
-      <button class="btn btn-primary m-1 opcion-style" v-if="recording" name="stop" @click="toggleRecording">
-        <h1><i class="bi bi-stop-fill"></i></h1></button>
+      <button class="btn btn-danger m-1 opcion-style" v-if="recording" name="stop" @click="toggleRecording">
+        <h1><i class="bi bi-mic-fill" style="color: red;"></i></h1></button>
 
       <button class="btn btn-primary m-1 opcion-style" v-else name="mic" @click="toggleRecording">
-        <h1><i class="bi bi-record-fill"></i></h1></button>
+        <h1><i class="bi bi-mic"></i></h1></button>
     </div>
     <br />
     <div>{{ recordedTime }}</div>
