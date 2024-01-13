@@ -159,6 +159,16 @@ Keep control of endpoints published:
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/32ee7182-228c-4130-8ce7-482e464c3c0d)
 
+# Explore your S3 buckets
+
+Move in your S3 buckets and write descriptions
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/cd63c467-7cee-4fdc-8c9d-705372e8387e)
+
+Preview files or load them into DatalaleStudio
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/16c1f44a-52a0-4593-9c42-4f687fe315b1)
+
 
 # Talk to ChatGPT 
 Talk to explore your data (experimental)
