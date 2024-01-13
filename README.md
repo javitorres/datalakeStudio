@@ -31,6 +31,9 @@ Datalake Studio is an enhanced Data Exploration and Management tool
 
 <b>API Exposure for Data Sharing:</b> After completing data transformation processes, users can conveniently expose their data through APIs. This feature allows for easy sharing and collaboration, making Datalake Studio not just a tool for data exploration, but also a platform for data distribution.
 
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
+
+
 # Project build with Docker
 
 ```
