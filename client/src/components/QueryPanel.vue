@@ -178,7 +178,7 @@ export default {
   data() {
     return {
       expanded: true,
-      query: 'SELECT * FROM homecenter',
+      query: 'SELECT * FROM iris',
       sampleData: null,
 
       activeTab: 'newTable',

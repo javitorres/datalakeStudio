@@ -38,7 +38,7 @@ export default {
 
         // Aquí defines tus sugerencias. Estas podrían venir de tu esquema de base de datos.
         const suggestions = [
-          { text: 'homecenter', displayText: 'homecenter de s3' },
+          { text: 'iris', displayText: 'iris de s3' },
           { text: 'tableName2', displayText: 'Table Name 2' },
           // ... más sugerencias ...
         ];

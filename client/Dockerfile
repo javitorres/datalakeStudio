@@ -9,6 +9,7 @@ COPY package*.json ./
 
 # Instalar dependencias del proyecto
 RUN npm install
+RUN npm install codemirror
 
 # Copiar los archivos del proyecto
 COPY . .
