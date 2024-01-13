@@ -154,6 +154,7 @@ export default {
         this.selectedFields = Object.keys(this.schema)
       }
       this.generateCharts();
+      this.updateTable();
     },
     ////////////////////////////////////////////////////
     toggleField(field) {
@@ -274,26 +275,9 @@ export default {
             layout: "fitColumns",
             //layout: "fitDataStretch",
             persistence: true, // TODO: Review this, not working
-            /*rowClick: function (e, row) {
-              console.log("ROW1" + JSON.stringify(row));
-            },*/
+            
           });
-          
-          /*this.myTabulator.on("rowClick", function (row) {
-            // TODO get tow data and emit row info
-            console.log("ROW2" + JSON.stringify(row));
-            this.rowSelected = row;
-          });
-          */
-
-          // Update selected columns state
-          this.myTabulator.on("tableBuilt", (data) => {
-            console.log("tableBuilt");
-            // TODO It doens't work
-            this.updateTable();
-          });
-
-          
+                 
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -302,6 +286,13 @@ export default {
       }).finally(() => {
         this.loading = false;
       });
+
+      // Update selected columns state
+      this.myTabulator.on("tableBuilt", (data) => {
+            console.log("tableBuilt.selectedFields: " + this.selectedFields);
+            // TODO It doens't work
+            this.updateTable();
+          });
     },
     ////////////////////////////////////////////////////
     async getTableProfile(table) {

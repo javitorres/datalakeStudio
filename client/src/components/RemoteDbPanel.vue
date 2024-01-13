@@ -61,7 +61,7 @@
         <li v-for="table in tables" :key="table.id">
 
           <button class="btn btn-primary m-1 opcion-style" v-if="table.indexOf(filterTable) > -1"
-            @click="query = 'SELECT * FROM ' + schemaSelected + '.' + table + ' LIMIT 30'">
+            @click="clickTable(table)">
             {{ table }}
           </button>
         </li>
@@ -157,6 +157,13 @@ export default {
   emits: ['tableCreated'],
 
   methods: {
+
+    ////////////////////////////////////////////////////
+    clickTable(table) {
+      this.query = 'SELECT * FROM ' + this.schemaSelected + '.' + table + ' LIMIT 30';
+      this.runRemoteQuery(this.query);
+    },
+
     async searchDatabase() {
       if (this.databaseInput.length > 0) {
         axios.get(`${apiUrl}/remotedb/getDatabaseList`, {

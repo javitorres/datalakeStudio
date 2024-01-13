@@ -21,7 +21,7 @@
         
 
         <div v-if=" path == null">
-          <button class="btn btn-primary m-1 opcion-style" @click="getContent">
+          <button v-if="bucket" class="btn btn-primary m-1 opcion-style" @click="getContent">
             List S3 content
           </button>
         </div>
