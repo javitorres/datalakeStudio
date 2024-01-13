@@ -5,7 +5,7 @@ import pandas as pd
 
 from model.apiEnrichmentRequestDTO import ApiEnrichmentRequestDTO
 
-from services import duckDbService
+from services import databaseService
 
 # https://boto3.amazonaws.com/v1/documentation/api/latest/reference/services/codecommit.html
 client = None
@@ -203,7 +203,7 @@ def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO , api_doma
         query = "SELECT * FROM " + apiEnrichmentRequestDTO.tableName + " LIMIT " + str(apiEnrichmentRequestDTO.recordsToProcess)
     print("Query: " + query)
     
-    dfNew = duckDbService.runQuery(query)
+    dfNew = databaseService.runQuery(query)
     
     if (dfNew is not None):
         # For each row in the table
@@ -257,5 +257,5 @@ def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO , api_doma
                 
     # Create table with the dataframe dfNew
     print("Creating table " + apiEnrichmentRequestDTO.newTableName + "...")
-    duckDbService.createTableFromDataFrame("dfNew", apiEnrichmentRequestDTO.newTableName)
+    databaseService.createTableFromDataFrame("dfNew", apiEnrichmentRequestDTO.newTableName)
     return dfNew

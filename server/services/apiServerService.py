@@ -1,4 +1,4 @@
-from services import duckDbService
+from services import databaseService
 from model.PublishEndpointRequestDTO import PublishEndpointRequestDTO
 from services import queriesService
 import json
@@ -31,7 +31,7 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
                                status = '" + publishEndpointRequestDTO.status + "' \
                                 WHERE id_endpoint = " + str(publishEndpointRequestDTO.id_endpoint)
         print("updateQuery: " + updateQuery)
-        duckDbService.runQuery(updateQuery)
+        databaseService.runQuery(updateQuery)
     except Exception as e:
         print("Error updating endpoint:" + str(e))
         return False        
@@ -44,7 +44,7 @@ def getEndpointConfiguration(path):
     print("Getting endpoint " + path)
     
     # Search query into __queries table lower case
-    df = duckDbService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
 
     # Map df to PublishEndpointRequestDTO object
     endpoint = PublishEndpointRequestDTO.from_dataframe(df)
@@ -77,7 +77,7 @@ def getAndRunEndpoint(path, query_params, body):
         
         # Run query
         print("Running query: " + query)
-        df = duckDbService.runQuery(query)
+        df = databaseService.runQuery(query)
 
         if (df is not None):
             return df
@@ -85,7 +85,7 @@ def getAndRunEndpoint(path, query_params, body):
             return None
     
     # Search query into __queries table lower case
-    df = duckDbService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
 
     if (df is not None):
         result = df.to_dict(orient="records")
@@ -100,10 +100,10 @@ def listEndpoints():
 
     # Search query into __queries table lower case
     try:
-        df = duckDbService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
+        df = databaseService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
     except:
         createTable()
-        df = duckDbService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
+        df = databaseService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
 
     if (df is not None):
         result = df.dropna().to_dict(orient="records")
@@ -117,10 +117,10 @@ def createEndpoint():
     print("Creating empty endpoint")
     r = None
     try:
-        r = duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
+        r = databaseService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
     except:
         createTable()
-        r = duckDbService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
+        r = databaseService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
         return False  
 
     if (r is not None):
@@ -141,21 +141,21 @@ def deleteEndpoint(id_endpoint: int):
 
     # Search query into __queries table lower case
     try:
-        duckDbService.runQuery("DELETE FROM __endpoints WHERE id_endpoint = " + str(id_endpoint))
+        databaseService.runQuery("DELETE FROM __endpoints WHERE id_endpoint = " + str(id_endpoint))
     except:
         createTable()
-        duckDbService.runQuery("DELETE FROM __endpoints WHERE id_endpoint = " + str(id_endpoint))
+        databaseService.runQuery("DELETE FROM __endpoints WHERE id_endpoint = " + str(id_endpoint))
         return False        
 
     return True
 
 ####################################################
 def createTable():
-    tableList = duckDbService.getTableList( False)
+    tableList = databaseService.getTableList( False)
     # check if meta data table __endpoints exists
     if "__endpoints" not in tableList:
         print("Creating table __endpoints")
-        duckDbService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));CREATE SEQUENCE seq_id_endpoint START 1;")
+        databaseService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));CREATE SEQUENCE seq_id_endpoint START 1;")
 
 ####################################################
 # Return True if endpoint exists        
@@ -163,7 +163,7 @@ def checkIfEndPointExists(endpoint):
     print("Checking if endpoint exists " + str(endpoint))
     
     # Search query into __queries table lower case
-    df = duckDbService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + endpoint + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + endpoint + "'")
 
     if (df is not None and len(df) > 0):
         return True

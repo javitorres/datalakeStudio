@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services import duckDbService
+from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse, StreamingResponse
 import services.chatGPTService as chatGPTService
@@ -14,13 +14,13 @@ router = APIRouter(prefix="/gpt")
 
 @router.get("/askGPT")
 def askGPT(question: str):
-    tables = duckDbService.getTableList()
+    tables = databaseService.getTableList()
 
     if (tables is not None and len(tables) > 0):
         questionForChatGPT = " You have the following tables:"
         for table in tables:
             #if (table != "__lastQuery"):
-            questionForChatGPT += " " + duckDbService.getTableDescriptionForChatGpt(table)
+            questionForChatGPT += " " + databaseService.getTableDescriptionForChatGpt(table)
         questionForChatGPT += ". The query I need is:" + question
 
         chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, Config.get_instance().get_secrets.get("openai_api_key"))

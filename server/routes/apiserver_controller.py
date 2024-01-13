@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 import services.apiRetrieverService as apiRetrieverService
 from config import Config
-from services import duckDbService
+from services import databaseService
 from services import apiServerService
 from services import queriesService
 
@@ -23,7 +23,7 @@ def getServices(id_query: int):
     print("Query:" + str(limitedQuery))
 
     # Run query
-    df = duckDbService.runQuery(limitedQuery)
+    df = databaseService.runQuery(limitedQuery)
 
     if (df is not None):
         result = df.to_dict(orient="records")

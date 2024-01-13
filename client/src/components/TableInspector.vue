@@ -106,9 +106,12 @@ const apiUrl = `${API_HOST}:${API_PORT}`;
 
 export default {
   name: 'TableInspector',
+
+  // This variable cant be reactive to avoid interactions with Tabulator state
+  myTabulator: null,
   data() {
     return {
-      selectedFields: [],
+      selectedFields: null,
       showSampleData: true,
       showProfile: false,
       showCrossfilters: false,
@@ -154,15 +157,31 @@ export default {
     },
     ////////////////////////////////////////////////////
     toggleField(field) {
+      if (this.selectedFields == null) {
+        this.selectedFields = [];
+      }
       if (this.selectedFields.includes(field)) {
         this.selectedFields = this.selectedFields.filter(item => item !== field);
-        this.generateCharts();
       } else {
         this.selectedFields.push(field);
-        this.generateCharts();
       }
+      this.generateCharts();
+      this.updateTable();
+     
     },
     ////////////////////////////////////////////////////
+    updateTable() {
+      var columns = [];
+      for (var key in this.schema) {
+        if (this.selectedFields.includes(key)) {
+          columns.push({ title: key, field: key });
+        }
+      }
+    
+      this.myTabulator.setColumns(columns);
+      //this.$refs.table.setColumns(columns);
+    },
+    /////////////////////////////////////////////////
     setType(newType) {
       this.type = newType;
       this.getSampleData(this.tableName);
@@ -215,11 +234,14 @@ export default {
       }).then((response) => {
         if (response.status === 200) {
           this.schema = response.data;
-          // All fields selected by default. Fill selectedFields with fields from schema
-          for (var key in this.schema) {
-            this.selectedFields.push(key).field;
+          if (this.selectedFields  == null) {
+            this.selectedFields = [];
+            // All fields selected by default. Fill selectedFields with fields from schema
+            for (var key in this.schema) {
+              this.selectedFields.push(key).field;
+            }
           }
-          //console.log("Fields:" + this.selectedFields + " this.schema:" + this.schema);
+          
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -230,68 +252,53 @@ export default {
       });
     },
     ////////////////////////////////////////////////////
-    async getSampleData(table) {
+    async getSampleData(tableName) {
       this.showSampleData = true;
       this.showProfile = false;
       this.showCrossfilters = false;
-
+      
       await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
-          tableName: table,
+          tableName: tableName,
           type: this.type,
           records: this.records,
         },
       }).then((response) => {
         if (response.status === 200) {
           this.sampleData = response.data;
-          var columns = [];
-          for (var key in this.sampleData[0]) {
-            columns.push({ title: key, field: key });
-          }
-
-          /*
-
-          Rellenar columns con fields de selectedFields
-
-          columns: [ // Define aquí las columnas que deseas mostrar
-              {title: "Nombre", field: "nombre"},
-              {title: "Edad", field: "edad"},
-              // ... otras columnas que quieras incluir
-          ],
-          TODO: No funciona ocultar columnas porque aqui se acaba de cargar.  Ver como actualizar el objeto desde fuera de este metodo
-          */
-         columns = [];
-          for (var key in this.schema) {
-            // if key in selectedFields
-            if (this.selectedFields.includes(key)) {
-              columns.push({ title: key, field: key });
-            }
-          }
-          console.log("Columns:" + columns);
-
-          var table = new Tabulator(this.$refs.table, {
+          
+          this.myTabulator = new Tabulator(this.$refs.table, {
             data: this.sampleData,
             importFormat: "csv",
             autoColumns: true,
             layout: "fitColumns",
-            columns: columns,
-            // Skip all columns except selectedFields
-            // TODO
+            //layout: "fitDataStretch",
             persistence: true, // TODO: Review this, not working
-            rowClick: function (e, row) {
+            /*rowClick: function (e, row) {
               console.log("ROW1" + JSON.stringify(row));
-            },
+            },*/
           });
-          table.on("rowClick", function (row) {
+          
+          /*this.myTabulator.on("rowClick", function (row) {
             // TODO get tow data and emit row info
             console.log("ROW2" + JSON.stringify(row));
             this.rowSelected = row;
           });
+          */
+
+          // Update selected columns state
+          this.myTabulator.on("tableBuilt", (data) => {
+            console.log("tableBuilt");
+            // TODO It doens't work
+            this.updateTable();
+          });
+
+          
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
       }).catch((error) => {
-        toast.error(`Error: HTTP ${error.message}`);
+        toast.error(`Error:: HTTP ${error.message}`);
       }).finally(() => {
         this.loading = false;
       });
@@ -301,8 +308,8 @@ export default {
       this.showSampleData = false;
       this.showProfile = true;
       this.showCrossfilters = false;
-
-      const fetchData = () => axios.get(`${apiUrl}/profiler/getTableProfile`, {
+      
+      const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
         params: {
           tableName: table,
         },
@@ -320,11 +327,8 @@ export default {
         }
       ).then((response) => {
         if (response.status === 200) {
-          this.tableProfile = response.data.profile;
-          var columns = [];
-          for (var key in this.tableProfile[0]) {
-            columns.push({ title: key, field: key });
-          }
+          this.tableProfile = response.data;
+          
           new Tabulator(this.$refs.tableProfile, {
             data: this.tableProfile,
             reactiveData: true,

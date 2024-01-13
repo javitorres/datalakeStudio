@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services import duckDbService
+from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.s3Service as s3Service

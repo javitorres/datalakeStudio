@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from fastapi import Request
 
 from config import Config
-from services import duckDbService
+from services import databaseService
 from services import apiServerService
 from services import queriesService
 

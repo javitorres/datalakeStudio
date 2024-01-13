@@ -1,11 +1,14 @@
 from fastapi import APIRouter
-from services import duckDbService
+from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.profilerService as profilerService
 
 router = APIRouter(prefix="/profiler")
 
+'''
+
+DISABLED FOR NOW. I WANT MORE EFFICIENT WAY TO GET PROFILE SO I'LL USE DUCK DB QUERIES INSTEAD OF PANDAS
 
 @router.get("/getTableProfile")
 def getProfile(tableName: str):
@@ -13,7 +16,7 @@ def getProfile(tableName: str):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Getting profile for table " + tableName)
-    df = duckDbService.runQuery("SELECT * FROM " + tableName)
+    df = databaseService.runQuery("SELECT * FROM " + tableName)
     if (df is not None):
         profile = profilerService.getProfile(df)
         response = {"status": "ok", "profile": profile}
@@ -21,3 +24,4 @@ def getProfile(tableName: str):
     else:
         return {"status": "error"}
 
+'''

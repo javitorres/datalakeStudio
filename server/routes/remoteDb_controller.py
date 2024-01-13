@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services import duckDbService
+from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse
 import services.remoteDbService as remoteDbService
@@ -82,7 +82,7 @@ def createTableFromRemoteQuery(query: str, tableName: str):
     print("Creating table " + tableName + " from query " + query)
     dfRemoteDb = remoteDbService.runRemoteQuery(connection, query)
     if (dfRemoteDb is not None):
-        duckDbService.createTableFromDataFrame("dfRemoteDb", tableName)
+        databaseService.createTableFromDataFrame("dfRemoteDb", tableName)
         return {"status": "ok"}
     else:
         return {"status": "error"}

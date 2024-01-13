@@ -1,5 +1,5 @@
 import openai
-from services.duckDbService import getTableDescriptionForChatGpt
+from services.databaseService import getTableDescriptionForChatGpt
 from openai import OpenAI
 import os
 

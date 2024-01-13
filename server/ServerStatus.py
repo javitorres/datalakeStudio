@@ -1,5 +1,5 @@
 from config import Config
-from services import duckDbService
+from services import databaseService
 
 class ServerStatus:
     def __init__(self):
@@ -14,7 +14,7 @@ class ServerStatus:
                 print("Data folder created")
 
         print("Connecting to database..." + Config.get_instance().get_config.get("database"))
-        duckDbService.init(Config.get_instance().get_secrets, Config.get_instance().get_config)
+        databaseService.init(Config.get_instance().get_secrets, Config.get_instance().get_config)
 
         self.serverStatus = {}
         self.serverStatus["databaseReady"] = True

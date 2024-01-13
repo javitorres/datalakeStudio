@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from services import duckDbService
+from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
@@ -16,13 +16,13 @@ def loadFile(fileName: str, tableName: str):
     print("Loading file '" + fileName + "' into table '" + tableName + "'")
 
     
-    duckDbService.loadTable(tableName, fileName)
-    df = duckDbService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    databaseService.loadTable(tableName, fileName)
+    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
 ####################################################
 @router.get("/getTables")
 def getTables():
-    tableList = duckDbService.getTableList()
+    tableList = databaseService.getTableList()
     # Remove all metatables starting from "__" from the list
     tableList = [x for x in tableList if not x.startswith("__")]
     
@@ -40,7 +40,7 @@ def getTableSchema(tableName: str):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Getting schema for table " + tableName)
-    r = duckDbService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
+    r = databaseService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
     if (r is not None):
         schema_dict = r.dtypes.apply(lambda x: str(x)).to_dict()
         return JSONResponse(content=schema_dict, status_code=200)
@@ -57,7 +57,7 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
         LIMIT = ""
     else:
         LIMIT = " LIMIT " + str(records)
-    df = duckDbService.runQuery("SELECT * FROM " + tableName + LIMIT)
+    df = databaseService.runQuery("SELECT * FROM " + tableName + LIMIT)
     if (df is not None):
         #return JSONResponse(content=r.to_csv(index=False), status_code=200)
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
@@ -69,7 +69,7 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
 def runQuery(queryRequest: QueryRequest):
     print("Running query " + str(queryRequest))
 
-    duckDbService.runQuery("DROP TABLE IF EXISTS __lastQuery")
+    databaseService.runQuery("DROP TABLE IF EXISTS __lastQuery")
 
     # Replace ' with " to avoid problems
     #query = queryRequest.query.replace("'", '"')
@@ -77,7 +77,7 @@ def runQuery(queryRequest: QueryRequest):
     
 
     try:
-        duckDbService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+        databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
     except Exception as e:
         print("Error runing query::: " + str(e))
         response = {"status": "error", "message": "Error running query: " + str(e)}
@@ -88,7 +88,7 @@ def runQuery(queryRequest: QueryRequest):
     else:
         LIMIT = " LIMIT " + str(queryRequest.rows)
 
-    df = duckDbService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
+    df = databaseService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
     #return {"status": "ok", "rows": df.to_json()}
 
     if df is not None:
@@ -103,7 +103,7 @@ def getRowsCount(tableName: str):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Getting rows count for table " + tableName)
-    df = duckDbService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     if (df is not None):
         print("DF:" + str(df))
         # extract total
@@ -121,12 +121,12 @@ def createTableFromQuery(query: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
     print("Creating table " + tableName + " from query " + query)
     try:
-        duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+        databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     except Exception as e:
         print("Error dropping table: " + str(e))
     
     try:
-        duckDbService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+        databaseService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
     except Exception as e:
         print("Error creating table: " + str(e))
         response = {"status": "error", "message": "Error creating table: " + str(e)}
@@ -140,7 +140,7 @@ def deleteTable(tableName: str):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Deleting table " + tableName)
-    duckDbService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+    databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     return {"status": "ok"}
 ####################################################
 @router.get("/exportData")
@@ -152,7 +152,7 @@ def exportData(tableName: str, format: str = "csv", fileName: str = None):
         response = {"status": "error", "message": "tableName and fileName are required"}
         return JSONResponse(content=response, status_code=400)
     print("Exporting data from table " + tableName + " to file " + fileName + " in format " + format)
-    r = duckDbService.exportData(tableName, format, fileName)
+    r = databaseService.exportData(tableName, format, fileName)
 
     if (r):
         response = {"status": "ok", "message": "Exported"}
@@ -161,4 +161,20 @@ def exportData(tableName: str, format: str = "csv", fileName: str = None):
         response = {"status": "error", "message": "tableName and fileName are required"}
         return JSONResponse(content=response, status_code=500)
     
-    
+####################################################
+@router.get("/getTableProfile")
+def getProfile(tableName: str):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Getting profile for table " + tableName)
+    df = databaseService.getProfile(tableName)
+    if (df is not None):
+        
+        return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
+        return response
+    else:
+        return {"status": "error"}
+
+
+
