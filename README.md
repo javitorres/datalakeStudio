@@ -23,9 +23,9 @@ Datalake Studio is an enhanced Data Exploration and Management tool
 
 <b>Versatile Data Loading Options:</b> Users can effortlessly upload data from a several sources: directly from local computer, via a URL, or from an Amazon S3 bucket. Additionally, it supports direct data downloads from PostgreSQL databases, enhancing its utility for database administrators and data analysts.
 
-<b>Several data formats and origins:</b> Embracing a wide range of data formats, the platform is compatible with CSV, TSV, and Shapefile formats. This flexibility ensures that users can work with their preferred data types without the need for tedious conversions.
+<b>Several data formats:</b> Wide range of data formats, Datalake Studio is compatible with CSV, TSV, Parquet and Shapefile formats. Load data without tedious conversions.
 
-<b>ChatGPT Integration with SQL Assistants:</b> Users with ChatGPT credentials can use the power of SQL assistants. These assistants provide contextual understanding about tables and their fields, making data manipulation and query formulation more intuitive and efficient.
+<b>ChatGPT Integration with SQL Assistants:</b> Users with ChatGPT credentials can use the power of SQL assistants. These assistants provide contextual understanding about your tables and fields, making data manipulation and query formulation more intuitive and efficient.
 
 <b>Enhancement through Remote APIs:</b> Users have the ability to enrich their data by integrating information from remote APIs.
 
