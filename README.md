@@ -27,9 +27,9 @@ Datalake Studio is an enhanced Data Exploration and Management tool
 
 <b>ChatGPT Integration with SQL Assistants:</b> Users with ChatGPT credentials can use the power of SQL assistants. These assistants provide contextual understanding about tables and their fields, making data manipulation and query formulation more intuitive and efficient.
 
-<b>Enhancement through Remote APIs:</b> Users have the ability to enrich their data by integrating information from remote APIs. This feature opens up endless possibilities for data augmentation and cross-referencing, providing a more holistic view of the data landscape.
+<b>Enhancement through Remote APIs:</b> Users have the ability to enrich their data by integrating information from remote APIs.
 
-<b>API Exposure for Data Sharing:</b> After completing data transformation processes, users can conveniently expose their data through APIs. This feature allows for easy sharing and collaboration, making Datalake Studio not just a tool for data exploration, but also a platform for data distribution.
+<b>API Exposure for Data Sharing:</b> After completing data transformation processes, users can expose their data through APIs. This feature allows for easy sharing and collaboration, making Datalake Studio not just a tool for data exploration, but also a platform for data distribution.
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
 
@@ -94,13 +94,15 @@ pgpass_file: "YOUR_PG_PASS_FILE"
 
 ```
 
-Also, docker-compose will get the credentials in .aws for AWS access
+Also, docker-compose will get the credentials in .aws for AWS access.
+
 If you want to use remote database, copy your pgpass file to the server folder. pgpass is a file with the following format:
 
 
 ```
 hostname:port:database:username:password
 ```
+
 # Usage
 
 ## Load data
