@@ -42,7 +42,7 @@ docker-compose up --build
 
 Open http://localhost:8080/ in your browser.
 
-# Project build and without Docker
+# Project build without Docker
 
 ## Server
 
