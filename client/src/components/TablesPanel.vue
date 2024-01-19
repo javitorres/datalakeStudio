@@ -6,7 +6,7 @@
         <div v-if="tables && tables.length > 0">
           <ul class="list-unstyled d-flex flex-wrap">
             <li v-for="table in tables" :key="table.id">
-              <button class="btn btn-primary m-1 opcion-style" :class="{ active: selectedTable === table }" @click="selectedTable=table">
+              <button class="btn btn-primary m-1 opcion-style" :class="{ active: selectedTable === table }" @click="selectTable(table)">
                 <i class="bi bi-table"></i>
                 {{ table }}
               </button>
@@ -122,6 +122,9 @@ export default {
   emits: ['deleteTable'],
 
   methods: {
+    selectTable(table) {
+      this.selectedTable = table;
+    },
     imageSrc(type) {
       if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
       else if (type === 'float32') return '<i class="bi bi-123"></i>';

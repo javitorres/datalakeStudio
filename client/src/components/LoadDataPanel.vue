@@ -1,56 +1,135 @@
 <template>
   <div class="row">
-    <div class="col-md-6">
+
+    <ul class="nav nav-tabs">
+      <!-- Upload file  -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'uploadFile' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'uploadFile'">Upload file</a>
+      </li>
+
+      <!-- Load from S3  -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'loadS3' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'loadS3'">Load from S3</a>
+      </li>
+
+      <!-- Load from URL -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'loadSql' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'loadUrl'">Load from URL</a>
+      </li>
+    </ul>
+
+    <!-- Upload file ########################################################### -->
+    <div v-if="activeTab == 'uploadFile'">
       <div class="col-md-6">
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
-        <input id="bucket" type="text" class="form-control"
-          placeholder="s3 bucket" aria-label="File"
-          aria-describedby="basic-addon1" v-model="bucket">
+        <div class="mb-3">
+          <br />
+          <input class="form-control" type="file" id="formFile" ref="fileInputUpload">
+        </div>
+
+        <!-- Table name input -->
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="basic-addon1">Table</span>
+          <input id="tableNameInputUpload" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
+            aria-describedby="basic-addon1" v-model="tableNameInputUpload">
+        </div>
+
+        <div class="col-md-2" v-if="tableNameInputUpload">
+          <!-- Load file button -->
+          <button class="btn btn-primary m-1 opcion-style" @click="uploadFile(tableNameInputUpload, fileInputUpload)">
+            Load file
+          </button>
+        </div> <!-- col-md-2 -->
       </div>
     </div>
 
-    <div class="col-md-6">
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon1">Data file to load</span>
-        <input id="fileInput" type="text" class="form-control"
-          placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
-          aria-describedby="basic-addon1" v-model="fileInput" @input="findFileInS3">
-      </div>
-    </div> <!-- col-md-6 -->
+    <!-- Load from S3 ########################################################### -->
+    <div v-if="activeTab == 'loadS3'">
+      
+        <div class="col-md-6">
+          <br />
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
+            <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File"
+              aria-describedby="basic-addon1" v-model="bucket">
+          </div>
+        </div>
 
-    <div class="col-md-4" v-if="fileInput">
-      <!-- Table name input -->
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon1">Table</span>
-        <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
-          aria-describedby="basic-addon1" v-model="tableNameInput">
-      </div>
-    </div> <!-- col-md-4 -->
+        <div class="col-md-6">
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Data file to load</span>
+            <input id="fileInput" type="text" class="form-control"
+              placeholder="Search S3 file" aria-label="File"
+              aria-describedby="basic-addon1" v-model="fileInputS3" @input="findFileInS3">
+          </div>
+        </div> <!-- col-md-6 -->
 
-    <div class="col-md-2" v-if="fileInput && tableNameInput">
-      <!-- Load file button -->
-      <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInput, fileInput)">
-        Load file
-      </button>
-    </div> <!-- col-md-2 -->
+        <div class="col-md-4" v-if="fileInputS3">
+          <!-- Table name input -->
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Table</span>
+            <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
+              aria-describedby="basic-addon1" v-model="tableNameInputS3">
+          </div>
+        </div> <!-- col-md-4 -->
 
-    <div class="row">
-      <div class="col-md-6">
+        <div class="col-md-2" v-if="fileInputS3 && tableNameInputS3">
+          <!-- Load file button -->
+          <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInputS3, fileInputS3)">
+            Load file
+          </button>
+        </div> <!-- col-md-2 -->
+
         <div class="row">
-          <div v-if="S3Files && S3Files.length > 0">
-            <ul class="list-unstyled d-flex flex-wrap">
-              <li v-for="S3File in S3Files" :key="S3File.id">
-                <button class="btn btn-primary m-1 opcion-style" @click="clickS3File(S3File, true)">
-                  {{ S3File }}
-                </button>
-              </li>
-            </ul>
-          </div> <!-- v-if -->
-        </div> <!-- row -->
-      </div> <!-- col-md-6 -->
-    </div> <!-- if expanded -->
-    </div> <!-- col-md-6 -->
+          <div class="col-md-6">
+            <div class="row">
+              <div v-if="S3Files && S3Files.length > 0">
+                <ul class="list-unstyled d-flex flex-wrap">
+                  <li v-for="S3File in S3Files" :key="S3File.id">
+                    <button class="btn btn-primary m-1 opcion-style" @click="clickS3File(S3File, true)">
+                      {{ S3File }}
+                    </button>
+                  </li>
+                </ul>
+              </div> <!-- v-if -->
+            </div> <!-- row -->
+          </div> <!-- col-md-6 -->
+        </div> <!-- if expanded -->
+      
+    </div>
+
+    <!-- Load from URL ###########################################################  -->
+    <div v-if="activeTab == 'loadUrl'">
+      <div class="col-md-6">
+      <br />
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">URL to load</span>
+        <input id="fileInputUrl" type="text" class="form-control"
+          placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
+          aria-describedby="basic-addon1" v-model="fileInputUrl">
+
+      </div>
+
+      <div class="col-md-4" v-if="fileInputUrl">
+        <!-- Table name input -->
+        <div class="input-group mb-3">
+          <span class="input-group-text" id="basic-addon1">Table</span>
+          <input id="tableNameInputUrl" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
+            aria-describedby="basic-addon1" v-model="tableNameInputUrl">
+        </div>
+      </div> <!-- col-md-4 -->
+
+      <div class="col-md-2" v-if="fileInputUrl && tableNameInputUrl">
+        <!-- Load file button -->
+        <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInputUrl, fileInputUrl)">
+          Load file
+        </button>
+      </div> <!-- col-md-2 -->
+    </div>
+  </div>
+
   </div> <!-- row -->
 </template>
 
@@ -59,6 +138,10 @@ import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
+import { ref } from 'vue'
+const fileInput = ref < HTMLInputElement | null > (null)
+const files = ref()
+
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
@@ -66,10 +149,17 @@ export default {
   name: 'LoadDataPanel',
   data() {
     return {
+      activeTab: 'uploadFile',
+
       bucket: '',
-      fileInput: '',
+      fileInputS3: '',
+      fileInputUrl: '',
+
+      tableNameInputUpload: '',
+      tableNameInputS3: '',
+      tableNameInputUrl: '',
+
       S3Files: [],
-      tableNameInput: '',
 
     };
   },
@@ -77,6 +167,54 @@ export default {
   emits: ['tableCreated'],
 
   methods: {
+    ////////////////////////////////////////////////////////////////
+    uploadFile(tableNameInputUpload, fileInputUpload) {
+      const file = this.$refs.fileInputUpload.files[0];
+      console.log(file)
+      // post file
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('tableName', this.tableNameInputUpload)
+      
+      const fetchData = () => axios.post(`${apiUrl}/database/uploadFile`, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+
+      toast.promise(
+        fetchData(),
+        {
+          pending: 'Searching in S3, please wait...',
+          success: 'S3 search finished',
+          error: 'Error searching in S3'
+        },
+        { position: toast.POSITION.BOTTOM_RIGHT }
+      ).then((response) => {
+        this.$emit('tableCreated');
+      }).catch((error) => {
+        if (error.response.data.message) {
+          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        } else {
+          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        }
+      });
+      
+      
+      
+    },
+    ////////////////////////////////////////////////////////////////
+    handleFileChange() {
+      files.value = fileInput.value?.files
+    },
+    ////////////////////////////////////////////////////////////////
+    doSomething() {
+      const file = files.value[0]
+      console.log(file)
+      // and do other things...
+    },
+    ////////////////////////////////////////////////////////////////
+
     getProperty(path, defaultValue = '') {
       try {
         return path.split('.').reduce((o, i) => o[i], this);
@@ -87,26 +225,18 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async findFileInS3() {
-      // If fileName length is less than 3 or fileName doesn start with 's3' don't search
-      if (this.fileInput.length < 5 || this.fileInput.substring(0, 2) !== 's3') {
+      // If fileName length is less than 3
+      if (this.fileInputS3.length < 3) {
         this.S3Files = [];
-        //console.log('No search:"' + this.fileInput.substring(0, 3) + '"');
         return;
       }
 
       this.S3Files = [];
-      var response = '';
-
-      // Remove s3 from beginning of the string
-      var fileInputCleaned = this.fileInput;
-      if (this.fileInput.substring(0, 2) === 's3') {
-        fileInputCleaned = this.fileInput.substring(3, this.fileInput.length);
-      }
-
+      
       const fetchData = () => axios.get(`${apiUrl}/s3/s3Search`, {
         params: {
           bucket: this.bucket,
-          fileName: fileInputCleaned,
+          fileName: this.fileInputS3,
         },
       });
 
@@ -127,11 +257,11 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
-    
+
     },
     ////////////////////////////////////////////////////////////////
     clickS3File(S3File, isFile) {
-      this.fileInput = S3File;
+      this.fileInputS3 = S3File;
       this.S3Files = [];
     },
     ////////////////////////////////////////////////////////////////

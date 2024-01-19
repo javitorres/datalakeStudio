@@ -6,6 +6,7 @@ from config import Config
 from services import databaseService
 from services import apiServerService
 from services import queriesService
+import json
 
 router = APIRouter(prefix="/api")
 
@@ -14,30 +15,37 @@ async def catch_all(request: Request, path: str):
     print("Path: " + path)
     print("Method: " + request.method)
 
-    # GET Parameters
-    query_params = request.query_params
-    print("Query parameters: ", dict(query_params))
-
-    # POST and PUT body
-    if request.method in ["POST", "PUT", "PATCH"]:
-        body = await request.json()
-        print("Body: ", body)
+    # if path ends with /
+    if (path.endswith("/")):
+        openapi_dict = apiServerService.getApiDefinition(path)
+        # openapi_dict to json
+        # openapi_json = json.dumps(openapi_dict)
+        return JSONResponse(content=openapi_dict, status_code=200)
     else:
-        body = None
-    
-    try:
-        df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
-    except Exception as e:
-        print("Error running endpoint:" + str(e))
-        return JSONResponse(content={"error": str(e)}, status_code=400)
+        # GET Parameters
+        query_params = request.query_params
+        print("Query parameters: ", dict(query_params))
+
+        # POST and PUT body
+        if request.method in ["POST", "PUT", "PATCH"]:
+            body = await request.json()
+            print("Body: ", body)
+        else:
+            body = None
+        
+        try:
+            df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
+        except Exception as e:
+            print("Error running endpoint:" + str(e))
+            return JSONResponse(content={"error": str(e)}, status_code=400)
 
 
-    result = df_result.to_dict(orient="records")
+        result = df_result.to_dict(orient="records")
 
-    if (result is not None):
-        print("Result:" + str(result))
-        return JSONResponse(content=result, status_code=200)
-    else:
-        return JSONResponse(content=[], status_code=200)
+        if (result is not None):
+            print("Result:" + str(result))
+            return JSONResponse(content=result, status_code=200)
+        else:
+            return JSONResponse(content=[], status_code=200)
     
 

@@ -26,7 +26,8 @@ class PublishEndpointRequestDTO(BaseModel):
 
     @classmethod
     def from_dataframe(cls, df: pd.DataFrame):
-        print("DF:", df )
+        if df is None or df.empty:
+            return None
         id_query = df['id_query'].iloc[0]
         id_endpoint = df['id_endpoint'].iloc[0]
         endpoint = df['endpoint'].iloc[0]

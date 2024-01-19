@@ -30,7 +30,7 @@
             <th>id_query</th>
             <th>status</th>
             <th>query</th>
-            <th>queryStringTest</th>
+            <th>Example</th>
 
             <th>Actions</th>
           </tr>
@@ -47,7 +47,9 @@
             <td>{{ endpoint.id_query }}</td>
             <td>{{ endpoint.status }}</td>
             <td>{{ endpoint.query }}</td>
-            <td>{{ endpoint.queryStringTest }}</td>
+            <td>
+              <a :href="`${apiUrl}/api/${endpoint.endpoint}${endpoint.queryStringTest}`" target="_blank">{{ apiUrl }}/api/{{ endpoint.endpoint }}{{ endpoint.queryStringTest }}</a>
+            </td>
             <td>
               <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpoint.id_endpoint)">Delete</button>
             </td>

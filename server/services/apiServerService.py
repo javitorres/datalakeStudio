@@ -4,6 +4,7 @@ from services import queriesService
 import json
 from fastapi.responses import JSONResponse
 import base64
+import requests
 
 def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
@@ -57,9 +58,10 @@ def getEndpointConfiguration(path):
 
 ####################################################
 def getAndRunEndpoint(path, query_params, body):
-    print("Getting and running endpoint " + path)
+    print("Getting and running endpoint " + path + " with query_params " + str(query_params) + " and body " + str(body))
 
     endpoint = getEndpointConfiguration(path)
+    
 
     if (endpoint is not None):
         print("endpoint: ", endpoint)
@@ -72,7 +74,7 @@ def getAndRunEndpoint(path, query_params, body):
 
         # Check if any parameter remains in query, if so raise exception
         if ("{" in query):
-            raise Exception("Query contains parameters that are not present in query_params: " + query)
+            raise Exception("Some needed parameters were not found: " + query)
         
         
         # Run query
@@ -84,15 +86,8 @@ def getAndRunEndpoint(path, query_params, body):
         else:
             return None
     
-    # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
-
-    if (df is not None):
-        result = df.to_dict(orient="records")
-        print("Result:" + str(result))
-        return result[0]
     else:
-        None
+        raise Exception("Endpoint not found: " + path)
 
 ####################################################
 def listEndpoints():
@@ -169,3 +164,111 @@ def checkIfEndPointExists(endpoint):
         return True
     else:
         return False
+
+####################################################
+def getApiDefinition(path):
+    print("Getting API definition for " + path)
+    '''
+    
+    endpoints = [
+        {
+            "path": "/endpoint1",
+            "query": "param1=value1&param2=value2",
+            "response": {"key1": "value1", "key2": "value2"}
+        },
+        {
+            "path": "/endpoint2",
+            "query": "param3=value3",
+            "response": {"key3": "value3"}
+        }
+    ]
+    '''
+    endpoints = listEndpoints()
+
+    '''
+    [
+        {
+            "id_endpoint": 37,
+            "id_query": 11,
+            "endpoint": "buscarMarca",
+            "parameters": "[{\"name\": \"marca\", \"exampleValue\": \"FORD\"}]",
+            "description": "Busca una marca",
+            "query": "SELECT marca, marca_id \nFROM catalogoCoches\nWHERE marca LIKE '%{marca}%'\nGROUP BY marca, marca_id\nORDER BY marca_id asc",
+            "queryStringTest": "?marca=FORD",
+            "status": "DEV"
+        },
+        {
+            "id_endpoint": 33,
+            "id_query": 21,
+            "endpoint": "irisBySepalLength",
+            "parameters": "[{\"name\": \"max_length\", \"exampleValue\": \"5\"}, {\"name\": \"min_length\", \"exampleValue\": \"6\"}]",
+            "description": "Search by sepal length",
+            "query": "SELECT * FROM iris WHERE sepal_length>={max_length} and sepal_length<={min_length}  ",
+            "queryStringTest": "?max_length=5&min_length=6",
+            "status": "DEV"
+        }
+    ]
+    
+    '''
+    endpointsDefinition = []
+    #print("endpoints: ", endpoints)
+    for endpoint in endpoints:
+        endpointDict = {}
+        endpointDict["path"] = endpoint["endpoint"]
+        query = endpoint["queryStringTest"]
+        # Remove first ? from query string
+        endpointDict["query"] = endpoint["queryStringTest"][1:]
+        response = {}
+        res = getAndRunEndpoint(endpoint["endpoint"], query, None) 
+        #urlTest = "http://localhost:8000/api/" + endpoint["endpoint"]  + endpoint["queryStringTest"]
+        #print("urlTest: ", urlTest)
+        #response = requests.get(urlTest)
+        print("response: ", res)
+
+        endpointDict["response"] = res.to_dict(orient="records")
+        endpointsDefinition.append(endpointDict)
+        
+
+
+
+    openapi_dict = {
+        "openapi": "3.0.0",
+        "info": {
+            "title": "Mi API",
+            "version": "1.0.0"
+        },
+        "paths": {}
+    }
+
+    for endpoint in endpointsDefinition:
+        path = endpoint["path"]
+        query_params = endpoint["query"].split('&')
+        response = endpoint["response"]
+
+        parameters = []
+        for param in query_params:
+            name, _ = param.split('=')
+            parameters.append({
+                "name": name,
+                "in": "query",
+                "required": True,
+                "schema": {"type": "string"}
+            })
+
+        openapi_dict["paths"][path] = {
+            "get": {
+                "parameters": parameters,
+                "responses": {
+                    "200": {
+                        "description": "Éxito",
+                        "content": {
+                            "application/json": {
+                                "example": response
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+    return openapi_dict

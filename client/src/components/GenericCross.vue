@@ -99,7 +99,7 @@ export default {
 
       //if (index % 2 === 0) {
         var row = document.createElement('div');
-        row.className = 'col-sm-4';
+        row.className = '';
         //row.id = 'row-' + Math.floor(index / 2);
         row.id = 'row-' + index;
         

@@ -143,6 +143,8 @@ export default {
 
   watch: {
     tableName: function (newVal, oldVal) {
+      // To avoid load a big table if previous table was analyzed withh all records enabled
+      this.setRecords(50);
       this.load();
     }
   },

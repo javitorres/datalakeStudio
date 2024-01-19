@@ -1,4 +1,5 @@
-from fastapi import APIRouter
+import shutil
+from fastapi import APIRouter, File, Form, UploadFile
 from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
@@ -41,6 +42,8 @@ def getTableSchema(tableName: str):
         return JSONResponse(content=response, status_code=400)
     print("Getting schema for table " + tableName)
     r = databaseService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
+    # If any field name ends with () remove it
+    r.columns = r.columns.str.replace(r"\(\)", "")
     if (r is not None):
         schema_dict = r.dtypes.apply(lambda x: str(x)).to_dict()
         return JSONResponse(content=schema_dict, status_code=200)
@@ -58,6 +61,9 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
     else:
         LIMIT = " LIMIT " + str(records)
     df = databaseService.runQuery("SELECT * FROM " + tableName + LIMIT)
+
+    # If any field name ends with () remove it
+    df.columns = df.columns.str.replace(r"\(\)", "")
     if (df is not None):
         #return JSONResponse(content=r.to_csv(index=False), status_code=200)
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
@@ -175,6 +181,23 @@ def getProfile(tableName: str):
         return response
     else:
         return {"status": "error"}
+
+####################################################
+@router.post("/uploadFile")
+def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
+    if (file is None):
+        response = {"status": "error", "message": "file is required"}
+        return JSONResponse(content=response, status_code=400)
+    print("Uploading file to table " + tableName)
+    # Save file to disk
+    with open("data/" + file.filename, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    # Load file into duckdb
+    if (tableName is None):
+        tableName = file.filename.split(".")[0]
+    databaseService.loadTable(tableName, "data/" + file.filename)
+    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    return {"status": "ok", "rows": df.to_json()}
 
 
 
