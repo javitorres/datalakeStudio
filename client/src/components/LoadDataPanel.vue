@@ -185,9 +185,9 @@ export default {
       toast.promise(
         fetchData(),
         {
-          pending: 'Searching in S3, please wait...',
-          success: 'S3 search finished',
-          error: 'Error searching in S3'
+          pending: 'Uploading file, please wait...',
+          success: 'Upload finished',
+          error: 'Error uploading file'
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
