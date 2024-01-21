@@ -38,15 +38,16 @@
         Show table profile
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showCrossfilters }"
-        @click="crossFilters(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showPlot }"
+        @click="plotData(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
     </div>
 
+
+    <!-- Sample data -->
     <div class="row" v-if="sampleData && showSampleData">
-      <!-- Sample data -->
       <div class="col-md-3" v-if="showOptions">
         <div class="btn-group">
           <button class="btn btn-secondary"><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
@@ -86,9 +87,28 @@
     </div>
 
     <!-- Cross filters -->
-    <GenericCross v-if="sampleData && chartConfig && showCrossfilters" :key="genericCrossKey" :dataStr="sampleData"
-      :chartConfig="chartConfig">
-    </GenericCross>
+    <div v-if="sampleData && chartConfig && showPlot">
+      <!-- Map -->
+      <div v-if="showMap">
+        <br />
+        <p>Found coordinates in (<b>{{ latField }}</b> , <b>{{ lonField }}</b>) fields</p>
+        <!-- Hide map button -->
+        <button class="btn btn-primary m-1 opcion-style" @click="hideMap = !hideMap">
+          <i class="bi bi-graph-up-arrow"></i>
+          {{ (hideMap) ? "Show Map" : "Hide map" }}
+        </button>
+
+        <Map v-if="!hideMap" :data="sampleData" :latField="latField" :lonField="lonField"></Map>
+        <br />
+      </div>
+
+      <!-- Charts -->
+      <GenericCross :key="genericCrossKey" :dataStr="sampleData" :chartConfig="chartConfig">
+      </GenericCross>
+    </div>
+
+
+
 
   </div>
 </template>
@@ -100,6 +120,7 @@ import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
+import Map from './Map.vue';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
@@ -114,7 +135,12 @@ export default {
       selectedFields: null,
       showSampleData: true,
       showProfile: false,
-      showCrossfilters: false,
+      showPlot: false,
+      showMap: false,
+      hideMap: false,
+      latField: null,
+      lonField: null,
+
       sampleData: Object,
       schema: Object,
       tableProfile: Object,
@@ -129,7 +155,7 @@ export default {
   },
 
   components: {
-    GenericCross
+    GenericCross, Map
   },
   props: {
     tableName: String,
@@ -170,7 +196,7 @@ export default {
       }
       this.generateCharts();
       this.updateTable();
-     
+
     },
     ////////////////////////////////////////////////////
     updateTable() {
@@ -180,7 +206,7 @@ export default {
           columns.push({ title: key, field: key });
         }
       }
-    
+
       this.myTabulator.setColumns(columns);
       //this.$refs.table.setColumns(columns);
     },
@@ -237,14 +263,14 @@ export default {
       }).then((response) => {
         if (response.status === 200) {
           this.schema = response.data;
-          if (this.selectedFields  == null) {
+          if (this.selectedFields == null) {
             this.selectedFields = [];
             // All fields selected by default. Fill selectedFields with fields from schema
             for (var key in this.schema) {
               this.selectedFields.push(key).field;
             }
           }
-          
+
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -258,8 +284,9 @@ export default {
     async getSampleData(tableName) {
       this.showSampleData = true;
       this.showProfile = false;
-      this.showCrossfilters = false;
+      this.showPlot = false;
       
+
       await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
           tableName: tableName,
@@ -269,7 +296,7 @@ export default {
       }).then((response) => {
         if (response.status === 200) {
           this.sampleData = response.data;
-          
+
           this.myTabulator = new Tabulator(this.$refs.table, {
             data: this.sampleData,
             importFormat: "csv",
@@ -277,9 +304,9 @@ export default {
             layout: "fitColumns",
             //layout: "fitDataStretch",
             persistence: true, // TODO: Review this, not working
-            
+
           });
-                 
+
         } else {
           toast.error(`Error: HTTP ${response.message}`);
         }
@@ -291,17 +318,18 @@ export default {
 
       // Update selected columns state
       this.myTabulator.on("tableBuilt", (data) => {
-            console.log("tableBuilt.selectedFields: " + this.selectedFields);
-            // TODO It doens't work
-            this.updateTable();
-          });
+        //console.log("tableBuilt.selectedFields: " + this.selectedFields);
+        // TODO It doens't work
+        this.updateTable();
+      });
     },
     ////////////////////////////////////////////////////
     async getTableProfile(table) {
       this.showSampleData = false;
       this.showProfile = true;
-      this.showCrossfilters = false;
+      this.showPlot = false;
       
+
       const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
         params: {
           tableName: table,
@@ -321,7 +349,7 @@ export default {
       ).then((response) => {
         if (response.status === 200) {
           this.tableProfile = response.data;
-          
+
           new Tabulator(this.$refs.tableProfile, {
             data: this.tableProfile,
             reactiveData: true,
@@ -335,10 +363,30 @@ export default {
       });
     },
     ////////////////////////////////////////////////////
-    async crossFilters(table) {
+    async plotData(table) {
       this.showSampleData = false;
       this.showProfile = false;
-      this.showCrossfilters = true;
+      this.showPlot = true;
+
+      var latFound = false;
+      var lonFound = false;
+      // if this.schema contains lat and lon fields, show map
+      for (var key in this.schema) {
+        if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
+          latFound = true;
+          this.latField = key;
+        }
+        if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
+          lonFound = true;
+          this.lonField = key;
+        }
+      }
+
+      if (latFound && lonFound) {
+        this.showMap = true;
+      } else {
+        this.showMap = false;
+      }
 
       //await this.getTableSchema(table);
       this.generateCharts();
@@ -372,7 +420,9 @@ export default {
 
       // Invalidate GenericCross to force re-render
       this.genericCrossKey++;
-    }
+    },
+    ////////////////////////////////////////////////////
+    
   },
 }
 

@@ -97,14 +97,14 @@ export default {
         container.appendChild(rangeContainer);
       }
 
-      //if (index % 2 === 0) {
+      if (index % 2 === 0) {
         var row = document.createElement('div');
-        row.className = '';
-        //row.id = 'row-' + Math.floor(index / 2);
-        row.id = 'row-' + index;
+        row.className = 'row';
+        row.id = 'row-' + Math.floor(index / 2);
+        //row.id = 'row-' + index;
         
         document.getElementById('charts-container').appendChild(row);
-      //}
+      }
 
       var rowContainer = document.getElementById('row-' + Math.floor(index / 2));
       rowContainer.appendChild(container);
