@@ -126,6 +126,13 @@ or use crossfilter to play with your data
 
 ![image](https://github.com/javitorres/datalakeStudio/assets/4235424/392f50f8-6d8d-4a4f-a1fa-9e70c7fc652b)
 
+If your data has spatial info you can see in a map:
+
+![image](https://github.com/javitorres/datalakeStudio/assets/4235424/c770d3d3-3cb8-4b54-9307-a55da3505eb4)
+
+
+
+
 
 ## Query panel
 
