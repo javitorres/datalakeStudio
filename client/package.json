@@ -30,9 +30,6 @@
     "vue": "^3.3.4",
     "vue-codemirror": "^6.1.1",
     "vue3-toastify": "^0.1.14",
-    
-    "@vue-leaflet/vue-leaflet": "^0.10.1",
-    "core-js": "^3.6.5",
     "leaflet": "^1.9.4"
     
   },
