@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 from fastapi.responses import JSONResponse
 from fastapi import Request
 
@@ -24,7 +24,21 @@ async def catch_all(request: Request, path: str):
     else:
         # GET Parameters
         query_params = request.query_params
+
+        format = "JSON"
         print("Query parameters: ", dict(query_params))
+        if (query_params is not None):
+            query_params = dict(query_params)
+            # get param format (CSV or JSON)
+            format = query_params.get("format")
+            if (format is not None):
+                format = format.upper()
+                if (format == "CSV"):
+                    query_params.pop("format")
+                else:
+                    format = "JSON"
+            
+                
 
         # POST and PUT body
         if request.method in ["POST", "PUT", "PATCH"]:
@@ -40,11 +54,17 @@ async def catch_all(request: Request, path: str):
             return JSONResponse(content={"error": str(e)}, status_code=400)
 
 
-        result = df_result.to_dict(orient="records")
+        
 
-        if (result is not None):
-            print("Result:" + str(result))
-            return JSONResponse(content=result, status_code=200)
+        if (df_result is not None):
+            if (format == "CSV"):
+                #return JSONResponse(content=result, status_code=200)
+                csv_data = df_result.to_csv(index=False)
+                return Response(content=csv_data, media_type="text/csv", status_code=200)
+            else:
+                result = df_result.to_dict(orient="records")
+                #print("Result:" + str(result))
+                return JSONResponse(content=result, status_code=200)
         else:
             return JSONResponse(content=[], status_code=200)
     

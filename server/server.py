@@ -18,11 +18,7 @@ from config import Config
 app = FastAPI()
 connection = None
 
-origins = [
-    "http://localhost:8080",
-    "http://localhost",
-    "http://localhost:5173",
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,

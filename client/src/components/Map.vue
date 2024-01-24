@@ -51,12 +51,6 @@ export default {
       // Create map
       this.map = L.map('map').setView(this.center, this.zoom);
 
-      const customIcon = L.divIcon({
-        html: '<i class="bi bi-dot" style="font-size: 24px; color: red;"></i>',
-        iconSize: [24, 24],
-        iconAnchor: [12, 12],
-      });
-
       // Convert CSV data to JSON
       var lines = this.data.split("\n");
       var fieldNames = lines[0].split(",");

@@ -47,7 +47,7 @@
 
 
     <!-- Sample data -->
-    <div class="row" v-if="sampleData && showSampleData">
+    <div class="row" v-show="sampleData && showSampleData">
       <div class="col-md-3" v-if="showOptions">
         <div class="btn-group">
           <button class="btn btn-secondary"><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
@@ -56,7 +56,7 @@
         </div>
       </div>
 
-      <div class="col-md-2" v-if="showOptions">
+      <div class="col-md-2" v-show="showOptions">
         <div class="btn-group">
           <button class="btn btn-primary"><i class="bi bi-arrows-vertical"></i></button>
           <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
@@ -66,7 +66,7 @@
         </div>
 
       </div>
-      <div class="col-md-2" v-if="showOptions">
+      <div class="col-md-2" v-show="showOptions">
         <div class="btn-group">
           <button class="btn btn-primary"><i class="bi bi-grid-3x3-gap-fill"></i></button>
           <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>

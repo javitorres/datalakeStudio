@@ -65,7 +65,7 @@
               <input type="text" class="form-control" id="tableNameInput" placeholder="New table name" v-model="tableFromQuery">
             </div>
            
-            <div class="md-col-2">
+            <div class="md-col-2" v-if="tableFromQuery">
               <button type="button" class="btn btn-primary" @click="createTable">Create table</button>
             </div>
           </div>
@@ -84,7 +84,9 @@
               <span class="input-group-text" id="basic-addon1">Description</span>
               <input type="text" class="form-control" placeholder="Description" v-model="sqlQueryDescription">
             </div>
-            <button type="button" class="btn btn-primary" @click="saveSqlQuery">Save SQL query</button>
+
+            <button type="button" class="btn btn-primary" v-if="sqlQueryName && sqlQueryDescription"
+            @click="saveSqlQuery">Save SQL query</button>
           </div>
         </div>
 
