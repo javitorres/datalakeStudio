@@ -1,4 +1,5 @@
 <template>
+  
   <ul class="nav nav-tabs">
     <!-- Published endpoints  -->
     <li class="nav-item">
@@ -10,6 +11,12 @@
     <li class="nav-item">
       <a :class="{ 'nav-link': true, active: activeTab === 'newEndpoint' }" aria-current="page" href="#"
         @click.prevent="activeTab = 'newEndpoint'">New endpoint</a>
+    </li>
+
+    <!-- Edit endpoint -->
+    <li class="nav-item">
+      <a :class="{ 'nav-link': true, active: activeTab === 'editEndpoint' }" aria-current="page" href="#"
+        @click.prevent="activeTab = 'editEndpoint'">Edit endpoint</a>
     </li>
   </ul>
 
@@ -48,10 +55,12 @@
             <td>{{ endpoint.status }}</td>
             <td>{{ endpoint.query }}</td>
             <td>
-              <a :href="`${apiUrl}/api/${endpoint.endpoint}${endpoint.queryStringTest}`" target="_blank">{{ apiUrl }}/api/{{ endpoint.endpoint }}{{ endpoint.queryStringTest }}</a>
+              <a :href="`${apiUrl}/api/${endpoint.endpoint}${endpoint.queryStringTest}`" target="_blank">{{ apiUrl
+              }}/api/{{ endpoint.endpoint }}{{ endpoint.queryStringTest }}</a>
             </td>
             <td>
               <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpoint.id_endpoint)">Delete</button>
+              <button type="button" class="btn btn-secondary" @click="editEndpoint(endpoint)">Edit</button>
             </td>
           </tr>
         </tbody>
@@ -65,31 +74,39 @@
 
 
 
-  <!-- New endpoint  -->
-  <div class="form-group" v-if="activeTab === 'newEndpoint'">
+  <!-- Endpoint editor  -->
+  <div class="form-group" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
     <br />
-    <p>Select the query your endpoint will be based on</p>
-    <div class="input-group mb-3">
-      <span class="input-group-text" id="basic-addon1">Search query</span>
-      <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
+    <div v-if="activeTab === 'newEndpoint'">
+      <h3>New endpoint</h3>
+      <p>Select the query your endpoint will be based on</p>
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">Search query</span>
+        <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
+      </div>
+
+      <div v-if="queries && queries.length > 0">
+        <ul class="list-group d-flex flex-wrap">
+          <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
+            @click="selectQuery(queryCandidate)">
+            <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
+              queryCandidate.description }}<br /><b>SQL:</b>{{ queryCandidate.query }}
+          </li>
+        </ul>
+      </div>
     </div>
 
-    <div v-if="queries && queries.length > 0">
-      <ul class="list-group d-flex flex-wrap">
-        <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
-          @click="selectQuery(queryCandidate)">
-          <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
-            queryCandidate.description }}<br /><b>SQL:</b>{{ queryCandidate.query }}
-        </li>
-      </ul>
+    <div v-if="activeTab === 'editEndpoint' && ! endpoint.id_endpoint">
+      <p>No endpoint selected, select one of published endpoints list</p>
     </div>
 
     <div v-if="endpoint.query">
 
       <p>Add any {parameter} in your SQL query to add query params:</p>
       <div class="form-group">
-        <codemirror v-model="endpoint.query" placeholder="code goes here..." :style="{ height: '300px' }" :autofocus="true"
-          :indent-with-tab="true" :tab-size="4" :extensions="extensions" @change="sqlChanged('change', $event)" />
+        <codemirror v-model="endpoint.query" placeholder="code goes here..." :style="{ height: '300px' }"
+          :autofocus="true" :indent-with-tab="true" :tab-size="4" :extensions="extensions"
+          @change="sqlChanged('change', $event)" />
       </div>
       <br />
       <div class="col-md-3">
@@ -99,7 +116,8 @@
         </div>
       </div>
     </div>
-    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ? endpoint.queryStringTest : "" }}</h3>
+    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ?
+      endpoint.queryStringTest : "" }}</h3>
 
     <!-- For each parameter an imput -->
     <div v-if="endpoint.query && endpoint.parameters.length > 0">
@@ -113,20 +131,20 @@
       </div>
     </div>
 
-    
+
 
     <!-- Description -->
     <div v-if="endpoint.endpoint">
-        <br />
-        <div class="input-group mb-3">
-          <span class="input-group-text" id="basic-addon1">Description</span>
-          <input type="text" class="form-control" placeholder="Description" v-model="endpoint.description">
-        </div>
+      <br />
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">Description</span>
+        <input type="text" class="form-control" placeholder="Description" v-model="endpoint.description">
       </div>
+    </div>
 
     <!-- Simulate endpoint -->
     <div v-if="endpoint.query">
-      <button type="button" class="btn btn-primary" @click="testEndpoint">Test endpoint</button>
+      <button type="button" class="btn btn-primary" @click="testEndpoint">Save and Test endpoint</button>
     </div>
     <br />
 
@@ -139,14 +157,14 @@
       </div>
     </div>
 
-    <!-- Parameters -->
-    <div v-if="endpoint.query">
-      <!-- Publish button -->
+    <!-- Publish button 
+      TODO: Change property status to DEV or PROD
       <div v-if="endpoint.query && endpoint.endpoint && endpoint.description">
         <br />
         <button type="button" class="btn btn-primary" @click="publish">Publish</button>
       </div>
-    </div>
+      -->
+    
   </div>
 </template>
 
@@ -175,18 +193,18 @@ export default {
       queries: [],
 
       query: null,
-      endpoint: 
-        {
-          id_query: null,
-          id_endpoint: null,
-          endpoint: null,
-          query: null,
-          parameters: [],
-          description: null,
-          queryStringTest: null,
-          status: 'DEV'
-       },
-      
+      endpoint:
+      {
+        id_query: null,
+        id_endpoint: null,
+        endpoint: null,
+        query: null,
+        parameters: [],
+        description: null,
+        queryStringTest: null,
+        status: 'DEV'
+      },
+
       response: null,
       apiUrl: apiUrl,
       activeTab: 'listEndpoints',
@@ -218,6 +236,7 @@ export default {
       //console.log('sqlChanged: ' + this.endpoint.query);
 
       // Find all {parameters} in the query and add them to the parameters array
+      var oldParameters = this.endpoint.parameters;
       this.endpoint.parameters = [];
       const regex = /{([^}]+)}/g;
       let m;
@@ -226,14 +245,22 @@ export default {
         if (m.index === regex.lastIndex) {
           regex.lastIndex++;
         }
-        
+
         m.forEach((match, groupIndex) => {
           if (groupIndex == 1) {
             this.endpoint.parameters.push({ "name": match, "exampleValue": null });
           }
         });
       }
-      
+      // Set parameters example values if they existed before
+      for (let i = 0; i < this.endpoint.parameters.length; i++) {
+        for (let j = 0; j < oldParameters.length; j++) {
+          if (this.endpoint.parameters[i].name == oldParameters[j].name) {
+            this.endpoint.parameters[i].exampleValue = oldParameters[j].exampleValue;
+          }
+        }
+      }
+
       this.rebuildQueryStringTest();
     },
     /////////////////////////////////////////////////
@@ -300,7 +327,7 @@ export default {
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
         this.endpoint.id_endpoint = response.data.id_endpoint;
-        
+
       }).catch((error) => {
         if (error.response.data.message) {
           toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
@@ -315,7 +342,7 @@ export default {
       if (this.endpoint.id_endpoint == null) {
         await this.createEmptyEndpoint();
       }
-      
+
       await this.update(this.endpoint)
 
       var url = this.apiUrl + "/api/" + this.endpoint.endpoint + ((this.endpoint.parameters.length > 0) ? this.endpoint.queryStringTest : "");
@@ -338,11 +365,11 @@ export default {
       }).catch((error) => {
         if (error.response && error.response.status === 400) {
           this.response = JSON.stringify(error.response.data, null, 2);
-          console.log(JSON.stringify(error.response.data, null, 2));          
+          console.log(JSON.stringify(error.response.data, null, 2));
           toast.error('Info' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         } else {
           this.response = JSON.stringify(error, null, 2);
-          console.log(JSON.stringify(error, null, 2));          
+          console.log(JSON.stringify(error, null, 2));
           toast.error('Info' + `Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
@@ -434,6 +461,13 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
+    },
+    /////////////////////////////////////////////////
+    async editEndpoint(endpoint) {
+      this.endpoint = endpoint;
+      console.log("params:" + this.endpoint.parameters);
+      this.endpoint.parameters = JSON.parse(this.endpoint.parameters);
+      this.activeTab = 'editEndpoint';
     },
   }
 }
