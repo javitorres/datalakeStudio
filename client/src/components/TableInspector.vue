@@ -5,11 +5,15 @@
     <!-- Check all and check none buttons -->
     <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(false)">
       <i class="bi bi-x-square"></i>
-      None
+      Select None
     </button>
     <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(true)">
       <i class="bi bi-check-square"></i>
-      All
+      Select All
+    </button>
+    <button class="btn btn-primary m-1 opcion-style" @click="copyToClipboard(true)">
+      <i class="bi bi-clipboard"></i>
+      Copy field names to clipboard
     </button>
 
     <div class="row" v-for="(type, field) in schema" :key="field">
@@ -197,6 +201,15 @@ export default {
       this.generateCharts();
       this.updateTable();
 
+    },
+    ////////////////////////////////////////////////////
+    copyToClipboard() {
+      var text = this.selectedFields.join(", ");
+      navigator.clipboard.writeText(text).then(function () {
+        toast.success('Fields names copied to clipboard');
+      }, function (err) {
+        toast.error('Error copying fields names to clipboard');
+      });
     },
     ////////////////////////////////////////////////////
     updateTable() {

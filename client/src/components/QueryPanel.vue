@@ -1,23 +1,105 @@
 <template>
   <div class="row" v-if="tables && tables.length > 0">
     <div class="row">
-      <div class="col-md-4">
+      <div class="col-md-12">
+        <ul class="nav nav-tabs">
+      <!-- Main query  -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'mainQuery' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'mainQuery'">Main query</a>
+      </li>
 
-        <h4>SQL Query</h4>
+      <!-- Aux query 1  -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'aux1' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'aux1'">Aux 1</a>
+      </li>
+      <!-- Aux query 2  -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'aux2' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'aux2'">Aux 2</a>
+      </li>
+      <!-- Aux query 3 -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'aux3' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'aux3'">Aux 3</a>
+      </li>
+      <!-- Aux query 4 -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'aux4' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'aux4'">Aux 4</a>
+      </li>
+      <!-- Aux query 5 -->
+      <li class="nav-item">
+        <a :class="{ 'nav-link': true, active: activeTab === 'aux5' }" aria-current="page" href="#"
+          @click.prevent="activeTab = 'aux5'">Aux 5</a>
+      </li>
+
+
+      
+    </ul>
+
+        <br/>
         <div class="form-group">
             <!-- https://dev.to/medilies/codemirror-v6-on-vue3-hooked-to-pinia-store-g8j 
               https://github.com/surmon-china/vue-codemirror  -->
 
-            <codemirror
+            
+              <codemirror v-if="activeTab === 'mainQuery'"
               v-model="query" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '200px' }"
+              :style="{ height: '300px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
-              :extensions="extensions"
-              
-          />
+              :extensions="extensions"          />
+
+              <codemirror v-if="activeTab === 'aux1'"
+              v-model="auxQuery1" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"          />
+
+              <codemirror v-if="activeTab === 'aux2'"
+              v-model="auxQuery2" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"          />
+
+              <codemirror v-if="activeTab === 'aux3'"
+              v-model="auxQuery3" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"          />
+
+              <codemirror v-if="activeTab === 'aux4'"
+              v-model="auxQuery4" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"          />
+
+              <codemirror v-if="activeTab === 'aux5'"
+              v-model="auxQuery5" 
+              placeholder="SELECT * FROM ..."
+              :style="{ height: '300px' }"
+              :autofocus="true"
+              :indent-with-tab="true"
+              :tab-size="4"
+              :extensions="extensions"          />
+
+
         </div>
         
         <div v-if="queryError">
@@ -131,12 +213,15 @@
         </div>
         <br />
       </div>
+    </div>
+      <div class="row">
 
-      <div class="col-md-8">
+      <div class="col-md-12">
         <div class="row" v-if="querySuccesful">
           <TableInspector :tableName="tableName" :showOptions="showOptions" />
         </div>
       </div>
+
     </div>
 
   </div>
@@ -181,9 +266,15 @@ export default {
     return {
       expanded: true,
       query: 'SELECT * FROM iris',
+      mainQuery: '',
+      auxQuery1: '',
+      auxQuery2: '',
+      auxQuery3: '',
+      auxQuery4: '',
+      auxQuery5: '',
       sampleData: null,
 
-      activeTab: 'newTable',
+      activeTab: 'mainQuery',
 
       table: null,
       tableFromQuery: '',
@@ -213,8 +304,21 @@ export default {
     async runQuery() {
       this.queryError = null;
       this.querySuccesful = false;
+
+      var queryToRun = this.query;
+      if (this.activeTab === 'aux1') {
+        queryToRun = this.auxQuery1;
+      } else if (this.activeTab === 'aux2') {
+        queryToRun = this.auxQuery2;
+      } else if (this.activeTab === 'aux3') {
+        queryToRun = this.auxQuery3;
+      } else if (this.activeTab === 'aux4') {
+        queryToRun = this.auxQuery4;
+      } else if (this.activeTab === 'aux5') {
+        queryToRun = this.auxQuery5;
+      }
       const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
-        query: this.query,
+        query: queryToRun,
       });
 
       toast.promise(
@@ -357,6 +461,7 @@ export default {
       this.queries = [];
 
     },
+    
     /////////////////////////////////////////////////
     async deleteQuery(queryCandidate) {
       const fetchData = () => axios.get(`${apiUrl}/queries/deleteQuery`, {

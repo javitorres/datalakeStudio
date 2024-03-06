@@ -240,8 +240,6 @@ FROM iris
 
 ####################################################
 
-####################################################
-
 def getProfile2222(tableName):
     print("Getting schema for table " + tableName)
     r = runQuery("SELECT * FROM " + tableName + " LIMIT 1")
