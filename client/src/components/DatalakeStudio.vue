@@ -15,6 +15,14 @@
         </a>
         <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
           <li class="nav-item">
+            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'changeDatabase' }"
+              @click.prevent="activeMenu = 'changeDatabase'" title="Change database" aria-current="page" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <h2><i class="bi bi-database"></i></h2>
+            </a>
+          </li>
+
+          <li class="nav-item">
             <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'loadData' }"
               @click.prevent="activeMenu = 'loadData'" title="Load data from files" aria-current="page" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -75,20 +83,16 @@
               <img src="../assets/ChatGPT.svg" alt="Logo" width="45" height="45" class="rounded mx-auto d-block">
             </a>
           </li>
-
-
-          
         </ul>
       </div>
     </div>
 
     <!-- Contenido Principal -->
-    
-      <div class="container-fluid" style="padding-left: 2rem;">
-        <keep-alive>
-          <component :is="currentComponent" v-bind="currentProps" v-on="currentListeners"></component>
-        </keep-alive>
-      </div> <!-- container-fluid -->
+    <div class="container-fluid" style="padding-left: 2rem;">
+      <keep-alive>
+        <component :is="currentComponent" v-bind="currentProps" v-on="currentListeners"></component>
+      </keep-alive>
+    </div> <!-- container-fluid -->
     
   </div>
 </template>
@@ -105,6 +109,7 @@ import ApiRetriever from './ApiRetriever.vue';
 import ApiServer from './ApiServer.vue';
 import ChatGptAgent from './ChatGptAgent.vue';
 import S3Explorer from './S3Explorer.vue';
+import ChangeDatabase from './ChangeDatabase.vue';
 
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -125,14 +130,13 @@ export default {
     ApiServer,
     ChatGptAgent,
     S3Explorer,
+    ChangeDatabase
   },
 
   data() {
     return {
       activeMenu: 'welcome',
-
       tables: [],
-
     };
   },
 
@@ -145,6 +149,8 @@ export default {
       switch (this.activeMenu) {
         case 'welcome':
           return 'Welcome';
+        case 'changeDatabase':
+          return 'ChangeDatabase';
         case 'loadData':
           return 'LoadDataPanel';
         case 'remoteDb':
@@ -205,6 +211,8 @@ export default {
           return {  };
         case 's3':
           return { tableCreated: this.tableCreated, };
+        case 'changeDatabase':
+          return { changedDatabase: this.changedDatabase, };
         default:
           return {  };
       }
@@ -248,6 +256,10 @@ export default {
     },
     ////////////////////////////////////////////////////////////////
     async tableCreated() {
+      this.getTables();
+    },
+    ////////////////////////////////////////////////////////////////
+    async changedDatabase(id) {
       this.getTables();
     },
   },

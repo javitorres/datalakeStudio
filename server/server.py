@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 from routes import remoteDb_controller
 from routes import database_controller
@@ -10,6 +11,7 @@ from routes import profiler_controller
 from routes import queries_controller
 from routes import apiserver_controller
 from routes import api_controller
+import logging as log
 
 from ServerStatus import ServerStatus
 
@@ -44,8 +46,10 @@ app.include_router(api_controller.router)
 
 
 if __name__ == "__main__":
-    import uvicorn
-    print("Initializing server on port " + str(Config.get_instance().get_config.get("port")) + "...")
+    format = "%(asctime)s %(filename)s:%(lineno)d - %(message)s "
+    log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
+
+    log.info("Initializing server on port " + str(Config.get_instance().get_config.get("port")) + "...")
     uvicorn.run(app, host="0.0.0.0", port=Config.get_instance().get_config.get("port"))
     
     

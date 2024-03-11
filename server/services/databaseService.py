@@ -1,14 +1,19 @@
 import duckdb
+import os
+import logging as log
 
 configLoaded = False
 db = None
 
+format = "%(asctime)s %(filename)s:%(lineno)d - %(message)s "
+log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
+
 def init(secrets, config):
     global db
 
-    if (config["database"] is not None):
-        print("Connecting to database..." + config["database"])
-        db = duckdb.connect(config["database"])
+    if (config["databasesFolder"] is not None and config["defaultDatabase"] is not None):
+        print("Connecting to database..." + config["defaultDatabase"])
+        db = duckdb.connect(config["databasesFolder"] + "/" + config["defaultDatabase"])
     else:
         print("Connecting to in-memory database")
         db = duckdb.connect(':memory:')
@@ -114,81 +119,6 @@ def exportData(tableName, format, fileName):
 ####################################################
 
 def getProfile(tableName):
-    ''' Example: 
-    SELECT 
-  'count' AS statistic,
-  COUNT(sepal_length) AS sepal_length,
-  COUNT(sepal_width) AS sepal_width,
-  COUNT(petal_length) AS petal_length,
-  COUNT(petal_width) AS petal_width,
-  COUNT(species) AS species
-FROM iris
-UNION ALL
-SELECT 
-  'mean' AS statistic,
-  AVG(sepal_length) AS sepal_length,
-  AVG(sepal_width) AS sepal_width,
-  AVG(petal_length) AS petal_length,
-  AVG(petal_width) AS petal_width,
-  NULL AS species
-FROM iris
-UNION ALL
-SELECT 
-  'std' AS statistic,
-  STDDEV(sepal_length) AS sepal_length,
-  STDDEV(sepal_width) AS sepal_width,
-  STDDEV(petal_length) AS petal_length,
-  STDDEV(petal_width) AS petal_width,
-  NULL AS species
-FROM iris
-UNION ALL
-SELECT 
-  'min' AS statistic,
-  MIN(sepal_length) AS sepal_length,
-  MIN(sepal_width) AS sepal_width,
-  MIN(petal_length) AS petal_length,
-  MIN(petal_width) AS petal_width,
-  MIN(species) AS species
-FROM iris
-UNION ALL
-SELECT 
-  'p25' AS statistic,
-  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY sepal_length) AS sepal_length,
-  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY sepal_width) AS sepal_width,
-  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY petal_length) AS petal_length,
-  PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY petal_width) AS petal_width,
-  NULL AS species
-FROM iris
-UNION ALL
-SELECT 
-  'p50' AS statistic,
-  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sepal_length) AS sepal_length,
-  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY sepal_width) AS sepal_width,
-  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY petal_length) AS petal_length,
-  PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY petal_width) AS petal_width,
-  NULL AS species
-FROM iris
-UNION ALL
-SELECT 
-  'p75' AS statistic,
-  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY sepal_length) AS sepal_length,
-  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY sepal_width) AS sepal_width,
-  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY petal_length) AS petal_length,
-  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY petal_width) AS petal_width,
-  NULL AS species
-FROM iris
-UNION ALL
-SELECT 
-  'max' AS statistic,
-  MAX(sepal_length) AS sepal_length,
-  MAX(sepal_width) AS sepal_width,
-  MAX(petal_length) AS petal_length,
-  MAX(petal_width) AS petal_width,
-  MAX(species) AS species
-FROM iris
-    
-    
-    '''
 
     query = "SELECT 'count' AS statistic"
     fields = db.query("DESCRIBE "+ tableName).df()
@@ -240,39 +170,30 @@ FROM iris
 
 ####################################################
 
-def getProfile2222(tableName):
-    print("Getting schema for table " + tableName)
-    r = runQuery("SELECT * FROM " + tableName + " LIMIT 1")
-    if r is None:
-        return None
+def getDatabaseList(config):
+    # Return list of database files (*.db) in config["databasesFolder"]
+    files = os.listdir(config["databasesFolder"])
+    dbFiles = []
+    for file in files:
+        if file.endswith(".db"):
+            # Remove file extension .db
+            file = file[:-3]
+            dbFiles.append(file)
+    return dbFiles
 
-    # Obtiene los tipos de datos de las columnas y los convierte a un diccionario
-    schema_dict = r.dtypes.apply(lambda x: str(x)).to_dict()
-    print("schema_dict:"  + str(schema_dict))
 
-    numeric_fields = [field for field, dtype in schema_dict.items() if 'float' in dtype or 'int' in dtype]
+def changeDatabase(config, databaseName):
+    global db
+    log.info("Changing database to " + databaseName)
+    db.close()
+    db = duckdb.connect(config["databasesFolder"] + "/" + databaseName + ".db")
+    return True
 
-    statistic_types = ['count', 'mean', 'std', 'min', 'p25', 'p50', 'p75', 'max']
-    queries = []
 
-    for statistic in statistic_types:
-        query = f"SELECT '{statistic}' AS statistic"
 
-        for field in numeric_fields:
-            if statistic in ['count', 'min', 'max']:
-                query += f", {statistic.upper()}({field}) AS {field}"
-            elif statistic == 'p25':
-                query += f", PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY {field}) AS {field}"
-            elif statistic == 'p50':
-                query += f", PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY {field}) AS {field}"
-            elif statistic == 'p75':
-                query += f", PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY {field}) AS {field}"
-            else:
-                query += f", {statistic.upper()}({field}) AS {field}" if field in numeric_fields else ", NULL AS {field}"
 
-        query += f" FROM {tableName}"
-        queries.append(query)
+def createDatabase(config, databaseName):
+    log.info("Creating database " + databaseName)
+    duckdb.connect(config["databasesFolder"] + "/" + databaseName)
+    return True
 
-    final_query = " UNION ALL ".join(queries)
-    print(final_query)
-    return runQuery(final_query)

@@ -1,2 +1,3 @@
 port: 8000
-database: "data/datalakeStudio.db"
+databasesFolder: "data"
+defaultDatabase: "datalakeStudio.db"

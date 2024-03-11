@@ -4,6 +4,9 @@ from services import databaseService
 from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
+from ServerStatus import ServerStatus
+
+serverStatus = ServerStatus()
 
 router = APIRouter(prefix="/database")
 
@@ -198,6 +201,35 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
     databaseService.loadTable(tableName, "data/" + file.filename)
     df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
+####################################################
+@router.get("/getDatabaseList")
+def getDatabaseList():
+    databaseList = databaseService.getDatabaseList(serverStatus.getConfig())
+    print("Databases: " + str(databaseList))
+    # Get current database
+    currentDatabase = serverStatus.get()["currentDatabase"]
+    # Remove current database from the list
+    databaseList = [x for x in databaseList if x != currentDatabase]
+    # Sort list
+    databaseList.sort()
+    # Put current database at the beginning of the list
+    databaseList.insert(0, currentDatabase)
 
+    if (databaseList is not None):
+        return JSONResponse(content=databaseList, status_code=200)
+    else:
+        return JSONResponse(content=[], status_code=200)
 
+####################################################
+@router.get("/changeDatabase")
+def changeDatabase(databaseName: str):
+    databaseService.changeDatabase(serverStatus.getConfig(), databaseName)
+    serverStatus.setCurrentDatabase(databaseName)
+    return {"status": "ok"}
+
+####################################################
+@router.get("/createDatabase")
+def createDatabase(databaseName: str):
+    databaseService.createDatabase(serverStatus.getConfig(), databaseName)
+    return {"status": "ok"}
 
