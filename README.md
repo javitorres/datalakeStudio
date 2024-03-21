@@ -53,7 +53,7 @@ python3 server.py
 ```
 
 If you want to use venv:
-````
+```
 python3 -m venv venv
 source venv/bin/activate
 ```
