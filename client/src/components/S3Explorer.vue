@@ -44,7 +44,7 @@
     </div>
     <div class="col-md-6">
       <div v-if="selectedElement != null">
-        <h3>Details of {{ selectionType }} {{ selectedElement }}</h3>
+        <h3>s3://{{ bucket }}/{{ selectedElement }}</h3>
         
         <div v-if="selectionType === 'file'">
           <h3>File preview:</h3>

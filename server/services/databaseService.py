@@ -10,6 +10,11 @@ log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
 
 def init(secrets, config):
     global db
+    #Check if config["databasesFolder"] folder exists. If not create it
+    if not os.path.exists(config["databasesFolder"]):
+        os.makedirs(config["databasesFolder"])
+        print("Created folder " + config["databasesFolder"])
+
 
     if (config["databasesFolder"] is not None and config["defaultDatabase"] is not None):
         print("Connecting to database..." + config["defaultDatabase"])

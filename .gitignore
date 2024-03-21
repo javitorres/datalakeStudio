@@ -15,3 +15,4 @@ client/package-lock.json
 client/yarn.lock
 server/.pgpass
 data/*
+server/venv

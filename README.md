@@ -52,6 +52,14 @@ pip3 install -r requirements.txt
 python3 server.py
 ```
 
+If you want to use venv:
+````
+python3 -m venv venv
+source venv/bin/activate
+```
+
+
+
 ## Client
 
 Inside the client folder of the project, run these commands to build the Vue UI project:
