@@ -34,7 +34,7 @@ def init(secrets, config):
         runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("INSTALL aws;LOAD aws")
         runQuery("CALL load_aws_credentials();")
-    
+
     global configLoaded
     configLoaded = True
 
@@ -47,14 +47,14 @@ def loadTable(tableName, fileName):
 
     print("Loading table " + tableName + " from " + fileName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
-    
-    if (fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv")):
+
+    if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz")):
+    elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif (fileName.lower().endswith(".json")):
+    elif fileName.lower().endswith(".json"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    elif (fileName.lower().endswith(".shp") or fileName.lower().endswith(".shx")):
+    elif '.' in fileName and fileName.lower().split('.')[1] in ['shp','geojson','gpkg','kml']:
         # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
@@ -65,14 +65,14 @@ def loadTable(tableName, fileName):
         print("duckDbService: No tables loaded")
 ####################################################
 def runQuery(query, logQuery=True):
-    
+
 
     try:
         if (logQuery):
             print("Executing query: " + str(query))
         else:
             print("Executing query XXXXXXX")
-        
+
 
         r = db.query(query)
         if (r is not None):
@@ -103,7 +103,7 @@ def getTableDescriptionForChatGpt(tableName):
         tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
     tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
     return tableDescriptionForGPT
-####################################################    
+####################################################
 def createTableFromDataFrame(df, tableName):
     print("Creating table " + tableName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
@@ -120,7 +120,7 @@ def exportData(tableName, format, fileName):
     else:
         print("Format not supported")
         return False
-    
+
 ####################################################
 
 def getProfile(tableName):
@@ -128,7 +128,7 @@ def getProfile(tableName):
     query = "SELECT 'count' AS statistic"
     fields = db.query("DESCRIBE "+ tableName).df()
     print("fields:"  + str(fields))
-    
+
     # Only BIGINT and DOUBLE
     for field in fields.iterrows():
         if field[1]["column_type"] in ["BIGINT", "DOUBLE"]:
