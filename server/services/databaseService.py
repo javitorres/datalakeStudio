@@ -1,6 +1,9 @@
 import duckdb
 import os
 import logging as log
+import requests
+from zipfile import ZipFile
+import re
 
 configLoaded = False
 db = None
@@ -39,15 +42,43 @@ def init(secrets, config):
     configLoaded = True
 
 ####################################################
-def loadTable(tableName, fileName):
+def loadTable(config, tableName, fileName):
     global configLoaded
+
+    format_list = ['csv','tsv','parquet', 'gz', 'json', 'geojson', 'gpkg', 'kml', 'shp']
     if (configLoaded == False):
         print("Load config")
         return None
-
+    data_dir = config["databasesFolder"]
     print("Loading table " + tableName + " from " + fileName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
 
+    if fileName.startswith('http://') or fileName.startswith('https://'):
+        # download the file first
+        url = fileName
+        print("Dowloading ", url)
+        r = requests.get(url, allow_redirects=True)
+        if r.status_code == 200:
+            d = r.headers['content-disposition']
+            fileName = re.findall("filename=(.+)", d)[0]
+            print(fileName)
+            fileName = os.path.join(data_dir, fileName)
+            open(fileName, 'wb').write(r.content)
+    extracted_files = []
+    if fileName.endswith('.zip'):
+        extracted_file = None
+        with ZipFile(fileName, 'r') as zip:
+            for info in zip.infolist():
+                zip.extract(info, data_dir)
+                extracted_files.append(os.path.join(data_dir, info.filename))
+                if '.' in info.filename and info.filename.split('.')[-1] in format_list:
+                    extracted_data_file = info.filename
+
+        # original zip file removal
+        os.remove(fileName)
+        if extracted_data_file:
+            fileName = os.path.join(data_dir, extracted_data_file)
+    print('File to be integrated : ', fileName)
     if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
     elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
@@ -63,6 +94,12 @@ def loadTable(tableName, fileName):
         r.show()
     else:
         print("duckDbService: No tables loaded")
+
+    os.remove(fileName)
+    # zip file content removal
+    for f in extracted_files:
+        os.remove(f)
+
 ####################################################
 def runQuery(query, logQuery=True):
 
