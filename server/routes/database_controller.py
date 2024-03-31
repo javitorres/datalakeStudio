@@ -5,6 +5,8 @@ from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
 from ServerStatus import ServerStatus
+import os
+import urllib.parse
 
 serverStatus = ServerStatus()
 
@@ -16,11 +18,11 @@ def loadFile(fileName: str, tableName: str):
     if (fileName is None or tableName is None):
         response = {"status": "error", "message": "fileName and tableName are required"}
         return JSONResponse(content=response, status_code=400)
-    
+    fileName = urllib.parse.unquote(fileName)
     print("Loading file '" + fileName + "' into table '" + tableName + "'")
 
-    
-    databaseService.loadTable(tableName, fileName)
+
+    databaseService.loadTable(serverStatus.getConfig(), tableName, fileName)
     df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
 ####################################################
@@ -29,7 +31,7 @@ def getTables():
     tableList = databaseService.getTableList()
     # Remove all metatables starting from "__" from the list
     tableList = [x for x in tableList if not x.startswith("__")]
-    
+
     print("Tables: " + str(tableList))
     #tableList=["iris"]
 
@@ -83,7 +85,7 @@ def runQuery(queryRequest: QueryRequest):
     # Replace ' with " to avoid problems
     #query = queryRequest.query.replace("'", '"')
     query = queryRequest.query
-    
+
 
     try:
         databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
@@ -91,7 +93,7 @@ def runQuery(queryRequest: QueryRequest):
         print("Error runing query::: " + str(e))
         response = {"status": "error", "message": "Error running query: " + str(e)}
         return JSONResponse(content=response, status_code=400)
-    
+
     if (queryRequest.rows==0):
         LIMIT = ""
     else:
@@ -104,7 +106,7 @@ def runQuery(queryRequest: QueryRequest):
         csv_data = df.to_csv(index=False)
         return Response(content=csv_data, media_type="text/csv", status_code=200)
     else:
-        return Response(content="Query failed or returned no data", status_code=400)   
+        return Response(content="Query failed or returned no data", status_code=400)
 ####################################################
 @router.get("/getRowCount")
 def getRowsCount(tableName: str):
@@ -122,7 +124,7 @@ def getRowsCount(tableName: str):
     else:
         return {"status": "error"}
 
-####################################################  
+####################################################
 @router.get("/createTableFromQuery")
 def createTableFromQuery(query: str, tableName: str):
     if (query is None or tableName is None):
@@ -133,14 +135,14 @@ def createTableFromQuery(query: str, tableName: str):
         databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     except Exception as e:
         print("Error dropping table: " + str(e))
-    
+
     try:
         databaseService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
     except Exception as e:
         print("Error creating table: " + str(e))
         response = {"status": "error", "message": "Error creating table: " + str(e)}
         return JSONResponse(content=response, status_code=400)
-    
+
     return {"status": "ok"}
 ####################################################
 @router.get("/deleteTable")
@@ -169,7 +171,7 @@ def exportData(tableName: str, format: str = "csv", fileName: str = None):
     else:
         response = {"status": "error", "message": "tableName and fileName are required"}
         return JSONResponse(content=response, status_code=500)
-    
+
 ####################################################
 @router.get("/getTableProfile")
 def getProfile(tableName: str):
@@ -179,7 +181,7 @@ def getProfile(tableName: str):
     print("Getting profile for table " + tableName)
     df = databaseService.getProfile(tableName)
     if (df is not None):
-        
+
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
         return response
     else:
@@ -193,12 +195,14 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
         return JSONResponse(content=response, status_code=400)
     print("Uploading file to table " + tableName)
     # Save file to disk
-    with open("data/" + file.filename, "wb") as buffer:
+    data_dir = serverStatus.getConfig()["databasesFolder"]
+    dest_file = os.path.join(data_dir, file.filename)
+    with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     # Load file into duckdb
     if (tableName is None):
         tableName = file.filename.split(".")[0]
-    databaseService.loadTable(tableName, "data/" + file.filename)
+    databaseService.loadTable(serverStatus.getConfig(),tableName, dest_file)
     df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     return {"status": "ok", "rows": df.to_json()}
 ####################################################
