@@ -89,16 +89,23 @@ def loadTable(config, tableName, fileName):
         # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
-    r = db.sql('SHOW TABLES')
-    if (r is not None):
-        r.show()
-    else:
-        print("duckDbService: No tables loaded")
+
 
     os.remove(fileName)
     # zip file content removal
     for f in extracted_files:
-        os.remove(f)
+        try:
+           os.remove(f)
+        except:
+            pass
+
+    r = db.sql('SHOW TABLES')
+    if tableName in r:
+        r.show()
+        return True
+    else:
+        print("duckDbService: No tables loaded")
+        return False
 
 ####################################################
 def runQuery(query, logQuery=True):

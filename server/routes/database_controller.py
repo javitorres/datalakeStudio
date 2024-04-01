@@ -22,9 +22,11 @@ def loadFile(fileName: str, tableName: str):
     print("Loading file '" + fileName + "' into table '" + tableName + "'")
 
 
-    databaseService.loadTable(serverStatus.getConfig(), tableName, fileName)
-    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-    return {"status": "ok", "rows": df.to_json()}
+    if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
+        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+        return {"status": "ok", "rows": df.to_json()}
+    else:
+        return {"status": "error", "rows": 0}
 ####################################################
 @router.get("/getTables")
 def getTables():
@@ -202,9 +204,11 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
     # Load file into duckdb
     if (tableName is None):
         tableName = file.filename.split(".")[0]
-    databaseService.loadTable(serverStatus.getConfig(),tableName, dest_file)
-    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-    return {"status": "ok", "rows": df.to_json()}
+    if databaseService.loadTable(serverStatus.getConfig(),tableName, dest_file):
+        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+        return {"status": "ok", "rows": df.to_json()}
+    else:
+        return {"status": "error", "rows": 0}
 ####################################################
 @router.get("/getDatabaseList")
 def getDatabaseList():
