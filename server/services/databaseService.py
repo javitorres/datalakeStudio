@@ -1,9 +1,9 @@
 import duckdb
 import os
 import logging as log
-import requests
+
 from zipfile import ZipFile
-import re
+
 
 configLoaded = False
 db = None
@@ -41,6 +41,7 @@ def init(secrets, config):
     global configLoaded
     configLoaded = True
 
+
 ####################################################
 def loadTable(config, tableName, fileName):
     global configLoaded
@@ -49,24 +50,13 @@ def loadTable(config, tableName, fileName):
     if (configLoaded == False):
         print("Load config")
         return None
-    data_dir = config["databasesFolder"]
+    data_dir = config["downloadFolder"]
     print("Loading table " + tableName + " from " + fileName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
 
-    if fileName.startswith('http://') or fileName.startswith('https://'):
-        # download the file first
-        url = fileName
-        print("Dowloading ", url)
-        r = requests.get(url, allow_redirects=True)
-        if r.status_code == 200:
-            d = r.headers['content-disposition']
-            fileName = re.findall("filename=(.+)", d)[0]
-            print(fileName)
-            fileName = os.path.join(data_dir, fileName)
-            open(fileName, 'wb').write(r.content)
     extracted_files = []
     if fileName.endswith('.zip'):
-        extracted_file = None
+        extracted_data_file = None
         with ZipFile(fileName, 'r') as zip:
             for info in zip.infolist():
                 zip.extract(info, data_dir)

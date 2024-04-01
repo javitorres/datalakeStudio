@@ -1,12 +1,12 @@
 import shutil
 from fastapi import APIRouter, File, Form, UploadFile
-from services import databaseService
+from services import databaseService, fileService
 from fastapi import Response
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
 from ServerStatus import ServerStatus
 import os
-import urllib.parse
+
 
 serverStatus = ServerStatus()
 
@@ -18,15 +18,25 @@ def loadFile(fileName: str, tableName: str):
     if (fileName is None or tableName is None):
         response = {"status": "error", "message": "fileName and tableName are required"}
         return JSONResponse(content=response, status_code=400)
-    fileName = urllib.parse.unquote(fileName)
-    print("Loading file '" + fileName + "' into table '" + tableName + "'")
+    if not fileName.startswith('http://') and not fileName.startswith('https://'):
+        response = {"status": "error", "message": "The URL must start with http or https"}
+        return JSONResponse(content=response, status_code=400)
+    # the fileService downloadFile function downloads the file designated by the URL
+    # and stores it (and unzip it if it a zip) before returning the local file name
+    download_dir = serverStatus.getConfig()["downloadFolder"]
 
-
-    if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
-        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-        return {"status": "ok", "rows": df.to_json()}
+    if (fileName := fileService.downloadFile(fileName, download_dir)):
+        print("Loading file '" + fileName + "' into table '" + tableName + "'")
+        if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
+            df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+            return {"status": "ok", "rows": df.to_json()}
+        else:
+            return {"status": "error", "rows": 0}
     else:
-        return {"status": "error", "rows": 0}
+        # the file couldn't be downloaded to the server
+        response = {"status": "error", "message": "The requested file couldn't be downloaded"}
+        return JSONResponse(content=response, status_code=400)
+
 ####################################################
 @router.get("/getTables")
 def getTables():
@@ -197,7 +207,7 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
         return JSONResponse(content=response, status_code=400)
     print("Uploading file to table " + tableName)
     # Save file to disk
-    data_dir = serverStatus.getConfig()["databasesFolder"]
+    data_dir = serverStatus.getConfig()["downloadFolder"]
     dest_file = os.path.join(data_dir, file.filename)
     with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
