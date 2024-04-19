@@ -78,6 +78,16 @@
               <textarea v-model="folderMetadata.description" style="height: 200px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
               <label for="floatingInput">Description</label>
             </div>
+
+            <div class="form-floating mb-3">
+              <textarea v-model="folderMetadata.owner" style="height: 20px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
+              <label for="floatingInput">Owner/s (space separated)</label>
+            </div>
+
+            <div class="form-floating mb-3">
+              <textarea v-model="folderMetadata.schema" style="height: 200px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
+              <label for="floatingInput">Schema</label>
+            </div>
             
             <button class="btn btn-primary m-1 opcion-style" @click="updateMetadata">
               Update metadata

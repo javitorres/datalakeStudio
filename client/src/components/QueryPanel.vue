@@ -5,34 +5,34 @@
         <ul class="nav nav-tabs">
       <!-- Main query  -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'mainQuery' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'mainQuery'">Main query</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'mainQuery' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'mainQuery'">Main query</a>
       </li>
 
       <!-- Aux query 1  -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'aux1' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'aux1'">Aux 1</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'aux1' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'aux1'">Aux 1</a>
       </li>
       <!-- Aux query 2  -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'aux2' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'aux2'">Aux 2</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'aux2' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'aux2'">Aux 2</a>
       </li>
       <!-- Aux query 3 -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'aux3' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'aux3'">Aux 3</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'aux3' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'aux3'">Aux 3</a>
       </li>
       <!-- Aux query 4 -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'aux4' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'aux4'">Aux 4</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'aux4' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'aux4'">Aux 4</a>
       </li>
       <!-- Aux query 5 -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'aux5' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'aux5'">Aux 5</a>
+        <a :class="{ 'nav-link': true, active: activeQueryTab === 'aux5' }" aria-current="page" href="#"
+          @click.prevent="activeQueryTab = 'aux5'">Aux 5</a>
       </li>
 
 
@@ -45,7 +45,7 @@
               https://github.com/surmon-china/vue-codemirror  -->
 
             
-              <codemirror v-if="activeTab === 'mainQuery'"
+              <codemirror v-if="activeQueryTab === 'mainQuery'"
               v-model="query" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -54,7 +54,7 @@
               :tab-size="4"
               :extensions="extensions"          />
 
-              <codemirror v-if="activeTab === 'aux1'"
+              <codemirror v-if="activeQueryTab === 'aux1'"
               v-model="auxQuery1" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -63,7 +63,7 @@
               :tab-size="4"
               :extensions="extensions"          />
 
-              <codemirror v-if="activeTab === 'aux2'"
+              <codemirror v-if="activeQueryTab === 'aux2'"
               v-model="auxQuery2" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -72,7 +72,7 @@
               :tab-size="4"
               :extensions="extensions"          />
 
-              <codemirror v-if="activeTab === 'aux3'"
+              <codemirror v-if="activeQueryTab === 'aux3'"
               v-model="auxQuery3" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -81,7 +81,7 @@
               :tab-size="4"
               :extensions="extensions"          />
 
-              <codemirror v-if="activeTab === 'aux4'"
+              <codemirror v-if="activeQueryTab === 'aux4'"
               v-model="auxQuery4" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -90,7 +90,7 @@
               :tab-size="4"
               :extensions="extensions"          />
 
-              <codemirror v-if="activeTab === 'aux5'"
+              <codemirror v-if="activeQueryTab === 'aux5'"
               v-model="auxQuery5" 
               placeholder="SELECT * FROM ..."
               :style="{ height: '300px' }"
@@ -274,7 +274,8 @@ export default {
       auxQuery5: '',
       sampleData: null,
 
-      activeTab: 'mainQuery',
+      activeTab: '',
+      activeQueryTab: 'mainQuery',
 
       table: null,
       tableFromQuery: '',
