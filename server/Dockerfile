@@ -16,6 +16,7 @@ RUN apt-get install -y ffmpeg
 
 # Copiar el resto del código del backend
 COPY . .
+COPY duckdbUnsignedExtensions/h3ext.duckdb_extension ./duckdbUnsignedExtensions/
 
 # Exponer el puerto en el que se ejecuta tu aplicación
 EXPOSE 8000

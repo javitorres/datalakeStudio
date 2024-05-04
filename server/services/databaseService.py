@@ -13,6 +13,10 @@ log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
 
 def init(secrets, config):
     global db
+
+    if not os.path.exists(config["downloadFolder"]):
+        os.makedirs(config["downloadFolder"])
+        print("Created folder " + config["downloadFolder"])
     #Check if config["databasesFolder"] folder exists. If not create it
     if not os.path.exists(config["databasesFolder"]):
         os.makedirs(config["databasesFolder"])
@@ -21,10 +25,10 @@ def init(secrets, config):
 
     if (config["databasesFolder"] is not None and config["defaultDatabase"] is not None):
         print("Connecting to database..." + config["defaultDatabase"])
-        db = duckdb.connect(config["databasesFolder"] + "/" + config["defaultDatabase"])
+        db = duckdb.connect(config["databasesFolder"] + "/" + config["defaultDatabase"], config={"allow_unsigned_extensions": "true"})
     else:
         print("Connecting to in-memory database")
-        db = duckdb.connect(':memory:')
+        db = duckdb.connect(':memory:', config={"allow_unsigned_extensions": "true"})
 
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
@@ -37,6 +41,14 @@ def init(secrets, config):
         runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("INSTALL aws;LOAD aws")
         runQuery("CALL load_aws_credentials();")
+
+    try:
+        db.load_extension("./duckdbUnsignedExtensions/h3ext.duckdb_extension")
+        runQuery("INSTALL 'h3ext.duckdb_extension';LOAD h3ext")
+        print("Loaded H3 extension")
+    except Exception as e:
+        print("Could not load H3 extension:  " + str(e))
+
 
     global configLoaded
     configLoaded = True
