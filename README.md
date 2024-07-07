@@ -42,6 +42,14 @@ docker-compose up --build
 
 Open http://localhost:8080/ in your browser.
 
+## If you dont want to use compose
+
+docker build -t datalakestudioserver .
+docker run --name datalakestudioserver -p 8000:8000 datalakestudioserver
+
+docker build -t datalakestudiofront .
+docker run --name datalakestudiofront -p 8080:8080 datalakestudiofront
+
 # Project build without Docker
 
 ## Server

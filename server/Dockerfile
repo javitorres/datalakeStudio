@@ -6,20 +6,33 @@ WORKDIR /app
 
 # Copiar los archivos de requisitos y instalar dependencias
 COPY requirements.txt ./
+
+# Actualizar e instalar dependencias necesarias
+RUN apt-get update && apt-get install -y \
+    gdal-bin \
+    libgdal-dev \
+    ffmpeg \
+    curl gzip
+
+# Configurar variables de entorno para GDAL
+ENV GDAL_CONFIG=/usr/bin/gdal-config
+ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
+ENV C_INCLUDE_PATH=/usr/include/gdal
+
 RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
-#RUN pip install ydata-profiling ipython ipywidgets
-
-# Instalar ffmpeg
-RUN apt-get update
-RUN apt-get install -y ffmpeg
 
 # Copiar el resto del código del backend
 COPY . .
-COPY duckdbUnsignedExtensions/h3ext.duckdb_extension ./duckdbUnsignedExtensions/
+
+# Descargar la extensión de DuckDB
+COPY download_h3_extension.sh /download_h3_extension.sh
+RUN chmod +x /download_h3_extension.sh
+
 
 # Exponer el puerto en el que se ejecuta tu aplicación
 EXPOSE 8000
 
+#Ejecutar con CMD el script de descarga de la extensión de DuckDB y python server.py
 # Comando para ejecutar la aplicación
-CMD ["python", "./server.py"]
+CMD /download_h3_extension.sh && python ./server.py
