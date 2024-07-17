@@ -18,24 +18,27 @@ def loadFile(fileName: str, tableName: str):
     if (fileName is None or tableName is None):
         response = {"status": "error", "message": "fileName and tableName are required"}
         return JSONResponse(content=response, status_code=400)
-    if not fileName.startswith('http://') and not fileName.startswith('https://'):
+    if not fileName.startswith('http://') and not fileName.startswith('https://') and not fileName.startswith('s3://'):
         response = {"status": "error", "message": "The URL must start with http or https"}
         return JSONResponse(content=response, status_code=400)
-    # the fileService downloadFile function downloads the file designated by the URL
-    # and stores it (and unzip it if it a zip) before returning the local file name
-    download_dir = serverStatus.getConfig()["downloadFolder"]
 
-    if (fileName := fileService.downloadFile(fileName, download_dir)):
-        print("Loading file '" + fileName + "' into table '" + tableName + "'")
-        if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
-            df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-            return {"status": "ok", "rows": df.to_json()}
+    if fileName.startswith('http://') or fileName.startswith('https://'):
+        # the fileService downloadFile function downloads the file designated by the URL
+        # and stores it (and unzip it if it a zip) before returning the local file name
+        download_dir = serverStatus.getConfig()["downloadFolder"]
+        if (fileName := fileService.downloadFile(fileName, download_dir)):
+            print("Downloaded file '" + fileName + "'")
         else:
-            return {"status": "error", "rows": 0}
+            # the file couldn't be downloaded to the server
+            response = {"status": "error", "message": "The requested file couldn't be downloaded"}
+            return JSONResponse(content=response, status_code=400)
+
+    print("Loading file '" + fileName + "' into table '" + tableName + "'")
+    if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
+        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+        return {"status": "ok", "rows": df.to_json()}
     else:
-        # the file couldn't be downloaded to the server
-        response = {"status": "error", "message": "The requested file couldn't be downloaded"}
-        return JSONResponse(content=response, status_code=400)
+        return {"status": "error", "rows": 0}
 
 ####################################################
 @router.get("/getTables")

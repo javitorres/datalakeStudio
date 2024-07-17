@@ -26,13 +26,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Descargar la extensión de DuckDB
-COPY download_h3_extension.sh /download_h3_extension.sh
-RUN chmod +x /download_h3_extension.sh
+#COPY download_h3_extension.sh /download_h3_extension.sh
+#RUN chmod +x /download_h3_extension.sh
 
 
 # Exponer el puerto en el que se ejecuta tu aplicación
 EXPOSE 8000
 
-#Ejecutar con CMD el script de descarga de la extensión de DuckDB y python server.py
 # Comando para ejecutar la aplicación
-CMD /download_h3_extension.sh && python ./server.py
+CMD python ./server.py

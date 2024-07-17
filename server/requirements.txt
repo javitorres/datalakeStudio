@@ -1,6 +1,6 @@
 boto3==1.26.133
 #DataProfiler==0.8.9
-duckdb==0.10.2
+duckdb==1.0.0
 fastapi==0.108.0
 openai==1.6.1
 pandas==1.5.3
@@ -8,7 +8,7 @@ numpy==1.26.0
 psycopg2-binary==2.9.9
 PyYAML==6.0.1
 Requests==2.31.0
-uvicorn==0.13.1
+uvicorn==0.30.1
 #ydata-profiling==4.6.3
 pydantic==2.5.3
 pydub==0.25.1

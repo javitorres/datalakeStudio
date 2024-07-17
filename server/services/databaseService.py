@@ -4,7 +4,6 @@ import logging as log
 
 from zipfile import ZipFile
 
-
 configLoaded = False
 db = None
 
@@ -43,8 +42,7 @@ def init(secrets, config):
         runQuery("CALL load_aws_credentials();")
 
     try:
-        db.load_extension("./duckdbUnsignedExtensions/h3ext.duckdb_extension")
-        runQuery("INSTALL 'h3ext.duckdb_extension';LOAD h3ext")
+        runQuery("INSTALL h3 FROM community;LOAD h3")
         print("Loaded H3 extension")
     except Exception as e:
         print("Could not load H3 extension:  " + str(e))
@@ -52,7 +50,6 @@ def init(secrets, config):
 
     global configLoaded
     configLoaded = True
-
 
 ####################################################
 def loadTable(config, tableName, fileName):
@@ -91,15 +88,14 @@ def loadTable(config, tableName, fileName):
         # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
-
-
-    os.remove(fileName)
-    # zip file content removal
-    for f in extracted_files:
-        try:
-           os.remove(f)
-        except:
-            pass
+    if (not fileName.lower().startswith("s3")):
+        os.remove(fileName)
+        # zip file content removal
+        for f in extracted_files:
+            try:
+               os.remove(f)
+            except:
+                pass
 
     r = db.sql('SHOW TABLES')
     if tableName in r:
@@ -111,8 +107,6 @@ def loadTable(config, tableName, fileName):
 
 ####################################################
 def runQuery(query, logQuery=True):
-
-
     try:
         if (logQuery):
             print("Executing query: " + str(query))

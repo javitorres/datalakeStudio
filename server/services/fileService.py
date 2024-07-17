@@ -30,6 +30,8 @@ def downloadFile(url, destination_dir):
         if fileName:
             fileName = os.path.join(destination_dir, fileName)
             open(fileName, 'wb').write(r.content)
+        print("Downloaded file: " + str(fileName))
         return fileName
     else:
+        print("Error downloading file: " + str(r.status_code))
         return None
