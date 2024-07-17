@@ -9,7 +9,7 @@
 <p align="center">
     <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Latest Release">
     <img src="https://img.shields.io/badge/Vue-3.3.4-blue" alt="Vue3">
-    <img src="https://img.shields.io/badge/DuckDB-0.10.0-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/DuckDB-1.0.0-yellow" alt="DuckDB">
     <img src="https://img.shields.io/badge/OpenAI-1.6.1-green" alt="OpenAI">
 </p>
 
@@ -41,6 +41,14 @@ docker-compose up --build
 ```
 
 Open http://localhost:8080/ in your browser.
+
+## If you dont want to use compose
+
+docker build -t datalakestudioserver .
+docker run --name datalakestudioserver -p 8000:8000 datalakestudioserver
+
+docker build -t datalakestudiofront .
+docker run --name datalakestudiofront -p 8080:8080 datalakestudiofront
 
 # Project build without Docker
 

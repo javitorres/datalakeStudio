@@ -35,4 +35,3 @@ class ServerStatus:
 
     def setCurrentDatabase(self, databaseName):
         self.serverStatus["currentDatabase"] = databaseName
-

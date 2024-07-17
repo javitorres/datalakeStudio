@@ -2,6 +2,8 @@ import duckdb
 import os
 import logging as log
 
+from zipfile import ZipFile
+
 configLoaded = False
 db = None
 
@@ -10,6 +12,10 @@ log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
 
 def init(secrets, config):
     global db
+
+    if not os.path.exists(config["downloadFolder"]):
+        os.makedirs(config["downloadFolder"])
+        print("Created folder " + config["downloadFolder"])
     #Check if config["databasesFolder"] folder exists. If not create it
     if not os.path.exists(config["databasesFolder"]):
         os.makedirs(config["databasesFolder"])
@@ -18,10 +24,10 @@ def init(secrets, config):
 
     if (config["databasesFolder"] is not None and config["defaultDatabase"] is not None):
         print("Connecting to database..." + config["defaultDatabase"])
-        db = duckdb.connect(config["databasesFolder"] + "/" + config["defaultDatabase"])
+        db = duckdb.connect(config["databasesFolder"] + "/" + config["defaultDatabase"], config={"allow_unsigned_extensions": "true"})
     else:
         print("Connecting to in-memory database")
-        db = duckdb.connect(':memory:')
+        db = duckdb.connect(':memory:', config={"allow_unsigned_extensions": "true"})
 
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
@@ -34,45 +40,79 @@ def init(secrets, config):
         runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("INSTALL aws;LOAD aws")
         runQuery("CALL load_aws_credentials();")
-    
+
+    try:
+        runQuery("INSTALL h3 FROM community;LOAD h3")
+        print("Loaded H3 extension")
+    except Exception as e:
+        print("Could not load H3 extension:  " + str(e))
+
+
     global configLoaded
     configLoaded = True
 
 ####################################################
-def loadTable(tableName, fileName):
+def loadTable(config, tableName, fileName):
     global configLoaded
+
+    format_list = ['csv','tsv','parquet', 'gz', 'json', 'geojson', 'gpkg', 'kml', 'shp']
     if (configLoaded == False):
         print("Load config")
         return None
-
+    data_dir = config["downloadFolder"]
     print("Loading table " + tableName + " from " + fileName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
-    
-    if (fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv")):
+
+    extracted_files = []
+    if fileName.endswith('.zip'):
+        extracted_data_file = None
+        with ZipFile(fileName, 'r') as zip:
+            for info in zip.infolist():
+                zip.extract(info, data_dir)
+                extracted_files.append(os.path.join(data_dir, info.filename))
+                if '.' in info.filename and info.filename.split('.')[-1] in format_list:
+                    extracted_data_file = info.filename
+
+        # original zip file removal
+        os.remove(fileName)
+        if extracted_data_file:
+            fileName = os.path.join(data_dir, extracted_data_file)
+    print('File to be integrated : ', fileName)
+    if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-    elif (fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz")):
+    elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif (fileName.lower().endswith(".json")):
+    elif fileName.lower().endswith(".json"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    elif (fileName.lower().endswith(".shp") or fileName.lower().endswith(".shx")):
+    elif '.' in fileName and fileName.lower().split('.')[1] in ['shp','geojson','gpkg','kml']:
         # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
+    if (not fileName.lower().startswith("s3")):
+        os.remove(fileName)
+        # zip file content removal
+        for f in extracted_files:
+            try:
+               os.remove(f)
+            except:
+                pass
+
     r = db.sql('SHOW TABLES')
-    if (r is not None):
+    if tableName in r:
         r.show()
+        return True
     else:
         print("duckDbService: No tables loaded")
+        return False
+
 ####################################################
 def runQuery(query, logQuery=True):
-    
-
     try:
         if (logQuery):
             print("Executing query: " + str(query))
         else:
             print("Executing query XXXXXXX")
-        
+
 
         r = db.query(query)
         if (r is not None):
@@ -103,7 +143,7 @@ def getTableDescriptionForChatGpt(tableName):
         tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
     tableDescriptionForGPT = "One of the tables is called '"+ tableName +"' and has following fields:" + tableDescription[1:]
     return tableDescriptionForGPT
-####################################################    
+####################################################
 def createTableFromDataFrame(df, tableName):
     print("Creating table " + tableName)
     db.query("DROP TABLE IF EXISTS "+ tableName )
@@ -120,7 +160,7 @@ def exportData(tableName, format, fileName):
     else:
         print("Format not supported")
         return False
-    
+
 ####################################################
 
 def getProfile(tableName):
@@ -128,7 +168,7 @@ def getProfile(tableName):
     query = "SELECT 'count' AS statistic"
     fields = db.query("DESCRIBE "+ tableName).df()
     print("fields:"  + str(fields))
-    
+
     # Only BIGINT and DOUBLE
     for field in fields.iterrows():
         if field[1]["column_type"] in ["BIGINT", "DOUBLE"]:

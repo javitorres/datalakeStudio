@@ -4,6 +4,7 @@ duckdb==1.0.0
 fastapi==0.108.0
 openai==1.6.1
 pandas==1.5.3
+numpy==1.26.0
 psycopg2-binary==2.9.9
 PyYAML==6.0.1
 Requests==2.31.0
@@ -12,6 +13,9 @@ uvicorn==0.30.1
 pydantic==2.5.3
 pydub==0.25.1
 python-multipart==0.0.5
-
+geopandas==0.14.4
+h3==3.7.7
+geojson==3.1.0
+plotly==5.22.0
 
 

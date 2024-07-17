@@ -89,6 +89,7 @@ def updateMetadata(metadata):
     # Create file in bucket
     try:
         s3.put_object(Bucket=metadata.bucket, Key=metadata.path + "metadata.json", Body=json.dumps(metadata.dict()))
+        print("Metadata updated in bucket: " + json.dumps(metadata.dict()))
         return True
     except Exception as e:
         print("Error creating file in bucket: " + str(e))
