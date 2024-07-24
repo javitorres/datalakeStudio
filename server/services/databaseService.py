@@ -79,16 +79,19 @@ def loadTable(config, tableName, fileName):
             fileName = os.path.join(data_dir, extracted_data_file)
     print('File to be integrated : ', fileName)
     if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
-        db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
+        try:
+            db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
+        except Exception as e:
+            print("####### Error reading CSV file: " + str(e))
     elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif fileName.lower().endswith(".json"):
         db.query("CREATE TABLE "+ tableName +" AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
     elif '.' in fileName and fileName.lower().split('.')[1] in ['shp','geojson','gpkg','kml']:
-        # https://duckdb.org/2023/04/28/spatial.html
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
     if (not fileName.lower().startswith("s3")):
+        print("Removing file " + fileName)
         os.remove(fileName)
         # zip file content removal
         for f in extracted_files:
@@ -97,12 +100,12 @@ def loadTable(config, tableName, fileName):
             except:
                 pass
 
-    r = db.sql('SHOW TABLES')
-    if tableName in r:
+    r = db.query('SHOW TABLES')
+    if tableName in r.df()["name"].to_list():
         r.show()
         return True
     else:
-        print("duckDbService: No tables loaded")
+        print("duckDbService: table " + tableName + " not loaded:" + str(r))
         return False
 
 ####################################################

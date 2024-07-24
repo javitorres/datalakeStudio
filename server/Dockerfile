@@ -25,11 +25,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copiar el resto del código del backend
 COPY . .
 
-# Descargar la extensión de DuckDB
-#COPY download_h3_extension.sh /download_h3_extension.sh
-#RUN chmod +x /download_h3_extension.sh
-
-
 # Exponer el puerto en el que se ejecuta tu aplicación
 EXPOSE 8000
 

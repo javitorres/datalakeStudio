@@ -23,7 +23,7 @@
       <!-- Load from Path -->
       <li class="nav-item">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadPath' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'loadPath'">Load from Path</a>
+          @click.prevent="activeTab = 'loadPath'">Load from server path</a>
       </li>
     </ul>
 
@@ -239,6 +239,12 @@ export default {
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
+        if (response.status=='error'){
+          toast.error('Error' + `Could not load data: ${response.data.status}`, { position: toast.POSITION.BOTTOM_RIGHT });
+          
+        } else {
+          this.$emit('tableCreated');
+        }
         this.$emit('tableCreated');
       }).catch((error) => {
         if (error.response.data.message) {

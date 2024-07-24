@@ -18,9 +18,9 @@ def loadFile(fileName: str, tableName: str):
     if (fileName is None or tableName is None):
         response = {"status": "error", "message": "fileName and tableName are required"}
         return JSONResponse(content=response, status_code=400)
-    if not fileName.startswith('http://') and not fileName.startswith('https://') and not fileName.startswith('s3://'):
-        response = {"status": "error", "message": "The URL must start with http or https"}
-        return JSONResponse(content=response, status_code=400)
+    #if not fileName.startswith('http://') and not fileName.startswith('https://') and not fileName.startswith('s3://'):
+    #    response = {"status": "error", "message": "The URL must start with http or https"}
+    #    return JSONResponse(content=response, status_code=400)
 
     if fileName.startswith('http://') or fileName.startswith('https://'):
         # the fileService downloadFile function downloads the file designated by the URL
@@ -208,12 +208,22 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
     if (file is None):
         response = {"status": "error", "message": "file is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Uploading file to table " + tableName)
+
     # Save file to disk
     data_dir = serverStatus.getConfig()["downloadFolder"]
     dest_file = os.path.join(data_dir, file.filename)
+    print("Uploading file " + str(file.filename) + " to temp folder " + dest_file + " and there to table " + tableName)
     with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
+        if os.path.exists(dest_file):
+            print("File saved to " + dest_file)
+        # List files in temp folder
+        #print("Files in temp folder:")
+        #for f in os.listdir(data_dir):
+        #    print(f)
+    # get full path in fs
+    dest_file = os.path.abspath(dest_file)
+
     # Load file into duckdb
     if (tableName is None):
         tableName = file.filename.split(".")[0]
