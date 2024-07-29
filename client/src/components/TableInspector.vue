@@ -47,6 +47,12 @@
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
+
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMap }"
+        @click="mapData(tableName)">
+        <i class="bi bi-graph-up-arrow"></i>
+        Show map
+      </button>
     </div>
 
 
@@ -111,6 +117,14 @@
       </GenericCross>
     </div>
 
+    <!-- H3 Maps-->
+    <div v-if="showMap">
+    
+      <MapH3 :table="tableName">
+
+      </MapH3>
+    </div>
+
 
 
 
@@ -125,6 +139,7 @@ import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
 import Map from './Map.vue';
+import MapH3 from './MapH3.vue';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
@@ -159,7 +174,7 @@ export default {
   },
 
   components: {
-    GenericCross, Map
+    GenericCross, Map, MapH3
   },
   props: {
     tableName: String,
@@ -298,6 +313,7 @@ export default {
       this.showSampleData = true;
       this.showProfile = false;
       this.showPlot = false;
+      this.showMap = false;
       
 
       await axios.get(`${apiUrl}/database/getSampleData`, {
@@ -341,6 +357,7 @@ export default {
       this.showSampleData = false;
       this.showProfile = true;
       this.showPlot = false;
+      this.showMap = false;
       
 
       const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
@@ -380,6 +397,37 @@ export default {
       this.showSampleData = false;
       this.showProfile = false;
       this.showPlot = true;
+      this.showMap = false;
+
+      var latFound = false;
+      var lonFound = false;
+      // if this.schema contains lat and lon fields, show map
+      for (var key in this.schema) {
+        if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
+          latFound = true;
+          this.latField = key;
+        }
+        if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
+          lonFound = true;
+          this.lonField = key;
+        }
+      }
+
+      if (latFound && lonFound) {
+        this.showMap = true;
+      } else {
+        this.showMap = false;
+      }
+
+      //await this.getTableSchema(table);
+      this.generateCharts();
+    },
+    ////////////////////////////////////////////////////
+    async mapData(table) {
+      this.showSampleData = false;
+      this.showProfile = false;
+      this.showPlot = false;
+      this.showMap = true;
 
       var latFound = false;
       var lonFound = false;
