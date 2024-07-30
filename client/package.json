@@ -23,15 +23,15 @@
     "duckdb": "^0.9.2",
     "express": "^4.18.2",
     "lamejs": "^1.2.0",
+    "leaflet": "^1.9.4",
     "mock-aws-s3": "^4.0.2",
     "nock": "^13.4.0",
+    "plotly.js-dist": "^2.34.0",
     "require": "^0.4.4",
     "tabulator-tables": "^5.5.2",
-    "vue": "^3.3.4",
+    "vue": "^3.4.34",
     "vue-codemirror": "^6.1.1",
-    "vue3-toastify": "^0.1.14",
-    "leaflet": "^1.9.4"
-    
+    "vue3-toastify": "^0.1.14"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^4.4.0",
