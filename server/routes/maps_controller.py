@@ -10,6 +10,7 @@ from services import databaseService
 from fastapi import Request
 from plotly import graph_objs as go
 import matplotlib.colors as mcolors
+import ujson as json
 
 router = APIRouter(prefix="/maps")
 
@@ -21,6 +22,21 @@ def add_geometry(row):
 
 def geo_to_h3(row, H3_res):
     return h3.geo_to_h3(lat=row.LATDD83, lng=row.LONGDD83, resolution=H3_res)
+
+@router.get("/csv", response_class=HTMLResponse)
+async def create_map_csv(table: str, level: int = 5):
+    df = databaseService.runQuery(f"""
+        SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count,
+         avg(anyoConst) as aggField, FROM
+        (SELECT *,h3_latlng_to_cell(latitud, longitud, {level}) as h3_cell FROM {table}) as subq1
+        GROUP BY h3_cell
+        ORDER BY count DESC
+        """)
+
+    # Return the dataframe as a CSV file
+    return df.to_csv()
+
+
 
 @router.get("/html", response_class=HTMLResponse)
 async def create_map(table: str, level: int = 5):

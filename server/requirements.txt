@@ -18,5 +18,5 @@ h3==3.7.7
 geojson==3.1.0
 plotly==5.22.0
 matplotlib==3.9.1
-
+ujson==5.10.0
 

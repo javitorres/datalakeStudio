@@ -1,68 +1,92 @@
 <template>
-  
-  
-      <div ref="plotlyChart" style="height: 800px; width: 100%"></div>
-  
-  
+  <div>
+    <!-- Tile dark or light button -->
+    <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+      <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
+      <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">Dark</label>
+
+      <input type="radio" class="btn-check" name="btnradio2" id="btnradio2" autocomplete="off">
+      <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">Light</label>
+    </div>
+    <div id="map" style="height: 800px; width: 1200px"></div>
+  </div>
 </template>
 
-<script setup>
-import { ref, onMounted, defineProps, nextTick } from 'vue';
+<script>
+import "mapbox-gl/dist/mapbox-gl.css";
+import mapboxgl from 'mapbox-gl';
 import axios from 'axios';
-import Plotly from 'plotly.js-dist';
 
-///////////////////////////////////////////////////
-// Props
-///////////////////////////////////////////////////
-const props = defineProps({
-  table: String
-});
+export default {
+  name: 'MapComponent',
+  data() {
+    return {
+      map: null,
+      sourceId: 'vector-tiles-source',
+    };
+  },
+  mounted() {
+    this.initMap();
+  },
+  methods: {
+    async initMap() {
+      mapboxgl.accessToken = 'pk.eyJ1IjoibWFkaXZhbWFwcyIsImEiOiJjbHo5dXVmdDkwY2ltMmxxejlpY2owZ3F6In0.mS7eefJK9EH-K45vXemDjQ'; // Reemplaza con tu token de acceso de Mapbox
 
-///////////////////////////////////////////////////
-// Data
-///////////////////////////////////////////////////
-// Propiedades reactivas
-const plotData = ref({ data: [], layout: {} });
-const plotlyChart = ref(null);
+      this.map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/light-v10',
+        center: [-0.09, 51.505],
+        zoom: 13
+      });
 
-///////////////////////////////////////////////////
-// Mount
-///////////////////////////////////////////////////
-onMounted(async () => {
-  await loadMap();
-  await nextTick(); // Esperar a que el DOM se actualice completamente
-  renderPlotlyChart(); // Renderizar el gráfico después de cargar los datos y el DOM
-});
+      this.map.on('load', () => {
+        this.addVectorTileSourceAndLayer();
+      });
+    },
+    changeTile(theme) {
+      if (theme === 'dark') {
+        this.map.setStyle('mapbox://styles/mapbox/dark-v10');
+      } else {
+        this.map.setStyle('mapbox://styles/mapbox/light-v10');
+      }
 
-///////////////////////////////////////////////////
-// Métodos
-///////////////////////////////////////////////////
-const loadMap = async () => {
-  try {
-    var response = await axios.get(`http://localhost:8000/maps?table=${props.table}&level=5`);
-    console.log('Map data loaded:', response.data);
-    var mapData = JSON.parse(response.data);
-    console.log('Map data parsed:', mapData);
-    plotData.value =  mapData || { data: [], layout: {} }; // Asegurarse de que los datos tengan una estructura predeterminada
-    console.log('Map loaded:', plotData.value);
-  } catch (error) {
-    console.error('Error loading map:', error);
+      this.map.on('styledata', () => {
+        this.addVectorTileSourceAndLayer();
+      });
+    },
+    addVectorTileSourceAndLayer() {
+      if (this.map.getSource(this.sourceId)) {
+        this.map.removeLayer('vector-tiles-layer');
+        this.map.removeSource(this.sourceId);
+      }
+
+      this.map.addSource(this.sourceId, {
+        type: 'vector',
+        tiles: [
+          'http://localhost:8000/tiles/{z}/{x}/{y}.pbf' // Reemplaza esta URL con la ubicación de tus tiles vectoriales
+        ],
+        minzoom: 0,
+        maxzoom: 14
+      });
+
+      this.map.addLayer({
+        id: 'vector-tiles-layer',
+        type: 'fill',
+        source: this.sourceId,
+        'source-layer': 'your-source-layer-name', // Reemplaza con el nombre de tu capa de fuente
+        paint: {
+          'fill-color': 'rgba(255, 0, 0, 0.5)',
+          'fill-outline-color': 'rgba(0, 0, 0, 1)'
+        }
+      });
+    }
   }
-};
-
-const renderPlotlyChart = () => {
-  
-  if (plotlyChart.value && plotData.value.data && plotData.value.data.length) {
-    console.log('Rendering plotly chart:', plotData.value);
-    Plotly.newPlot(plotlyChart.value, plotData.value.data, plotData.value.layout).then(() => {
-      console.log('Plotly chart rendered successfully');
-    }).catch((error) => {
-      console.error('Error rendering plotly chart:', error);
-    });
-  } else {
-    console.log('Plotly chart container or data not ready:', plotlyChart.value, plotData.value);
-  }
-};
+}
 </script>
 
-<style></style>
+<style scoped>
+#map {
+  height: 100%;
+  width: 100%;
+}
+</style>
