@@ -1,3 +1,4 @@
+import logging as log
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
@@ -11,6 +12,11 @@ from fastapi import Request
 from plotly import graph_objs as go
 import matplotlib.colors as mcolors
 import ujson as json
+import math
+from geojson2vt.geojson2vt import geojson2vt
+from services import mapsService
+from vt2pbf import vt2pbf
+from fastapi.responses import Response
 
 router = APIRouter(prefix="/maps")
 
@@ -270,4 +276,79 @@ async def update_map(request: Request):
     fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
 
     return fig.to_json()
+
+@router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
+async def get_tile(table: str, z: int, x: int, y: int):
+    level = 5
+    print(f"Getting tile {z}/{x}/{y}")
+    lon_min, lat_min, lon_max, lat_max = tile_to_bbox(z, x, y)
+
+    df = databaseService.runQuery(f"""
+    SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count,
+           avg(anyoConst) as aggField FROM
+    (SELECT *, h3_latlng_to_cell(latitud, longitud, {level}) as h3_cell FROM {table}
+     WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}) as subq1
+    GROUP BY h3_cell
+    ORDER BY count DESC
+    """)
+
+    vmin = df['aggField'].min()
+    vmax = df['aggField'].max()
+
+    features = []
+    for index, row in df.iterrows():
+        geom = wkt.loads(row['geom'])
+        color = agg_field_to_color(row['aggField'], vmin, vmax)
+        feature = Feature(geometry=geom,
+                          properties={"color": color, "aggField": row['aggField'], "h3_cell": row['h3_cell']})
+        features.append(feature)
+
+    feature_collection = FeatureCollection(features)
+
+
+    tile_index = geojson2vt(feature_collection,{
+        'maxZoom': 14,  # max zoom to preserve detail on; can't be higher than 24
+        'tolerance': 3, # simplification tolerance (higher means simpler)
+        'extent': 4096, # tile extent (both width and height)
+        'buffer': 64,   # tile buffer on each side
+        'lineMetrics': False, # whether to enable line metrics tracking for LineString/MultiLineString features
+        'promoteId': None,    # name of a feature property to promote to feature.id. Cannot be used with `generateId`
+        'generateId': False,  # whether to generate feature ids. Cannot be used with `promoteId`
+        'indexMaxZoom': 5,       # max zoom in the initial tile index
+        'indexMaxPoints': 100000 # max number of points per tile in the index
+    })
+    vector_tile = tile_index.get_tile(z, x, y)
+    if not vector_tile:
+        # Return 204
+        return Response(status_code=204)
+
+    #print("Tile: ", str(vector_tile))
+    # Print in json:
+    #print(json.dumps(vector_tile, indent=2))
+
+    pbf = vt2pbf(vector_tile)
+    return Response(content=pbf, media_type="application/x-protobuf")
+
+def tile_to_bbox(z, x, y):
+    n = 2.0 ** z
+    lon_min = x / n * 360.0 - 180.0
+    lat_max = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
+    lon_max = (x + 1) / n * 360.0 - 180.0
+    lat_min = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n))))
+    return lon_min, lat_min, lon_max, lat_max
+
+def agg_field_to_color(value, vmin, vmax):
+    norm_value = (value - vmin) / (vmax - vmin)
+    colorscale = [
+        "#440154", "#482878", "#3e4989", "#31688e", "#26828e",
+        "#1f9e89", "#35b779", "#6ece58", "#b5de2b", "#fde725"
+    ]
+    color_idx = int(norm_value * (len(colorscale) - 1))
+    return colorscale[color_idx]
+
+@router.get("/mapbox_token")
+def getMapboxToken():
+    log.info("Getting Mapbox token")
+    token = mapsService.mapbox_access_token
+    return {"token": token}
 
