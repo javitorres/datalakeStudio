@@ -63,7 +63,7 @@ export default {
       this.map.addSource(this.sourceId, {
         type: 'vector',
         tiles: [
-          'http://localhost:8000/tiles/{z}/{x}/{y}.pbf' // Reemplaza esta URL con la ubicación de tus tiles vectoriales
+          'http://localhost:8000/maps/tiles/homecenter/{z}/{x}/{y}.pbf' // Reemplaza esta URL con la ubicación de tus tiles vectoriales
         ],
         minzoom: 0,
         maxzoom: 14

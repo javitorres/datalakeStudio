@@ -113,8 +113,8 @@ def runQuery(query, logQuery=True):
     try:
         if (logQuery):
             print("Executing query: " + str(query))
-        else:
-            print("Executing query XXXXXXX")
+        #else:
+        #    print("Executing query XXXXXXX")
 
 
         r = db.query(query)
