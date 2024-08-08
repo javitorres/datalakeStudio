@@ -2,76 +2,88 @@ import logging as log
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
 from fastapi.responses import JSONResponse
-import h3
-from shapely.geometry import Polygon
 from shapely import wkt
 from geojson import Feature, FeatureCollection
 import plotly.express as px
 from services import databaseService
-from fastapi import Request
-from plotly import graph_objs as go
-import matplotlib.colors as mcolors
-import ujson as json
-import math
-from geojson2vt.geojson2vt import geojson2vt
 from services import mapsService
-from vt2pbf import vt2pbf
-from fastapi.responses import Response
+import time
 
 router = APIRouter(prefix="/maps")
 
 
-def add_geometry(row):
-    points = h3.h3_to_geo_boundary(row['h3_cell'], True)
-    return Polygon(points)
+def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
+            lon_min: float = -19.3, lon_max: float = 7.8):
+    # Si no se proporcionan campos de agregación, usamos un campo predeterminado
+    if aggFields is None:
+        aggFields = ['anyoConst']
 
-def geo_to_h3(row, H3_res):
-    return h3.geo_to_h3(lat=row.LATDD83, lng=row.LONGDD83, resolution=H3_res)
+    # Aplicamos la función de agregación 'avg' a cada campo de aggFields
+    aggFields_sql = ', '.join([f'avg({field}) as avg_{field}' for field in aggFields])
 
-def getData(lat_min: float, lat_max: float, lon_min: float, lon_max: float, table: str, level: int = 5):
-    df = databaseService.runQuery(f"""
-    SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count,
-           avg(anyoConst) as aggField FROM
+    # La consulta completa
+    query = f"""
+    SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count, {aggFields_sql} FROM
     (SELECT *, h3_latlng_to_cell(latitud, longitud, {level}) as h3_cell FROM {table}
      WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
      ) as subq1
     GROUP BY h3_cell
     ORDER BY count DESC
-    """, False)
+    """
+
+    # Ejecutamos la consulta y retornamos el dataframe
+    df = databaseService.runQuery(query, True)
     return df
 
-def getFeatureCollection(df):
+
+def getFeatureCollection(df, fields):
     features = []
     for index, row in df.iterrows():
         geom = wkt.loads(row['geom'])  # Convierte WKT a un objeto de geometría usando wkt.loads
-        feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
+        # Do it for each aggregated field feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
+        properties = {"h3_cell": row['h3_cell']}
+        for field in fields:
+            properties[field] = row[f'avg_{field}']
+        feature = Feature(geometry=geom, properties=properties)
         features.append(feature)
     return FeatureCollection(features)
 
 @router.get("/csv", response_class=HTMLResponse)
-async def create_map_csv(table: str, level: int = 5):
-    lat_min = 26.5573268793772
-    lat_max = 43.32459683013288
-    lon_min = -19.322224736393895
-    lon_max = 7.53788782447271
-
-    df = getData(lat_min, lat_max, lon_min, lon_max, table, level)
+async def create_map_csv(table: str, fields: list, level: int = 5):
+    df = getData(table, fields, level)
    # Return the dataframe as a CSV file
     return df.to_csv()
+
+@router.get("/geojson")
+async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5):
+    # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
+    #             lon_min: float = -19.3, lon_max: float = 7.8
+    bbox = bbox.split(',')
+    lat_min = float(bbox[1])
+    lat_max = float(bbox[3])
+    lon_min = float(bbox[0])
+    lon_max = float(bbox[2])
+    fields = fields.split(',')
+    starttime = time.time()
+    df = getData(table, fields, level, lat_min, lat_max, lon_min, lon_max)
+    geojson_obj = getFeatureCollection(df, fields)
+    log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
+    responseObject = {
+        "metadata":{
+            "records": len(df),
+            "dfsize": round(df.memory_usage(deep=True).sum() / 1024 ** 2, 2),
+            "objectSize": 0,
+            "time": round(time.time() - starttime, 2)
+        },
+        "geojson": geojson_obj
+    }
+    responseObject["metadata"]["objectSize"] = round(len(str(responseObject)) / 1024 ** 2, 2)
+    return JSONResponse(content=responseObject)
 
 @router.get("/html", response_class=HTMLResponse)
 async def create_map(table: str, level: int = 5):
     try:
-        # 40.22220959433139, -3.9426416716146244
-        # 40.606705622873285, -3.0101968179734224
-        #lat_min = 40.22220959433139
-        #lat_max = 40.606705622873285
-        #lon_min = -3.9426416716146244
-        #lon_max = -3.0101968179734224
-
-        # Spain
-        lat_min, lat_max, lon_min, lon_max = 26.5573268793772, 43.32459683013288, -19.322224736393895, 7.53788782447271
-        df = getData(lat_min, lat_max, lon_min, lon_max, table, level)
+        df = getData(table, level)
         geojson_obj = getFeatureCollection(df)
 
         fig = px.choropleth_mapbox(
@@ -127,18 +139,20 @@ async def create_map(table: str, level: int = 5):
         print("Error: " + str(e))
         return "Error creating map"
 
+
+@router.get("/mapbox_token")
+def getMapboxToken():
+    log.info("Getting Mapbox token")
+    token = mapsService.mapbox_access_token
+    return {"token": token}
+
+''' EXPERIMENTAL 
 @router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
 async def get_tile(table: str, z: int, x: int, y: int):
     level = 5
     print(f"####### Getting tile {z}/{x}/{y}")
-    lon_min, lat_min, lon_max, lat_max = tile_to_bbox(z, x, y)
-    #lat_min = 40.22220959433139
-    #lat_max = 40.606705622873285
-    #lon_min = -3.9426416716146244
-    #lon_max = -3.0101968179734224
 
-
-    df = getData(lat_min, lat_max, lon_min, lon_max, table, level)
+    df = getData(table, level)
     # Print the number of rows
     print("Number of rows: ", len(df))
 
@@ -192,10 +206,4 @@ def agg_field_to_color(value, vmin, vmax):
     color_idx = int(norm_value * (len(colorscale) - 1))
     return colorscale[color_idx]
 
-@router.get("/mapbox_token")
-def getMapboxToken():
-    log.info("Getting Mapbox token")
-    token = mapsService.mapbox_access_token
-    return {"token": token}
-
-
+'''

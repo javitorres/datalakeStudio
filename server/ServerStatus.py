@@ -1,5 +1,6 @@
 from config import Config
 from services import databaseService
+from services import mapsService
 
 class ServerStatus:
     _instance = None
@@ -22,6 +23,7 @@ class ServerStatus:
 
             print("Connecting to default database..." + cls.config.get_config.get("defaultDatabase"))
             databaseService.init(cls.config.get_secrets, cls.config.get_config)
+            mapsService.init(cls.config.get_secrets)
             currentDatabase = cls.config.get_config.get("defaultDatabase")[:-3]
             cls._instance.serverStatus = {"databaseReady": True, "currentDatabase": currentDatabase}
 

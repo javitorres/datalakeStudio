@@ -120,7 +120,7 @@
     <!-- H3 Maps-->
     <div v-if="showMap">
     
-      <MapH3 :table="tableName">
+      <MapH3 :table="tableName" :selectedFields="selectedFields" :schema="schema">
 
       </MapH3>
     </div>
