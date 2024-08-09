@@ -35,19 +35,18 @@ def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, 
     df = databaseService.runQuery(query, True)
     return df
 
-def getRecords(table: str, fields: list, lat_min: float = 26.5, lat_max: float = 44.5,
+def getRecords(table: str, fields: str, lat_min: float = 26.5, lat_max: float = 44.5,
             lon_min: float = -19.3, lon_max: float = 7.8):
-    # Si no se proporcionan campos de agregación, usamos un campo predeterminado
-    fields_sql = "*"
 
     # Aplicamos la función de agregación 'avg' a cada campo de aggFields
-    if (fields is not None):
+    if (fields is None or fields == ""):
+        fields = "*"
         fields_sql = ', '.join([{field} for field in fields])
 
     # La consulta completa
     query = f"""
     
-    SELECT {fields_sql} FROM {table}
+    SELECT {fields} FROM {table}
      WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
     
     """
@@ -70,8 +69,15 @@ def getFeatureCollection(df, fields):
     return FeatureCollection(features)
 
 @router.get("/csv", response_class=HTMLResponse)
-async def create_map_csv(table: str, fields: list, level: int = 5):
-    df = getRecords(table, fields, level)
+async def csv(table: str, fields: str, bbox: str):
+    # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
+    #             lon_min: float = -19.3, lon_max: float = 7.8
+    bbox = bbox.split(',')
+    lat_min = float(bbox[1])
+    lat_max = float(bbox[3])
+    lon_min = float(bbox[0])
+    lon_max = float(bbox[2])
+    df = getRecords(table, fields, lat_min, lat_max, lon_min, lon_max)
    # Return the dataframe as a CSV file
     return df.to_csv()
 

@@ -25,6 +25,7 @@
     "express": "^4.18.2",
     "lamejs": "^1.2.0",
     "leaflet": "^1.9.4",
+    "mapbox-gl": "^3.5.2",
     "mock-aws-s3": "^4.0.2",
     "nock": "^13.4.0",
     "papaparse": "^5.4.1",

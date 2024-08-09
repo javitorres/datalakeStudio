@@ -67,11 +67,17 @@
         </div>
 
         <div class="range-container">
-    <div class="range-track"></div>
-    <div class="range-highlight" :style="highlightStyle"></div>
-    <input type="range" class="form-range" v-model="minValue" :min="min" :max="max">
-    <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max">
-  </div>
+          <div class="range-track"></div>
+          <div class="range-highlight" :style="highlightStyle"></div>
+          <input type="range" class="form-range" v-model="minValue" :min="min" :max="max">
+          <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max">
+        </div>
+        <div class="value-display">
+          <span>Min: {{ min }}</span>
+          <span>Min2: {{ minValue }}</span>
+          <span>Max2: {{ maxValue }}</span>
+          <span>Max: {{ max }}</span>
+        </div>
       </div>
     </div> <!-- End of map controls -->
 
@@ -201,13 +207,13 @@ export default {
       }
     },
     highlightStyle() {
-        const minPercent = (this.minValue / this.max) * 100;
-        const maxPercent = (this.maxValue / this.max) * 100;
-        return {
-          left: minPercent + '%',
-          width: (maxPercent - minPercent) + '%'
-        };
-      }
+      const minPercent = (this.minValue / this.max) * 100;
+      const maxPercent = (this.maxValue / this.max) * 100;
+      return {
+        left: minPercent + '%',
+        width: (maxPercent - minPercent) + '%'
+      };
+    }
 
   },
 
@@ -224,15 +230,15 @@ export default {
       deep: true
     },
     minValue(val) {
-        if (val > this.maxValue) {
-          this.minValue = this.maxValue;
-        }
-      },
-      maxValue(val) {
-        if (val < this.minValue) {
-          this.maxValue = this.minValue;
-        }
+      if (val > this.maxValue) {
+        this.minValue = this.maxValue;
       }
+    },
+    maxValue(val) {
+      if (val < this.minValue) {
+        this.maxValue = this.minValue;
+      }
+    }
   },
 
 
@@ -245,7 +251,7 @@ export default {
 
     if (this.token) {
       this.geojson = await this.fetchGeojsonData();
-      //this.csvdata = await this.fetchCsvData();
+      this.csvdata = await this.fetchRecordsData();
       if (this.minMaxAggField.min === null || this.minMaxAggField.max === null) {
         this.minMaxAggField = this.getMinMax(this.geojson, this.showField);
       }
@@ -309,10 +315,37 @@ export default {
 
 
     ////////////////////////////
-    async fetchCsvData() {
-      const response = await axios.get(`http://localhost:8000/maps/csv?table=${this.table}&fields=${this.fields}&level=${this.h3Level}`);
-      return response.data;
+    async fetchRecordsData() {
+      var bbox = "-19.3,26.5,7.8,44.5";
+      if (this.map) {
+        const bounds = this.map.getBounds();
+        bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
+      }
+
+      this.loading = true; 
+
+      try {
+        const response = await axios.get(`http://localhost:8000/maps/csv`, {
+          params: {
+            table: this.table,
+            fields: this.numericFields,
+            bbox: bbox,
+          },
+          paramsSerializer: params => {
+            return qs.stringify(params, { arrayFormat: 'comma' });
+          },
+        });
+        this.pointsmetadata = response.data.metadata;
+
+        return response.data.points; 
+      } catch (error) {
+        toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
+        return null; // Devuelve null en caso de error
+      } finally {
+        this.loading = false; // Asegúrate de que `loading` se establezca en false después de la solicitud
+      }
     },
+    
 
     ////////////////////////////
     async getToken() {
@@ -536,31 +569,40 @@ export default {
 }
 
 .range-container {
-      position: relative;
-      width: 100%;
-    }
-    .range-track {
-      position: absolute;
-      height: 5px;
-      background-color: #ccc;
-      top: 50%;
-      left: 0;
-      transform: translateY(-50%);
-      width: 100%;
-      z-index: 1;
-    }
-    .range-highlight {
-      position: absolute;
-      height: 5px;
-      background-color: #007bff;
-      top: 50%;
-      transform: translateY(-50%);
-      z-index: 2;
-    }
-    input[type="range"] {
-      position: relative;
-      z-index: 3;
-      width: 100%;
-      background: transparent;
-    }
+  position: relative;
+  width: 100%;
+}
+
+.range-track {
+  position: absolute;
+  height: 5px;
+  background-color: #ccc;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 100%;
+  z-index: 1;
+}
+
+.range-highlight {
+  position: absolute;
+  height: 5px;
+  background-color: #007bff;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+}
+
+input[type="range"] {
+  position: relative;
+  z-index: 3;
+  width: 100%;
+  background: transparent;
+}
+
+.value-display {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+}
 </style>
