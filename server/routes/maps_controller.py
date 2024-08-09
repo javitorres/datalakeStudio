@@ -35,6 +35,27 @@ def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, 
     df = databaseService.runQuery(query, True)
     return df
 
+def getRecords(table: str, fields: list, lat_min: float = 26.5, lat_max: float = 44.5,
+            lon_min: float = -19.3, lon_max: float = 7.8):
+    # Si no se proporcionan campos de agregación, usamos un campo predeterminado
+    fields_sql = "*"
+
+    # Aplicamos la función de agregación 'avg' a cada campo de aggFields
+    if (fields is not None):
+        fields_sql = ', '.join([{field} for field in fields])
+
+    # La consulta completa
+    query = f"""
+    
+    SELECT {fields_sql} FROM {table}
+     WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
+    
+    """
+
+    # Ejecutamos la consulta y retornamos el dataframe
+    df = databaseService.runQuery(query, True)
+    return df
+
 
 def getFeatureCollection(df, fields):
     features = []
@@ -50,7 +71,7 @@ def getFeatureCollection(df, fields):
 
 @router.get("/csv", response_class=HTMLResponse)
 async def create_map_csv(table: str, fields: list, level: int = 5):
-    df = getData(table, fields, level)
+    df = getRecords(table, fields, level)
    # Return the dataframe as a CSV file
     return df.to_csv()
 

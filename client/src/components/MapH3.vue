@@ -2,7 +2,30 @@
   <div>
 
     <br />
+
     <div class="row">
+      <div class="col-12">
+        <!-- Tile dark or light button -->
+        <div class="col-2">
+          <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off">
+            <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">Dark</label>
+            <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off" checked>
+            <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">Light</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <br />
+
+    <!-- H3 Layer  controls  -->
+    <div class="row">
+      <div class="col-1">
+        <div v-if="geometadata" class="alert alert-light" role="alert">
+          <strong>H3 Layer</strong>
+        </div>
+      </div>
+
       <!-- Selector del campo a mostrar (de selectedFields) -->
       <div class="col-3">
         <div class="input-group">
@@ -10,18 +33,6 @@
           <select class="form-select" v-model="showField" @change="showFieldInMap()">
             <option v-for="field in numericFields" :value="field">{{ field }}</option>
           </select>
-        </div>
-      </div>
-
-
-      <!-- Tile dark or light button -->
-      <div class="col-2">
-        <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
-          <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off">
-          <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">Dark</label>
-
-          <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off" checked>
-          <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">Light</label>
         </div>
       </div>
 
@@ -34,7 +45,6 @@
       <div class="col-1">
         <label class="btn btn-outline-primary" @click="toggleData()">{{ showData ? "Hide Data" : "Show data" }}</label>
       </div>
-
 
       <!-- Selector for H3 level, from 1 to 10 -->
       <div class="col-2">
@@ -55,14 +65,68 @@
           <button class="btn m-1 opcion-style" :class="limitsSetedManually ? 'btn-primary' : 'btn-secondary'"
             @click="reloadMap(false, true)">Refresh</button>
         </div>
+
+        <div class="range-container">
+    <div class="range-track"></div>
+    <div class="range-highlight" :style="highlightStyle"></div>
+    <input type="range" class="form-range" v-model="minValue" :min="min" :max="max">
+    <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max">
+  </div>
       </div>
-    </div>
+    </div> <!-- End of map controls -->
+
+
+    <!-- Points control  -->
+    <div class="row">
+      <div class="col-1">
+        <div v-if="geometadata" class="alert alert-light" role="alert">
+          <strong>Points</strong>
+        </div>
+      </div>
+      <!-- Selector del campo a mostrar (de selectedFields) -->
+      <div class="col-3">
+        <div class="input-group">
+          <span class="input-group-text">Show field</span>
+          <select class="form-select" v-model="showFieldInPoints" @change="showFieldInPoints()">
+            <option v-for="field in numericFields" :value="field">{{ field }}</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Show data toggle -->
+      <div class="col-1">
+        <label class="btn btn-outline-primary" @click="toggleDataPoints()">{{ showData ? "Hide Data" : "Show data"
+          }}</label>
+      </div>
+
+
+      <!-- Editor for min and max values -->
+      <div class="col-3">
+        <div class="input-group">
+          <span class="input-group-text">Min</span>
+          <input type="number" class="form-control" v-model="minMaxAggField.min" @change="changePointsLimits()">
+          <span class="input-group-text">Max</span>
+          <input type="number" class="form-control" v-model="minMaxAggField.max" @change="changePointsLimits()">
+          <!-- Reset button -->
+
+          <button class="btn m-1 opcion-style" :class="limitsSetedManually ? 'btn-primary' : 'btn-secondary'"
+            @click="reloadMap(false, true)">Refresh</button>
+        </div>
+      </div>
+    </div> <!-- End of points controls -->
+
     <br />
     <div v-if="loading" class="loading-overlay">
       <div class="spinner"></div>
     </div>
 
-    <div id="map" style="height: 800px; width: 100%"></div>
+    <div class="row">
+      <div class="col-12">
+        <div id="map" style="height: 800px; width: 100%"></div>
+
+      </div>
+
+    </div>
 
     <div class="row">
       <div class="col-6">
@@ -111,6 +175,10 @@ export default {
       loading: false,
       limitsSetedManually: false,
       geometadata: null,
+      min: 0,
+      max: 100,
+      minValue: 20,
+      maxValue: 80,
     };
   },
 
@@ -120,55 +188,26 @@ export default {
       return n;
     },
     h3Radix() {
-    // Array con el radio en metros de cada nivel H3
-    /*
-        Res	Average edge length (Km)
-    0	1281.256011
-    1	483.0568391
-    2	182.5129565
-    3	68.97922179
-    4	26.07175968
-    5	9.854090990
-    6	3.724532667
-    7	1.406475763
-    8	0.531414010
-    9	0.200786148
-    10	0.075863783
-    11	0.028663897
-    12	0.010830188
-    13	0.004092010
-    14	0.001546100
-    15	0.000584169
+      // Array con el radio en metros de cada nivel H3
+      const h3RadixValues = [1281.256, 483.056, 182.512, 68.979, 26.071, 9.8540, 3.7245, 1.4064, 0.5314, 0.2007, 0.0758, 0.0286, 0.0108, 0.0040, 0.0015, 0.0005];
 
-    */
-    const h3RadixValues = [
-        1281.256011,
-        483.0568391,
-        182.5129565,
-        68.97922179,
-        26.07175968,
-        9.854090990,
-        3.724532667,
-        1.406475763,
-        0.531414010,
-        0.200786148,
-        0.075863783,
-        0.028663897,
-        0.010830188,
-        0.004092010,
-        0.001546100,
-        0.000584169
-    ];
-
-    // Verifica que this.h3Level esté dentro del rango válido
-    if (this.h3Level >= 0 && this.h3Level <= 15) {
-      var meters = h3RadixValues[this.h3Level] * 1000;
-      meters = Math.round(meters * 100) / 100;
-      return meters;
-    } else {
+      // Verifica que this.h3Level esté dentro del rango válido
+      if (this.h3Level >= 0 && this.h3Level <= 15) {
+        var meters = h3RadixValues[this.h3Level] * 1000;
+        meters = Math.round(meters * 100) / 100;
+        return meters;
+      } else {
         throw new Error("Nivel H3 inválido: " + this.h3Level);
-    }
-}
+      }
+    },
+    highlightStyle() {
+        const minPercent = (this.minValue / this.max) * 100;
+        const maxPercent = (this.maxValue / this.max) * 100;
+        return {
+          left: minPercent + '%',
+          width: (maxPercent - minPercent) + '%'
+        };
+      }
 
   },
 
@@ -183,7 +222,17 @@ export default {
     selectedFields: {
       handler: 'reloadMap',
       deep: true
-    }
+    },
+    minValue(val) {
+        if (val > this.maxValue) {
+          this.minValue = this.maxValue;
+        }
+      },
+      maxValue(val) {
+        if (val < this.minValue) {
+          this.maxValue = this.minValue;
+        }
+      }
   },
 
 
@@ -485,4 +534,33 @@ export default {
     transform: rotate(360deg);
   }
 }
+
+.range-container {
+      position: relative;
+      width: 100%;
+    }
+    .range-track {
+      position: absolute;
+      height: 5px;
+      background-color: #ccc;
+      top: 50%;
+      left: 0;
+      transform: translateY(-50%);
+      width: 100%;
+      z-index: 1;
+    }
+    .range-highlight {
+      position: absolute;
+      height: 5px;
+      background-color: #007bff;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 2;
+    }
+    input[type="range"] {
+      position: relative;
+      z-index: 3;
+      width: 100%;
+      background: transparent;
+    }
 </style>
