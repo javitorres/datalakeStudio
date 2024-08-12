@@ -21,6 +21,8 @@ Datalake Studio is an enhanced Data Exploration and Management tool
 
 <b>Quick for big data:</b> Datalake Studio is built on top of DuckDB, a high-performance, embedded SQL OLAP database management system. DuckDB is designed to handle large datasets, making it ideal for data exploration and analysis.
 
+<b>See your data:</b> Plot automatically your data or see data over a map: Points, H3 aggregations, etc
+
 <b>Versatile Data Loading Options:</b> Users can effortlessly upload data from a several sources: directly from local computer, via a URL, or from an Amazon S3 bucket. Additionally, it supports direct data downloads from PostgreSQL databases, enhancing its utility for database administrators and data analysts.
 
 <b>Several data formats:</b> Wide range of data formats, Datalake Studio is compatible with CSV, TSV, Parquet and Shapefile formats. Load data without tedious conversions.
@@ -144,7 +146,9 @@ or use crossfilter to play with your data
 
 If your data has spatial info you can see in a map:
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/c770d3d3-3cb8-4b54-9307-a55da3505eb4)
+<img width="1239" alt="image" src="https://github.com/user-attachments/assets/5be35c2f-72ba-4678-a36f-4c2cab45046b">
+
+<img width="1251" alt="image" src="https://github.com/user-attachments/assets/641c757a-c228-4f1d-9ad0-5c1d72554a99">
 
 
 
