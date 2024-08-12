@@ -35,51 +35,67 @@ def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, 
     df = databaseService.runQuery(query, True)
     return df
 
-def getRecords(table: str, fields: str, lat_min: float = 26.5, lat_max: float = 44.5,
+def getRecords(table: str, latitudeField: str, longitudeField: str,  fields: str, lat_min: float = 26.5, lat_max: float = 44.5,
             lon_min: float = -19.3, lon_max: float = 7.8):
 
     # Aplicamos la función de agregación 'avg' a cada campo de aggFields
     if (fields is None or fields == ""):
-        fields = "*"
-        fields_sql = ', '.join([{field} for field in fields])
+        fields = f"""* EXCLUDE ({latitudeField}, {longitudeField})"""
+        #fields_sql = ', '.join([{field} for field in fields])
+    else:
+        # Remove latitude and longitude fields
+        fields = fields.replace(f"{latitudeField}", "")
+        fields = fields.replace(f"{longitudeField}", "")
+        fields = fields.replace(",,", ",")
+        fields = fields.replace(",,", ",")
+        # REmove fisrt or last comma
+        if fields[0] == ",": fields = fields[1:]
+        if fields[-1] == ",": fields = fields[:-1]
 
     # La consulta completa
     query = f"""
-    
-    SELECT {fields} FROM {table}
-     WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
-    
+    SELECT round({latitudeField}, 5) as latitude, round({longitudeField}, 5) as longitude, {fields}
+        FROM {table}
+    WHERE {latitudeField} >= {lat_min} 
+      AND {latitudeField} <= {lat_max} 
+      AND {longitudeField} >= {lon_min} 
+      AND {longitudeField} <= {lon_max}
+      LIMIT 100000
     """
 
     # Ejecutamos la consulta y retornamos el dataframe
     df = databaseService.runQuery(query, True)
+    # Show firt 5 records
+    print(df.head())
     return df
 
 
-def getFeatureCollection(df, fields):
+def getFeatureCollection(df, fields, addProperties: bool = True):
     features = []
     for index, row in df.iterrows():
         geom = wkt.loads(row['geom'])  # Convierte WKT a un objeto de geometría usando wkt.loads
         # Do it for each aggregated field feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
-        properties = {"h3_cell": row['h3_cell']}
-        for field in fields:
-            properties[field] = row[f'avg_{field}']
-        feature = Feature(geometry=geom, properties=properties)
+        if addProperties:
+            properties = {"h3_cell": row['h3_cell']}
+            for field in fields:
+                properties[field] = row[f'avg_{field}']
+            feature = Feature(geometry=geom, properties=properties)
+        else:
+            feature = Feature(geometry=geom, properties={})
         features.append(feature)
     return FeatureCollection(features)
 
 @router.get("/csv", response_class=HTMLResponse)
-async def csv(table: str, fields: str, bbox: str):
-    # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
-    #             lon_min: float = -19.3, lon_max: float = 7.8
+async def csv(table: str, latitudeField: str,  longitudeField: str, fields: str, bbox: str):
     bbox = bbox.split(',')
     lat_min = float(bbox[1])
     lat_max = float(bbox[3])
     lon_min = float(bbox[0])
     lon_max = float(bbox[2])
-    df = getRecords(table, fields, lat_min, lat_max, lon_min, lon_max)
-   # Return the dataframe as a CSV file
-    return df.to_csv()
+    starttime = time.time()
+    df = getRecords(table, latitudeField, longitudeField, fields, lat_min, lat_max, lon_min, lon_max)
+    log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
+    return JSONResponse(content=df.to_csv(index=False), media_type="text/csv")
 
 @router.get("/geojson")
 async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5):
