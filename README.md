@@ -110,6 +110,9 @@ api_context: "YOUR_API_CONTEXT"
 # Database connections
 pgpass_file: "YOUR_PG_PASS_FILE"
 
+# Mapbox
+mapbox_access_token: "YOUR_MAPBOX_ACCESS_TOKEN"
+
 ```
 
 Also, docker-compose will get the credentials in .aws for AWS access.
