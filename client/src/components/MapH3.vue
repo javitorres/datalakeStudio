@@ -304,9 +304,9 @@ export default {
       this.guessLatitudeLongitude();
       if (this.latitudeField && this.longitudeField) {
         this.geojson = await this.fetchGeojsonData();
-        this.pointsGeojson = await this.fetchPointsData();
         this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-        this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
+        //this.pointsGeojson = await this.fetchPointsData();
+        //this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
         this.initMap(this.geojson);
       }
     }
@@ -648,7 +648,7 @@ export default {
           'layout': {},
           'paint': {
             'fill-color': colorScaleH3,
-            'fill-opacity': 0.5
+            'fill-opacity': 0.5,
           }
         });
 
@@ -754,7 +754,7 @@ export default {
       this.updateVisibility();
     },
     ////////////////////////////
-    updateVisibility() {
+    async updateVisibility() {
       if (this.outline) {
         this.map.setLayoutProperty('outline', 'visibility', 'visible');
       } else {
@@ -769,7 +769,10 @@ export default {
 
       if (this.showDataPoints) {
         if ( ! this.pointsGeojson) {
-          this.reloadMapPoints(true);
+          //this.reloadMapPoints(true);
+          this.pointsGeojson = await this.fetchPointsData();
+          this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
+          this.reloadLayers('POINTS');
         }
 
         this.map.setLayoutProperty('points', 'visibility', 'visible');

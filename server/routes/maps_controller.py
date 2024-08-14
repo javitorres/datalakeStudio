@@ -8,6 +8,10 @@ import plotly.express as px
 from services import databaseService
 from services import mapsService
 import time
+from fastapi.responses import Response
+from geojsonvt import geojson2vt
+from geojsonvt.tile import vt2pbf
+import math
 
 router = APIRouter(prefix="/maps")
 
@@ -189,7 +193,7 @@ def getMapboxToken():
     token = mapsService.mapbox_access_token
     return {"token": token}
 
-''' EXPERIMENTAL 
+
 @router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
 async def get_tile(table: str, z: int, x: int, y: int):
     level = 5
@@ -249,4 +253,3 @@ def agg_field_to_color(value, vmin, vmax):
     color_idx = int(norm_value * (len(colorscale) - 1))
     return colorscale[color_idx]
 
-'''

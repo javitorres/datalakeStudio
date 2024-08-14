@@ -14,11 +14,11 @@ def buildIndex(bucket_name):
 
     paginator = s3.get_paginator("list_objects_v2")
     for page in paginator.paginate(Bucket=bucket_name):
-        print("Page: " + str(page))
+        #print("Page: " + str(page))
         for obj in page.get("Contents", []):
             fileName = "s3://" + bucket_name + "/" + obj["Key"]
             indice.append(fileName)
-            print("Added file: " + fileName)
+            #print("Added file: " + fileName)
     print("S3 Index built")
     return indice
 
