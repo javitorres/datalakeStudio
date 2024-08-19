@@ -9,8 +9,6 @@ from services import databaseService
 from services import mapsService
 import time
 from fastapi.responses import Response
-from geojsonvt import geojson2vt
-from geojsonvt.tile import vt2pbf
 import math
 
 router = APIRouter(prefix="/maps")
@@ -83,6 +81,7 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
             properties = {"h3_cell": row['h3_cell']}
             for field in fields:
                 properties[field] = row[f'avg_{field}']
+            properties['count'] = row['count']
             feature = Feature(geometry=geom, properties=properties)
         else:
             feature = Feature(geometry=geom, properties={})
