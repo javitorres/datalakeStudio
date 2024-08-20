@@ -149,6 +149,8 @@ or use crossfilter to play with your data
 
 If your data has spatial info you can see in a map:
 
+![Captura desde 2024-08-19 18-09-32](https://github.com/user-attachments/assets/cc91394c-1f4a-4b3b-9065-983b6efd3764)
+
 <img width="1239" alt="image" src="https://github.com/user-attachments/assets/5be35c2f-72ba-4678-a36f-4c2cab45046b">
 
 <img width="1251" alt="image" src="https://github.com/user-attachments/assets/641c757a-c228-4f1d-9ad0-5c1d72554a99">
