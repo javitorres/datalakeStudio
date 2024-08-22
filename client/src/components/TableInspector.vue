@@ -1,6 +1,6 @@
 <template>
   <!-- Fields -->
-  <div class="col-md-1" v-if="schema && showOptions">
+  <div class="col-md-1" v-if="tableSchema && showOptions">
 
     <!-- Check all and check none buttons -->
     <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(false)">
@@ -16,7 +16,7 @@
       Copy field names to clipboard
     </button>
 
-    <div class="row" v-for="(type, field) in schema" :key="field">
+    <div class="row" v-if="selectedFields" v-for="(type, field) in tableSchema" :key="field">
       <button class="btn m-1 opcion-style" :class="selectedFields.includes(field) ? 'btn-primary' : 'btn-secondary'"
         @click="toggleField(field)">
         <span v-html="imageSrc(type)"></span>
@@ -42,14 +42,12 @@
         Show table profile
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showPlot }"
-        @click="plotData(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showPlot }" @click="plotData(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMap }"
-        @click="mapData(tableName)">
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMap }" @click="mapData(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Show map
       </button>
@@ -119,8 +117,7 @@
 
     <!-- H3 Maps-->
     <div v-if="showMap">
-    
-      <MapH3 :table="tableName" :selectedFields="selectedFields" :schema="schema">
+      <MapH3 :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
 
       </MapH3>
     </div>
@@ -161,7 +158,7 @@ export default {
       lonField: null,
 
       sampleData: Object,
-      schema: Object,
+      tableSchema: Object,
       tableProfile: Object,
       rowcount: 0,
       type: 'First',
@@ -187,10 +184,14 @@ export default {
   emits: [],
 
   watch: {
-    tableName: function (newVal, oldVal) {
-      // To avoid load a big table if previous table was analyzed withh all records enabled
-      this.setRecords(50);
-      this.load();
+    tableName: {
+      async handler(newVal, oldVal) {
+        // To avoid load a big table if previous table was analyzed with all records enabled
+        //console.log("Table Inspector: reloading table: " + newVal);
+        await this.load();
+        //console.log("Table Inspector: table changed to: " + newVal + " Selected fields seted to: " + this.selectedFields);
+        this.setRecords(50);
+      }
     }
   },
 
@@ -198,7 +199,7 @@ export default {
     selectAllFields(all) {
       this.selectedFields = [];
       if (all) {
-        this.selectedFields = Object.keys(this.schema)
+        this.selectedFields = Object.keys(this.tableSchema)
       }
       this.generateCharts();
       this.updateTable();
@@ -229,8 +230,8 @@ export default {
     ////////////////////////////////////////////////////
     updateTable() {
       var columns = [];
-      for (var key in this.schema) {
-        if (this.selectedFields.includes(key)) {
+      for (var key in this.tableSchema) {
+        if (this.selectedFields && this.selectedFields.includes(key)) {
           columns.push({ title: key, field: key });
         }
       }
@@ -290,14 +291,14 @@ export default {
         },
       }).then((response) => {
         if (response.status === 200) {
-          this.schema = response.data;
-          if (this.selectedFields == null) {
-            this.selectedFields = [];
-            // All fields selected by default. Fill selectedFields with fields from schema
-            for (var key in this.schema) {
-              this.selectedFields.push(key).field;
-            }
+          this.tableSchema = response.data;
+
+          this.selectedFields = [];
+          // All fields selected by default. Fill selectedFields with fields from schema
+          for (var key in this.tableSchema) {
+            this.selectedFields.push(key).field;
           }
+
 
         } else {
           toast.error(`Error: HTTP ${response.message}`);
@@ -314,7 +315,7 @@ export default {
       this.showProfile = false;
       this.showPlot = false;
       this.showMap = false;
-      
+
 
       await axios.get(`${apiUrl}/database/getSampleData`, {
         params: {
@@ -358,7 +359,7 @@ export default {
       this.showProfile = true;
       this.showPlot = false;
       this.showMap = false;
-      
+
 
       const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
         params: {
@@ -401,8 +402,8 @@ export default {
 
       var latFound = false;
       var lonFound = false;
-      // if this.schema contains lat and lon fields, show map
-      for (var key in this.schema) {
+      // if this.tableSchema contains lat and lon fields, show map
+      for (var key in this.tableSchema) {
         if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
           latFound = true;
           this.latField = key;
@@ -413,11 +414,11 @@ export default {
         }
       }
 
-      if (latFound && lonFound) {
+      /*if (latFound && lonFound) {
         this.showMap = true;
       } else {
         this.showMap = false;
-      }
+      }*/
 
       //await this.getTableSchema(table);
       this.generateCharts();
@@ -431,8 +432,8 @@ export default {
 
       var latFound = false;
       var lonFound = false;
-      // if this.schema contains lat and lon fields, show map
-      for (var key in this.schema) {
+      // if this.tableSchema contains lat and lon fields, show map
+      for (var key in this.tableSchema) {
         if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
           latFound = true;
           this.latField = key;
@@ -443,11 +444,11 @@ export default {
         }
       }
 
-      if (latFound && lonFound) {
+      /*if (latFound && lonFound) {
         this.showMap = true;
       } else {
         this.showMap = false;
-      }
+      }*/
 
       //await this.getTableSchema(table);
       this.generateCharts();
@@ -455,12 +456,12 @@ export default {
     ////////////////////////////////////////////////////
     generateCharts() {
       var charts = [];
-      for (var key in this.schema) {
+      for (var key in this.tableSchema) {
         // if key in selectedFields
         if (this.selectedFields.includes(key)) {
           var chart = {
             title: key,
-            type: this.schema[key],
+            type: this.tableSchema[key],
             fields: key
           };
           if (chart.type === 'object' || chart.type === 'bool') {
@@ -483,7 +484,7 @@ export default {
       this.genericCrossKey++;
     },
     ////////////////////////////////////////////////////
-    
+
   },
 }
 

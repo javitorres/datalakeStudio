@@ -14,7 +14,20 @@ import math
 router = APIRouter(prefix="/maps")
 
 
-def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
+def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 44.5, lon_min: float = -19.3, lon_max: float = 7.8):
+    # La consulta completa
+    query = f"""
+    SELECT * , geom_4326 as geom FROM (
+    SELECT * EXCLUDE GEOM, ST_AsText(ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326')) as geom_4326
+    FROM {table}
+    LIMIT 1000) as subq1
+    """
+
+    # Ejecutamos la consulta y retornamos el dataframe
+    df = databaseService.runQuery(query, True)
+    return df
+
+def getH3Data(table: str, latitudeField: str, longitudeField: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
             lon_min: float = -19.3, lon_max: float = 7.8):
     # Si no se proporcionan campos de agregación, usamos un campo predeterminado
     if aggFields is None:
@@ -26,8 +39,8 @@ def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, 
     # La consulta completa
     query = f"""
     SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count, {aggFields_sql} FROM
-    (SELECT *, h3_latlng_to_cell(latitud, longitud, {level}) as h3_cell FROM {table}
-     WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
+    (SELECT *, h3_latlng_to_cell({latitudeField}, {longitudeField}, {level}) as h3_cell FROM {table}
+     WHERE {latitudeField} >= {lat_min} AND {latitudeField} <= {lat_max} AND {longitudeField} >= {lon_min} AND {longitudeField} <= {lon_max}
      ) as subq1
     GROUP BY h3_cell
     ORDER BY count DESC
@@ -78,10 +91,21 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
         geom = wkt.loads(row['geom'])  # Convierte WKT a un objeto de geometría usando wkt.loads
         # Do it for each aggregated field feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
         if addProperties:
-            properties = {"h3_cell": row['h3_cell']}
-            for field in fields:
-                properties[field] = row[f'avg_{field}']
-            properties['count'] = row['count']
+            properties = {}
+            if 'h3_cell' in row:
+                properties = {"h3_cell": row['h3_cell']}
+
+            if 'count' in row:
+                properties['count'] = row['count']
+
+            if fields is not None and len(fields) > 0:
+                log.info(f"Fields: {fields}")
+                for field in fields:
+                    if f'avg_{field}' in row:
+                        properties[field] = row[f'avg_{field}']
+                    else:
+                        properties[field] = row[field]
+
             feature = Feature(geometry=geom, properties=properties)
         else:
             feature = Feature(geometry=geom, properties={})
@@ -101,7 +125,7 @@ async def csv(table: str, latitudeField: str,  longitudeField: str, fields: str,
     return JSONResponse(content=df.to_csv(index=False), media_type="text/csv")
 
 @router.get("/geojson")
-async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5):
+async def create_map_geojson(table: str, latitudeField: str,  longitudeField: str, geomField: str, bbox: str, level: int = 5, fields: str = ""):
     # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
     #             lon_min: float = -19.3, lon_max: float = 7.8
     bbox = bbox.split(',')
@@ -110,8 +134,20 @@ async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5)
     lon_min = float(bbox[0])
     lon_max = float(bbox[2])
     fields = fields.split(',')
+    if fields[0] == "":
+        fields = []
     starttime = time.time()
-    df = getData(table, fields, level, lat_min, lat_max, lon_min, lon_max)
+    df = None
+    geojson_obj = None
+    if ((latitudeField == "" or longitudeField == "") and geomField != ""):
+        df = getGeom(table, geomField, lat_min, lat_max, lon_min, lon_max)
+    elif (latitudeField != "" and longitudeField != ""):
+        df = getH3Data(table, latitudeField, longitudeField, fields, level, lat_min, lat_max, lon_min, lon_max)
+    else:
+        log.error("No latitude-longitude or geom fields provided")
+        return Response(status_code=400)
+
+    log.info("df head " + str(df.head()))
     geojson_obj = getFeatureCollection(df, fields)
     log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
     responseObject = {
@@ -129,7 +165,7 @@ async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5)
 @router.get("/html", response_class=HTMLResponse)
 async def create_map(table: str, level: int = 5):
     try:
-        df = getData(table, level)
+        df = getH3Data(table, level)
         geojson_obj = getFeatureCollection(df)
 
         fig = px.choropleth_mapbox(
@@ -191,64 +227,4 @@ def getMapboxToken():
     log.info("Getting Mapbox token")
     token = mapsService.mapbox_access_token
     return {"token": token}
-
-
-@router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
-async def get_tile(table: str, z: int, x: int, y: int):
-    level = 5
-    print(f"####### Getting tile {z}/{x}/{y}")
-
-    df = getData(table, level)
-    # Print the number of rows
-    print("Number of rows: ", len(df))
-
-    #vmin = df['aggField'].min()
-    #vmax = df['aggField'].max()
-
-    feature_collection = getFeatureCollection(df)
-    #print("Geojson: ", feature_collection)
-    tile_index = geojson2vt(feature_collection,{
-        'maxZoom': 24,  # max zoom to preserve detail on; can't be higher than 24
-        'tolerance': 5, # simplification tolerance (higher means simpler)
-        'extent': 4096, # tile extent (both width and height)
-        'buffer': 64,   # tile buffer on each side
-        'lineMetrics': False, # whether to enable line metrics tracking for LineString/MultiLineString features
-        'promoteId': 'h3_cell',    # name of a feature property to promote to feature.id. Cannot be used with `generateId`
-        'generateId': False,  # whether to generate feature ids. Cannot be used with `promoteId`
-        'indexMaxZoom': 14,       # max zoom in the initial tile index
-        'indexMaxPoints': 100000 # max number of points per tile in the index
-    })
-    # Print index size
-    print("Index size: ", len(tile_index.tiles))
-    vector_tile = tile_index.get_tile(z, x, y)
-    if not vector_tile:
-        # Return 204
-        return Response(status_code=204)
-
-    pbf = vt2pbf(vector_tile)
-    # Print pbf bytes
-    print("PBF bytes: ", len(pbf))
-    return Response(content=pbf, media_type="application/x-protobuf")
-
-def tile_to_bbox(z, x, y):
-    n = 2.0 ** z
-    lon_min = x / n * 360.0 - 180.0
-    lat_max = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
-    lon_max = (x + 1) / n * 360.0 - 180.0
-    lat_min = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n))))
-    print(f"Tile {z}/{x}/{y} is in bbox ({lat_min}, {lon_min}, {lat_max}, {lon_max})")
-    return lon_min, lat_min, lon_max, lat_max
-
-def agg_field_to_color(value, vmin, vmax):
-    norm_value = (value - vmin) / (vmax - vmin)
-    colorscale = [
-        "#440154", "#482878", "#3e4989", "#31688e", "#26828e",
-        "#1f9e89", "#35b779", "#6ece58", "#b5de2b", "#fde725"
-    ]
-    #print("Norm value: ", norm_value)
-    # if norm_value is Nan, return the first color
-    if math.isnan(norm_value):
-        return colorscale[0]
-    color_idx = int(norm_value * (len(colorscale) - 1))
-    return colorscale[color_idx]
 
