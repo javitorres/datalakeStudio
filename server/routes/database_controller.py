@@ -63,7 +63,7 @@ def getTableSchema(tableName: str):
     print("Getting schema for table " + tableName)
     r = databaseService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
     # If any field name ends with () remove it
-    r.columns = r.columns.str.replace(r"\(\)", "")
+    r.columns = r.columns.str.replace(r"\(\)", "", regex=True)
     if (r is not None):
         schema_dict = r.dtypes.apply(lambda x: str(x)).to_dict()
         return JSONResponse(content=schema_dict, status_code=200)
@@ -83,7 +83,7 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
     df = databaseService.runQuery("SELECT * FROM " + tableName + LIMIT)
 
     # If any field name ends with () remove it
-    df.columns = df.columns.str.replace(r"\(\)", "")
+    df.columns = df.columns.str.replace(r"\(\)", "", regex=True)
     if (df is not None):
         #return JSONResponse(content=r.to_csv(index=False), status_code=200)
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)

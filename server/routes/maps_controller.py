@@ -14,7 +14,20 @@ import math
 router = APIRouter(prefix="/maps")
 
 
-def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
+def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 44.5, lon_min: float = -19.3, lon_max: float = 7.8):
+    # La consulta completa
+    query = f"""
+    SELECT * , geom_4326 as geom FROM (
+    SELECT * EXCLUDE GEOM, ST_AsText(ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326')) as geom_4326
+    FROM {table}
+    LIMIT 1000) as subq1
+    """
+
+    # Ejecutamos la consulta y retornamos el dataframe
+    df = databaseService.runQuery(query, True)
+    return df
+
+def getH3Data(table: str, latitudeField: str, longitudeField: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
             lon_min: float = -19.3, lon_max: float = 7.8):
     # Si no se proporcionan campos de agregación, usamos un campo predeterminado
     if aggFields is None:
@@ -26,8 +39,8 @@ def getData(table: str, aggFields: list, level: int = 5, lat_min: float = 26.5, 
     # La consulta completa
     query = f"""
     SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count, {aggFields_sql} FROM
-    (SELECT *, h3_latlng_to_cell(latitud, longitud, {level}) as h3_cell FROM {table}
-     WHERE latitud >= {lat_min} AND latitud <= {lat_max} AND longitud >= {lon_min} AND longitud <= {lon_max}
+    (SELECT *, h3_latlng_to_cell({latitudeField}, {longitudeField}, {level}) as h3_cell FROM {table}
+     WHERE {latitudeField} >= {lat_min} AND {latitudeField} <= {lat_max} AND {longitudeField} >= {lon_min} AND {longitudeField} <= {lon_max}
      ) as subq1
     GROUP BY h3_cell
     ORDER BY count DESC
@@ -78,10 +91,28 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
         geom = wkt.loads(row['geom'])  # Convierte WKT a un objeto de geometría usando wkt.loads
         # Do it for each aggregated field feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
         if addProperties:
+<<<<<<< HEAD
             properties = {"h3_cell": row['h3_cell']}
             for field in fields:
                 properties[field] = row[f'avg_{field}']
             properties['count'] = row['count']
+=======
+            properties = {}
+            if 'h3_cell' in row:
+                properties = {"h3_cell": row['h3_cell']}
+
+            if 'count' in row:
+                properties['count'] = row['count']
+
+            if fields is not None and len(fields) > 0:
+                log.info(f"Fields: {fields}")
+                for field in fields:
+                    if f'avg_{field}' in row:
+                        properties[field] = row[f'avg_{field}']
+                    else:
+                        properties[field] = row[field]
+
+>>>>>>> develop
             feature = Feature(geometry=geom, properties=properties)
         else:
             feature = Feature(geometry=geom, properties={})
@@ -101,7 +132,7 @@ async def csv(table: str, latitudeField: str,  longitudeField: str, fields: str,
     return JSONResponse(content=df.to_csv(index=False), media_type="text/csv")
 
 @router.get("/geojson")
-async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5):
+async def create_map_geojson(table: str, latitudeField: str,  longitudeField: str, geomField: str, bbox: str, level: int = 5, fields: str = ""):
     # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
     #             lon_min: float = -19.3, lon_max: float = 7.8
     bbox = bbox.split(',')
@@ -110,8 +141,20 @@ async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5)
     lon_min = float(bbox[0])
     lon_max = float(bbox[2])
     fields = fields.split(',')
+    if fields[0] == "":
+        fields = []
     starttime = time.time()
-    df = getData(table, fields, level, lat_min, lat_max, lon_min, lon_max)
+    df = None
+    geojson_obj = None
+    if ((latitudeField == "" or longitudeField == "") and geomField != ""):
+        df = getGeom(table, geomField, lat_min, lat_max, lon_min, lon_max)
+    elif (latitudeField != "" and longitudeField != ""):
+        df = getH3Data(table, latitudeField, longitudeField, fields, level, lat_min, lat_max, lon_min, lon_max)
+    else:
+        log.error("No latitude-longitude or geom fields provided")
+        return Response(status_code=400)
+
+    log.info("df head " + str(df.head()))
     geojson_obj = getFeatureCollection(df, fields)
     log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
     responseObject = {
@@ -129,7 +172,7 @@ async def create_map_geojson(table: str, fields: str, bbox: str, level: int = 5)
 @router.get("/html", response_class=HTMLResponse)
 async def create_map(table: str, level: int = 5):
     try:
-        df = getData(table, level)
+        df = getH3Data(table, level)
         geojson_obj = getFeatureCollection(df)
 
         fig = px.choropleth_mapbox(
@@ -192,6 +235,7 @@ def getMapboxToken():
     token = mapsService.mapbox_access_token
     return {"token": token}
 
+<<<<<<< HEAD
 
 @router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
 async def get_tile(table: str, z: int, x: int, y: int):
@@ -252,3 +296,5 @@ def agg_field_to_color(value, vmin, vmax):
     color_idx = int(norm_value * (len(colorscale) - 1))
     return colorscale[color_idx]
 
+=======
+>>>>>>> develop

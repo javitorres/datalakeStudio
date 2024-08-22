@@ -33,7 +33,7 @@
     "require": "^0.4.4",
     "tabulator-tables": "^5.5.2",
     "v-mapbox": "^5.1.0",
-    "vue": "^3.4.34",
+    "vue": "^3.4.38",
     "vue-codemirror": "^6.1.1",
     "vue3-toastify": "^0.1.14",
     "csv2geojson": "^5.1.2"
