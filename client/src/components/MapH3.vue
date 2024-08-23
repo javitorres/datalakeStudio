@@ -55,17 +55,18 @@
           <label class="form-check-label">H3 Data</label>
           <input class="form-check-input" type="checkbox" v-model="showData" @change="updateVisibility()">
         </div>
-      </div>
-
-      <!-- Selector del campo a mostrar (de selectedFields) -->
-      <div class="col-3">
+        <br />
+        <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group">
           <span class="input-group-text">Show field</span>
-          <select class="form-select" v-model="selectedFieldForH3" @change="showFieldInMap()">
+          <select class="form-select" v-model="selectedFieldForH3" @change="showField('H3')">
             <option v-for="field in numericFields" :value="field">{{ field }}</option>
           </select>
         </div>
       </div>
+
+      
+
 
       <!-- Show data toggle -->
 
@@ -74,7 +75,7 @@
         <div class="row">
           <div class="input-group">
             <span class="input-group-text">H3 Level</span>
-            <select class="form-select" v-model="h3Level" @change="reloadH3Map(true)">
+            <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true)">
               <option v-for="i in 12" :value="i">{{ i }}</option>
             </select>
           </div>
@@ -119,16 +120,16 @@
           <div class="col-3">
             <div class="input-group">
               <span class="input-group-text">Low</span>
-            <input type="color" class="form-control form-control-color" id="exampleColorInput"
-              v-model="colorPickerH3Low" title="Choose your color" @change="reloadLayers('H3')">
-          </div>
+              <input type="color" class="form-control form-control-color" id="exampleColorInput"
+                v-model="colorPickerH3Low" title="Choose your color" @change="reloadLayers('H3')">
+            </div>
           </div>
           <div class="col-6"></div>
           <div class="col-3">
             <div class="input-group">
               <input type="color" class="form-control form-control-color" id="exampleColorInput"
                 v-model="colorPickerH3High" title="Choose your color" @change="reloadLayers('H3')">
-                <span class="input-group-text">High</span>
+              <span class="input-group-text">High</span>
             </div>
           </div>
         </div>
@@ -139,9 +140,9 @@
               <div class="range-track"></div>
               <div class="range-highlight" :style="highlightStyle(minValue, maxValue, max)"></div>
               <input type="range" class="form-range" v-model="minValue" :min="min" :max="max"
-                @change="changeLimitsH3(geojson)">
+                @change="changeLimits('H3')">
               <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max"
-                @change="changeLimitsH3(geojson)">
+                @change="changeLimits('H3')">
             </div>
             <div class="value-display">
               <span>{{ min }}</span>
@@ -169,24 +170,25 @@
           <label class="form-check-label">Show Points</label>
           <input class="form-check-input" type="checkbox" v-model="showDataPoints" @change="updateVisibility()">
         </div>
-
-      </div>
-      <!-- Selector del campo a mostrar (de selectedFields) -->
-      <div class="col-3">
+        <br />
+      
+              <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group" v-if="showDataPoints">
           <span class="input-group-text">Show field</span>
-          <select class="form-select" v-model="selectedFieldForPoints" @change="showFieldInPoints()">
+          <select class="form-select" v-model="selectedFieldForPoints" @change="showField('POINTS')">
             <option v-for="field in numericFields" :value="field">{{ field }}</option>
           </select>
         </div>
+
       </div>
+      
 
       <div class="col-2">
         <div class="row">
           <!-- Bar seelctor for point size -->
           <div class="input-group">
             <span class="input-group-text">Point size</span>
-            <select class="form-select" v-model="pointSize" @change="reloadPointsMap(false)">
+            <select class="form-select" v-model="pointSize" @change="reloadMap('POINTS', false)">
               <option v-for="i in 10" :value="i">{{ i }}</option>
             </select>
           </div>
@@ -212,16 +214,16 @@
           <div class="col-3">
             <div class="input-group">
               <span class="input-group-text">Low</span>
-            <input type="color" class="form-control form-control-color" id="exampleColorInput"
-              v-model="colorPickerPointsLow" title="Choose your color" @change="reloadLayers('POINTS')">
+              <input type="color" class="form-control form-control-color" id="exampleColorInput"
+                v-model="colorPickerPointsLow" title="Choose your color" @change="reloadLayers('POINTS')">
             </div>
           </div>
           <div class="col-6"></div>
           <div class="col-3">
             <div class="input-group">
-              
-            <input type="color" class="form-control form-control-color" id="exampleColorInput"
-              v-model="colorPickerPointsHigh" title="Choose your color" @change="reloadLayers('POINTS')">
+
+              <input type="color" class="form-control form-control-color" id="exampleColorInput"
+                v-model="colorPickerPointsHigh" title="Choose your color" @change="reloadLayers('POINTS')">
               <span class="input-group-text">High</span>
             </div>
           </div>
@@ -369,34 +371,32 @@ export default {
     },
   },
 
-  
+
 
   watch: {
     table: {
       async handler(newVal, oldVal) {
-        //console.log('table ha cambiado de', oldVal, 'a', newVal);
         if (oldVal) {
-          //console.log("table changed . Retrieving JSON data");
           this.geojson = await this.fetchGeojsonData();
           this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-          this.reloadH3Map();
+          this.reloadMap('H3');
         }
       },
       immediate: true
     },
     selectedFields: {
       async handler(newVal, oldVal) {
-        await this.reloadH3Map();  
+        await this.reloadMap('H3');
       },
-      deep: true,  
-      immediate: true  
+      deep: true,
+      immediate: true
     },
     schema: {
       async handler(newVal, oldVal) {
         this.setNumericFields();
       },
-      deep: true,  
-      immediate: true  
+      deep: true,
+      immediate: true
     },
     minValue(val) {
       if (Number(val) > this.maxValue) this.minValue = this.maxValue;
@@ -419,30 +419,16 @@ export default {
 
     if (this.token) {
       this.guessLatitudeLongitude();
-      /*if (this.latitudeField && this.longitudeField) {
-        this.geojson = await this.fetchGeojsonData();
-        this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-      } else {
-        console.log("No latitude and longitude fields found");
-      }*/
     }
-
   },
   methods: {
     ////////////////////////////
     setNumericFields() {
-      //console.log("Schema: " + JSON.stringify(this.schema));
-      var n = Object.keys(this.schema).filter(key =>
-        this.schema[key] === 'int64' || this.schema[key] === 'int32' ||
-        this.schema[key] === 'float64' || this.schema[key] === 'float32');
-
-      
+      var n = Object.keys(this.schema).filter(key => this.schema[key].startsWith('int') || this.schema[key].startsWith('float'));
       this.numericFields = n;
     },
-
     ////////////////////////////
     guessLatitudeLongitude() {
-      //console.log("guessLatitudeLongitude. Active table: " + this.table);
       if (this.selectedFields) {
         const latFields = this.selectedFields.filter(field => field.toLowerCase().includes('lat'));
         const lonFields = this.selectedFields.filter(field => field.toLowerCase().includes('lon'));
@@ -450,67 +436,46 @@ export default {
 
         if (latFields && latFields.length > 0) {
           this.latitudeField = latFields[0];
-          //console.log("Setting latitude field with " + this.latitudeField);
         }
 
         if (lonFields && lonFields.length > 0) {
           this.longitudeField = lonFields[0];
-          //console.log("Setting longitude field with " + this.longitudeField);
         }
 
         if (geomFields && geomFields.length > 0) {
           this.geomField = geomFields[0];
-          //console.log("Setting geom field with " + this.geomField);
         }
-
       }
     },
     ////////////////////////////
     highlightStyle(minValue, maxValue, max) {
-      //console.log("minValue: " + minValue + " maxValue: " + maxValue);
-      minValue = Number(minValue);
-      maxValue = Number(maxValue);
-      const minPercent = (minValue / max) * 100;
-      const maxPercent = (maxValue / max) * 100;
+      const minPercent = (Number(minValue) / max) * 100;
+      const maxPercent = (Number(maxValue) / max) * 100;
       var result = {
         left: minPercent + '%',
         width: (maxPercent - minPercent) + '%'
       }
-      //console.log("highlightStyle for minValue "+ minValue +" and maxValue "+ maxValue +":" + JSON.stringify(result));
       return result;
     },
     ////////////////////////////
-    async reloadH3Map(reloadData = false, reloadLimits = false) {
-      if (reloadData) {
-        console.log("reloadH3Map: Reloading H3 map data");
-        this.geojson = await this.fetchGeojsonData();
-      }
-      if (!this.geojson) {
-        return;
-      }
+    async reloadMap(layer, reloadData = false, reloadLimits = false) {
+      console.log("Reloading map for layer: " + layer);
+      if (layer === 'H3') {
+        if (reloadData) this.geojson = await this.fetchGeojsonData();
+        if (this.geojson && reloadLimits) {
+          this.limitsSetedManually = false;
+          this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
+        }
+      } else if (layer === 'POINTS') {
+        if (reloadData) this.pointsGeojson = await this.fetchPointsData();
+        if (this.pointsGeojson && reloadLimits) {
+          this.limitsPointsSetedManually = false;
+          this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
+        }
 
-      if (reloadLimits) {
-        this.limitsSetedManually = false;
-        this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
+        this.reloadLayers(layer);
+        this.updateVisibility();
       }
-      this.reloadLayers('H3');
-      this.updateVisibility();
-    },
-    ////////////////////////////
-    async reloadPointsMap(reloadData = false, reloadLimits = false) {
-      if (reloadData) {
-        this.pointsGeojson = await this.fetchPointsData();
-      }
-      if (!this.geojson) {
-        return;
-      }
-
-      if (reloadLimits) {
-        this.limitsPointsSetedManually = false;
-        this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
-      }
-      this.reloadLayers('POINTS');
-      this.updateVisibility();
     },
     ////////////////////////////
     async fetchGeojsonData() {
@@ -520,7 +485,7 @@ export default {
         bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
       }
 
-      this.loading = true; 
+      this.loading = true;
 
       try {
         const response = await axios.get(`http://localhost:8000/maps/geojson`, {
@@ -539,27 +504,21 @@ export default {
         });
         this.geometadata = response.data.metadata;
 
-        return response.data.geojson; 
+        return response.data.geojson;
       } catch (error) {
         toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
         console.log("Error fetching geojson data:" + error);
-        return null; 
+        return null;
       } finally {
-        this.loading = false; 
+        this.loading = false;
       }
     },
     //////////////////////
-    async changeLimitsH3() {
-      this.limitsSetedManually = true;
-      this.reloadLayers('H3');
+    async changeLimits(layer) {
+      if (layer === 'H3') this.limitsSetedManually = true;
+      else if (layer === 'POINTS') this.limitsPointsSetedManually = true;
+      this.reloadLayers(layer);
     },
-
-    //////////////////////
-    async changeLimitPoints() {
-      this.limitsPointsSetedManually = true;
-      this.reloadLayers('POINTS');
-    },
-
     ////////////////////////////
     async fetchPointsData() {
       var bbox = "-19.3,26.5,7.8,44.5";
@@ -629,15 +588,10 @@ export default {
       }
     },
     //////////////////////////////////////////////////
-    async showFieldInMap() {
-      //console.log("Showing field " + this.showField + " in map");
-      await this.reloadH3Map(false, true);
+    async showField(layer) {
+      await this.reloadMap(layer, false, true);
     },
-    //////////////////////////////////////////////////
-    async showFieldInPoints() {
-      //console.log("Showing field " + this.showField + " in map");
-      await this.reloadPointsMap(false, true);
-    },
+
     ////////////////////////////
     initMap() {
       console.log("Initializing map");
@@ -665,55 +619,77 @@ export default {
         console.log("setMinMaxH3: geojson is null");
         return;
       }
-      geojson.features.forEach(feature => {
-        const value = feature.properties[field];
-        if (!isNaN(value)) {
-          if (value < this.min) this.min = value;
-          if (value > this.max) this.max = value;
-        }
-        if (feature.properties.count > this.maxCount) {
-          this.maxCount = feature.properties.count;
-        }
-      });
-
-      if (this.min === this.max || this.min > this.max) {
-        this.max = this.min + 1;
-      }
-      this.min = Math.round(this.min * 100) / 100;
-      this.max = Math.round(this.max * 100) / 100;
-      this.minValue = this.min;
-      this.maxValue = this.max;
+      var percentiles = this.getPercentiles(geojson, field);
+      this.min = Math.round(percentiles.p0, 2);
+      this.max = Math.round(percentiles.p100, 2);
+      this.minValue = Math.round(percentiles.p25, 2);
+      this.maxValue = Math.round(percentiles.p75, 2);
+      this.maxCount = this.getMaxCount(geojson, field);
+      
+      this.changeLimits('H3');
     },
     ////////////////////////////
     setMinMaxPoints(geojson, field) {
       this.minPoints = 1;
       this.maxPoints = -1;
 
+      var percentiles = this.getPercentiles(geojson, field);
+      this.minPoints = Math.round(percentiles.p0, 2);
+      this.maxPoints = Math.round(percentiles.p100, 2);
+      this.minValuePoints = Math.round(percentiles.p25, 2);
+      this.maxValuePoints = Math.round(percentiles.p75, 2);
+      
+      this.changeLimits('POINTS');
+    },
+    //////////////////////
+    getPercentiles(geojson, field) {
+      let values = [];
+
       geojson.features.forEach(feature => {
         const value = feature.properties[field];
         if (!isNaN(value)) {
-          if (value < this.minPoints) this.minPoints = value;
-          if (value > this.maxPoints) this.maxPoints = value;
+            values.push(value);
+        }
+    });
+      values.sort((a, b) => a - b);
+      const getPercentile = (arr, p) => {
+        const index = (p / 100) * (arr.length - 1);
+        const lower = Math.floor(index);
+        const upper = Math.ceil(index);
+        const weight = index - lower;
+        return arr[lower] * (1 - weight) + arr[upper] * weight;
+      };
+
+      let percentiles = {
+        p0: getPercentile(values, 0),
+        p25: getPercentile(values, 25),
+        p50: getPercentile(values, 50),
+        p75: getPercentile(values, 75),
+        p100: getPercentile(values, 100)
+      };
+
+      return percentiles;
+    },
+    ////////////////////////////
+    getMaxCount(geojson, field){
+      var maxCount = -1;
+      geojson.features.forEach(feature => {
+        const value = feature.properties[field];
+        if (feature.properties.count > maxCount) {
+          maxCount = feature.properties.count;
         }
       });
-
-      if (this.minPoints === this.maxPoints || this.minPoints > this.maxPoints) {
-        this.maxPoints = this.minPoints + 1;
-      }
-      this.minPoints = Math.round(this.minPoints * 100) / 100;
-      this.maxPoints = Math.round(this.maxPoints * 100) / 100;
-      this.minValuePoints = this.minPoints;
-      this.maxValuePoints = this.maxPoints;
+      
+      return maxCount;
     },
     ////////////////////////////
     generateColorScale(min, max, field, layer) {
-      console.log("generateColorScale: min: " + min + " max: " + max + " field: " + field + " layer: " + layer);
       min = Number(min);
       max = Number(max);
 
-      if (field==null) {
+      if (field == null) {
         console.log("generateColorScale: field or layer is None");
-        return ['literal', '#FF0000']; 
+        return ['literal', '#FF0000'];
       }
 
       const steps = 25;
@@ -760,7 +736,7 @@ export default {
         return;
       }
       // if ALL in reloadLayersParam or H3 in reloadLayersParam
-      if (this.geojson &&  (!reloadLayersParam || reloadLayersParam === 'H3')) {
+      if (this.geojson && (!reloadLayersParam || reloadLayersParam === 'H3')) {
         // H3 Layers
         if (this.map.getLayer('h3')) {
           this.map.removeLayer('h3');
@@ -778,7 +754,6 @@ export default {
 
         const colorScaleH3 = this.generateColorScale(this.minValue, this.maxValue, this.selectedFieldForH3, 'h3');
         const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, 500000];
-        console.log("Color scale: " + JSON.stringify(colorScaleH3) + " Height scale: " + JSON.stringify(heightScaleH3));
 
         if (this.show3D) {
           this.map.addLayer({
@@ -821,7 +796,7 @@ export default {
 
       // Points Layer
       // Add points layer
-      if (this.pointsGeojson  && (!reloadLayersParam || reloadLayersParam === 'POINTS')) {
+      if (this.pointsGeojson && (!reloadLayersParam || reloadLayersParam === 'POINTS')) {
         if (this.map.getLayer('points')) {
           this.map.removeLayer('points');
         }

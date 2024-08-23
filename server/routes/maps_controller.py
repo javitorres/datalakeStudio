@@ -91,12 +91,6 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
         geom = wkt.loads(row['geom'])  # Convierte WKT a un objeto de geometría usando wkt.loads
         # Do it for each aggregated field feature = Feature(geometry=geom, properties={"aggField": row['aggField'], "h3_cell": row['h3_cell']})
         if addProperties:
-<<<<<<< HEAD
-            properties = {"h3_cell": row['h3_cell']}
-            for field in fields:
-                properties[field] = row[f'avg_{field}']
-            properties['count'] = row['count']
-=======
             properties = {}
             if 'h3_cell' in row:
                 properties = {"h3_cell": row['h3_cell']}
@@ -105,14 +99,11 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
                 properties['count'] = row['count']
 
             if fields is not None and len(fields) > 0:
-                log.info(f"Fields: {fields}")
                 for field in fields:
                     if f'avg_{field}' in row:
                         properties[field] = row[f'avg_{field}']
                     else:
                         properties[field] = row[field]
-
->>>>>>> develop
             feature = Feature(geometry=geom, properties=properties)
         else:
             feature = Feature(geometry=geom, properties={})
@@ -234,67 +225,3 @@ def getMapboxToken():
     log.info("Getting Mapbox token")
     token = mapsService.mapbox_access_token
     return {"token": token}
-
-<<<<<<< HEAD
-
-@router.get("/tiles/{table}/{z}/{x}/{y}.pbf")
-async def get_tile(table: str, z: int, x: int, y: int):
-    level = 5
-    print(f"####### Getting tile {z}/{x}/{y}")
-
-    df = getData(table, level)
-    # Print the number of rows
-    print("Number of rows: ", len(df))
-
-    #vmin = df['aggField'].min()
-    #vmax = df['aggField'].max()
-
-    feature_collection = getFeatureCollection(df)
-    #print("Geojson: ", feature_collection)
-    tile_index = geojson2vt(feature_collection,{
-        'maxZoom': 24,  # max zoom to preserve detail on; can't be higher than 24
-        'tolerance': 5, # simplification tolerance (higher means simpler)
-        'extent': 4096, # tile extent (both width and height)
-        'buffer': 64,   # tile buffer on each side
-        'lineMetrics': False, # whether to enable line metrics tracking for LineString/MultiLineString features
-        'promoteId': 'h3_cell',    # name of a feature property to promote to feature.id. Cannot be used with `generateId`
-        'generateId': False,  # whether to generate feature ids. Cannot be used with `promoteId`
-        'indexMaxZoom': 14,       # max zoom in the initial tile index
-        'indexMaxPoints': 100000 # max number of points per tile in the index
-    })
-    # Print index size
-    print("Index size: ", len(tile_index.tiles))
-    vector_tile = tile_index.get_tile(z, x, y)
-    if not vector_tile:
-        # Return 204
-        return Response(status_code=204)
-
-    pbf = vt2pbf(vector_tile)
-    # Print pbf bytes
-    print("PBF bytes: ", len(pbf))
-    return Response(content=pbf, media_type="application/x-protobuf")
-
-def tile_to_bbox(z, x, y):
-    n = 2.0 ** z
-    lon_min = x / n * 360.0 - 180.0
-    lat_max = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * y / n))))
-    lon_max = (x + 1) / n * 360.0 - 180.0
-    lat_min = math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * (y + 1) / n))))
-    print(f"Tile {z}/{x}/{y} is in bbox ({lat_min}, {lon_min}, {lat_max}, {lon_max})")
-    return lon_min, lat_min, lon_max, lat_max
-
-def agg_field_to_color(value, vmin, vmax):
-    norm_value = (value - vmin) / (vmax - vmin)
-    colorscale = [
-        "#440154", "#482878", "#3e4989", "#31688e", "#26828e",
-        "#1f9e89", "#35b779", "#6ece58", "#b5de2b", "#fde725"
-    ]
-    #print("Norm value: ", norm_value)
-    # if norm_value is Nan, return the first color
-    if math.isnan(norm_value):
-        return colorscale[0]
-    color_idx = int(norm_value * (len(colorscale) - 1))
-    return colorscale[color_idx]
-
-=======
->>>>>>> develop
