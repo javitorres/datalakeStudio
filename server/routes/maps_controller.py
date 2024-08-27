@@ -20,7 +20,12 @@ def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 
     SELECT * , geom_4326 as geom FROM (
     SELECT * EXCLUDE GEOM, ST_AsText(ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326')) as geom_4326
     FROM {table}
-    LIMIT 1000) as subq1
+    WHERE  {geomField} IS NOT NULL
+    AND ST_Within(
+        ST_MakeEnvelope({lon_min}::DOUBLE, {lat_min}::DOUBLE, {lon_max}::DOUBLE, {lat_max}::DOUBLE), 
+        ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326'))
+        ) as subq1
+    LIMIT 1000
     """
 
     # Ejecutamos la consulta y retornamos el dataframe

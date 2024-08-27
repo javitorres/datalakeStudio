@@ -52,7 +52,7 @@
     <div class="row">
       <div class="col-2">
         <div class="form-check form-switch">
-          <label class="form-check-label">H3 Data</label>
+          <label class="form-check-label">H3 Data / Geom</label>
           <input class="form-check-input" type="checkbox" v-model="showData" @change="updateVisibility()">
         </div>
         <br />
@@ -145,10 +145,10 @@
                 @change="changeLimits('H3')">
             </div>
             <div class="value-display">
-              <span>{{ min }}</span>
-              <span>Min {{ minValue }}</span>
-              <span>Max {{ maxValue }}</span>
-              <span>{{ max }}</span>
+              <span>Absolute Min<br/>{{ min }}</span>
+              <span>Selected Min<br/>{{ minValue }}</span>
+              <span>Selected Max<br/>{{ maxValue }}</span>
+              <span>Absolute Max<br/>{{ max }}</span>
             </div>
           </div>
         </div>
@@ -167,7 +167,7 @@
     <div class="row">
       <div class="col-2">
         <div class="form-check form-switch">
-          <label class="form-check-label">Show Points</label>
+          <label class="form-check-label">Points</label>
           <input class="form-check-input" type="checkbox" v-model="showDataPoints" @change="updateVisibility()">
         </div>
         <br />
