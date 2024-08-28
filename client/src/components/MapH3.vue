@@ -2,6 +2,8 @@
 
 
   <div>
+    <button class="btn m-1 opcion-style btn-primary" @click="renderChart()">Render chart</button>
+    <div id="chart"></div>
     <br />
     <!-- General controls  -->
     <div class="row">
@@ -296,7 +298,8 @@ import mapboxgl from 'mapbox-gl';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import qs from 'qs';
-import csv2geojson from 'csv2geojson';
+import csv2geojson, { csv } from 'csv2geojson';
+import * as vg from "@uwdata/vgplot";
 
 export default {
   name: 'MapH3',
@@ -350,8 +353,10 @@ export default {
       minPoints: 0,
       maxPoints: 100,
       limitsPointsSetedManually: false,
+      csvData: null,
       pointsGeojson: null,
       pointSize: 5,
+      chartInstance: null,
 
     };
   },
@@ -420,6 +425,8 @@ export default {
     if (this.token) {
       this.guessLatitudeLongitude();
     }
+
+    this.renderChart();
   },
   methods: {
     ////////////////////////////
@@ -543,6 +550,7 @@ export default {
           },
         });
 
+        this.csvData = response.data;
         const pointsGeojson = await new Promise((resolve, reject) => {
           // Get number of records in the response
           this.totalPoints = response.data.split(/\r\n|\r|\n/).length - 2;
@@ -954,6 +962,52 @@ export default {
     changePointsOpacity() {
       this.map.setPaintProperty('points', 'circle-opacity', Number(this.pointsOpacity));
     },
+    ////////////////////////////
+    convertCsvToJson(csvString) {
+      const lines = csvString.split('\n');
+      const headers = lines[0].split(',');
+
+      return lines.slice(1).map(line => {
+        const values = line.split(',');
+        const obj = {};
+        headers.forEach((header, index) => {
+          obj[header] = values[index];
+        });
+        return obj;
+      });
+    },
+
+    ////////////////////////////
+    async renderChart() {
+      if (this.csvData === null) {
+        console.log("CSV data is null. Cannot render chart");
+        return;
+      }
+      console.log("Rendering chart");
+      /*await vg.coordinator().exec([
+        vg.loadParquet("aapl", "data/stocks.parquet", { where: "Symbol = 'AAPL'" })
+      ]);*/
+      // consolo.log 3 rows of the csvData variable
+      console.log(this.csvData.split(/\r\n|\r|\n/).slice(0, 3));
+
+      const jsonData = this.convertCsvToJson(this.csvData);
+
+      const data = vg.from(jsonData); // Carga tus propios datos
+
+      console.log("Rendering chart 22");
+      this.chartInstance = vg.plot(
+        vg.lineY(
+          vg.from("aapl"),
+          { x: "longitud", y: "AskingPriceVenta" }
+        ),
+        vg.width(680),
+        vg.height(200)
+      );
+      console.log("Rendering chart 3");
+
+      document.getElementById("chart").appendChild(this.chartInstance);
+      console.log("Rendering chart 4");
+    },
   }
 };
 </script>
@@ -1032,5 +1086,9 @@ input[type="range"] {
   display: flex;
   justify-content: space-between;
   margin-top: 10px;
+}
+
+#chart {
+  margin-top: 20px;
 }
 </style>
