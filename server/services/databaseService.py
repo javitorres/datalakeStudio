@@ -1,11 +1,19 @@
 import duckdb
 import os
 import logging as log
-
 from zipfile import ZipFile
+from pathlib import Path
+from hashlib import sha256
+
+import pyarrow as pa
+
+import ujson
 
 configLoaded = False
 db = None
+
+BUNDLE_DIR = Path(".mosaic/bundle")
+
 
 format = "%(asctime)s %(filename)s:%(lineno)d - %(message)s "
 log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
@@ -109,7 +117,7 @@ def loadTable(config, tableName, fileName):
         return False
 
 ####################################################
-def runQuery(query, logQuery=True):
+def runQuery(query, logQuery=True, format = "df"):
     try:
         if (logQuery):
             print("Executing query: " + str(query))
@@ -119,7 +127,10 @@ def runQuery(query, logQuery=True):
 
         r = db.query(query)
         if (r is not None):
-            return r.df()
+            if (format == "arrow"):
+                return r.arrow()
+            else:
+                return r.df()
     except Exception as e:
         if (logQuery):
             print("Error running query: " + str(e))
@@ -237,11 +248,26 @@ def changeDatabase(config, databaseName):
     db = duckdb.connect(config["databasesFolder"] + "/" + databaseName + ".db")
     return True
 
-
-
-
 def createDatabase(config, databaseName):
     log.info("Creating database " + databaseName)
     duckdb.connect(config["databasesFolder"] + "/" + databaseName)
     return True
 
+############################################
+def retrieve_arrow_bytes(query):
+    sql = query.get("sql")
+    result = get_arrow_bytes(sql)
+    return result
+
+def get_arrow(sql):
+    result = runQuery(sql, True, "arrow")
+    return result
+
+def arrow_to_bytes(arrow):
+    sink = pa.BufferOutputStream()
+    with pa.ipc.new_stream(sink, arrow.schema) as writer:
+        writer.write(arrow)
+    return sink.getvalue().to_pybytes()
+
+def get_arrow_bytes(sql):
+    return arrow_to_bytes(get_arrow(sql))

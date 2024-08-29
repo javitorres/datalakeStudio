@@ -51,6 +51,11 @@
         <i class="bi bi-graph-up-arrow"></i>
         Show map
       </button>
+
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMosaic }" @click="toggleMosaic()">
+        <i class="bi bi-graph-up-arrow"></i>
+        Show mosaic
+      </button>
     </div>
 
 
@@ -122,6 +127,13 @@
       </MapH3>
     </div>
 
+    
+    <div v-if="showMosaic">
+      <Mosaic>
+
+      </Mosaic>
+    </div>
+
 
 
 
@@ -137,6 +149,7 @@ import 'vue3-toastify/dist/index.css';
 import GenericCross from './GenericCross.vue';
 import Map from './Map.vue';
 import MapH3 from './MapH3.vue';
+import Mosaic from './Mosaic.vue';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
@@ -153,6 +166,7 @@ export default {
       showProfile: false,
       showPlot: false,
       showMap: false,
+      showMosaic: false,
       hideMap: false,
       latField: null,
       lonField: null,
@@ -171,7 +185,7 @@ export default {
   },
 
   components: {
-    GenericCross, Map, MapH3
+    GenericCross, Map, MapH3, Mosaic
   },
   props: {
     tableName: String,
@@ -484,6 +498,15 @@ export default {
       this.genericCrossKey++;
     },
     ////////////////////////////////////////////////////
+    toggleMosaic() {
+      this.showSampleData = false;
+      this.showProfile = false;
+      this.showPlot = false;
+      this.showMap = false;
+
+      this.showMosaic = !this.showMosaic;
+
+    },
 
   },
 }

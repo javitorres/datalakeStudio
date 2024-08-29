@@ -1,16 +1,19 @@
 import shutil
 from fastapi import APIRouter, File, Form, UploadFile
 from services import databaseService, fileService
-from fastapi import Response
+from fastapi import Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
 from ServerStatus import ServerStatus
 import os
-
+import logging as log
+import time
+from functools import partial
 
 serverStatus = ServerStatus()
 
 router = APIRouter(prefix="/database")
+SLOW_QUERY_THRESHOLD = 5000
 
 # Load file into duckdb endpoint (get)
 @router.get("/loadFile")
@@ -46,6 +49,7 @@ def getTables():
     tableList = databaseService.getTableList()
     # Remove all metatables starting from "__" from the list
     tableList = [x for x in tableList if not x.startswith("__")]
+    tableList = [x for x in tableList if not x.startswith("cube_index_")]
 
     print("Tables: " + str(tableList))
     #tableList=["iris"]
@@ -264,3 +268,43 @@ def createDatabase(databaseName: str):
     databaseService.createDatabase(serverStatus.getConfig(), databaseName)
     return {"status": "ok"}
 
+# Based on https://github.com/uwdata/mosaic/blob/main/packages/duckdb-server/README.md
+@router.post("/restConnector")
+async def handle_query(request: Request):
+    query = await request.json()
+    log.debug(f"{query=}")
+
+    start = time.time()
+
+    sql = query.get("sql")
+    command = query.get("type")
+
+    #con = databaseService.db  # Asumiendo que `db` es el objeto de conexión
+    #cache = cacheService  # Reemplazar con el servicio de cache correspondiente si existe
+
+    try:
+        if command == "exec":
+            if (sql.strip().upper().startswith("CREATE TEMP TABLE IF NOT EXISTS CUBE_INDEX_")):
+                databaseService.runQuery(sql)
+
+            response = {"status": "ok"}
+        elif command == "arrow":
+            buffer = databaseService.retrieve_arrow_bytes(query)
+            response = Response(content=buffer, media_type="application/octet-stream")
+        elif command == "json":
+            json_data = databaseService.retrieve_json(query)
+            response = JSONResponse(content=json_data)
+        else:
+            raise ValueError(f"Unknown command {command}")
+
+    except Exception as e:
+        log.exception("Error processing query")
+        response = JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+
+    total = round((time.time() - start) * 1_000)
+    if total > SLOW_QUERY_THRESHOLD:
+        log.warning(f"DONE. Slow query took {total} ms: {sql}")
+    else:
+        log.info(f"DONE. Query took {total} ms: {sql}")
+
+    return response
