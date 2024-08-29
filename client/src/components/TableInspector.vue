@@ -127,15 +127,11 @@
       </MapH3>
     </div>
 
-    
     <div v-if="showMosaic">
-      <Mosaic>
+      <Mosaic :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
 
       </Mosaic>
     </div>
-
-
-
 
   </div>
 </template>

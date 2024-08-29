@@ -1,13 +1,14 @@
 <template>
   <div class="row">
+    <p>Table: {{ table }}</p>
+    <p>Selected Fields: {{ selectedFields }}</p>
+    <p>Schema: {{ schema }}</p>
 
     <div class="col-md-3">
       <select v-model="selectedExample" @change="reload">
         <option value="flights-200k">Flights 200k</option>
       </select>
     </div>
-
-
 
     <div class="col-md-3">
       Connector:
@@ -18,8 +19,6 @@
         <option value="rest_https">REST (HTTPS)</option>
       </select>
     </div>
-
-
 
     <div class="col-md-5">
       <div>
@@ -58,7 +57,6 @@
 
     <div id="view"></div>
   </div>
-
 </template>
 
 <script>
@@ -69,6 +67,13 @@ import yaml from 'yaml';
 
 export default {
   name: 'Mosaic',
+
+  props: {
+    table: String,
+    selectedFields: Array,
+    schema: Object,
+  },
+
   data() {
     return {
       selectedExample: 'none',
@@ -125,7 +130,7 @@ export default {
       console.log('Database Connector', type);
       this.coordinator.databaseConnector(connector);
     },
-    // Resto de los métodos como se definieron antes
+    
     setQueryLog() {
       this.vg.coordinator().manager.logQueries(this.queryLog);
     },
@@ -156,9 +161,11 @@ export default {
         name = location.search.slice(1);
       }
       if (name !== 'none') {
-        const spec = yaml.parse(
+        const spec = this.getYaml(this.table, this.selectedFields, this.schema);
+        console.log('Spec', spec);
+        /*yaml.parse(
           await fetch(`../src/assets/specs/${name}.yaml`).then(res => res.text())
-        );
+        );*/
         console.log('Spec', spec);
 
         const baseURL = location.origin + '/';
@@ -184,10 +191,51 @@ export default {
       const url = URL.createObjectURL(blob);
       return (await import(/* @vite-ignore */ url)).default;
     },
+    ////////////////////////////////////////////////////////////////////////////
+
+    getYaml(table, selectedFields, schema) {
+      const yaml = {
+          meta: {
+              title: `Cross-Filter ${table.charAt(0).toUpperCase() + table.slice(1)}`,
+              description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
+          },
+          data: {
+              [table]: { file: `data/${table}.parquet` }
+          },
+          params: {
+              brush: { select: "crossfilter" }
+          },
+          vconcat: selectedFields.map(field => {
+              if (schema[field] && (schema[field].startsWith('int') || schema[field].startsWith('float'))) {
+                  return {
+                      plot: [
+                          {
+                              mark: "rectY",
+                              data: { from: table, filterBy: "$brush" },
+                              x: { bin: field },
+                              y: { count: null },
+                              fill: "steelblue",
+                              inset: 0.5
+                          },
+                          {
+                              select: "intervalX",
+                              as: "$brush"
+                          }
+                      ],
+                      xDomain: "Fixed",
+                      yTickFormat: "s",
+                      width: 600,
+                      height: 200
+                  };
+              }
+              return null;
+          }).filter(plot => plot !== null)
+      };
+
+      return yaml;
+  }
   },
-  components: {
-    // Aquí puedes registrar componentes adicionales si los tienes
-  },
+  
 };
 </script>
 

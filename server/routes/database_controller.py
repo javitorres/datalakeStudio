@@ -275,12 +275,8 @@ async def handle_query(request: Request):
     log.debug(f"{query=}")
 
     start = time.time()
-
     sql = query.get("sql")
     command = query.get("type")
-
-    #con = databaseService.db  # Asumiendo que `db` es el objeto de conexión
-    #cache = cacheService  # Reemplazar con el servicio de cache correspondiente si existe
 
     try:
         if command == "exec":
