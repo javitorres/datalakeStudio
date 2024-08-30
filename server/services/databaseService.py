@@ -98,7 +98,7 @@ def loadTable(config, tableName, fileName):
     elif '.' in fileName and fileName.lower().split('.')[1] in ['shp','geojson','gpkg','kml']:
         db.query("INSTALL spatial;LOAD spatial;CREATE TABLE "+ tableName +" AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
-    if (not fileName.lower().startswith("s3")):
+    if (not fileName.lower().startswith("s3") and not fileName.lower().startswith("http")):
         print("Removing file " + fileName)
         os.remove(fileName)
         # zip file content removal
