@@ -1,15 +1,5 @@
 <template>
   <div class="row">
-    <p>Table: {{ table }}</p>
-    <p>Selected Fields: {{ selectedFields }}</p>
-    <p>Schema: {{ schema }}</p>
-
-      
-
-    <!-- Button for reload this.reload() -->
-    <div class="col-md-1">
-      <button @click="reload">Reload</button>
-    </div>
 
     <div id="view"></div>
   </div>
@@ -41,16 +31,19 @@ export default {
     };
   },
   mounted() {
+
     this.initializeVgContext();
     this.setQueryLog();
     this.setCache();
     this.setConsolidate();
     this.setIndex();
     this.setConnector();
+
   },
   watch: {
     table: {
       async handler(newVal, oldVal) {
+        this.dropCubes();
         this.reload();
       },
       immediate: true
@@ -93,21 +86,25 @@ export default {
       let connector;
       switch (type) {
         case 'socket':
+          console.log('Socket Connector');
           connector = socketConnector();
           break;
         case 'rest':
+          console.log('REST Connector');
           connector = restConnector('http://localhost:8000/database/restConnector/');
           break;
         case 'rest_https':
+          console.log('REST HTTPS Connector');
           connector = restConnector('https://localhost:8000/database/restConnector/');
           break;
         case 'wasm':
+          console.log('WASM Connector');
           connector = this.wasm || (this.wasm = wasmConnector());
           break;
         default:
           throw new Error(`Unrecognized connector type: ${type}`);
       }
-      console.log('Database Connector', type);
+      console.log('Database Connector:', type);
       this.coordinator.databaseConnector(connector);
     },
     ////////////////////////////////////////////////////////////////////////////
@@ -138,9 +135,11 @@ export default {
     ////////////////////////////////////////////////////////////////////////////
     async load(name) {
       const view = document.getElementById('view');
-      
-      view.innerHTML = ''; // Clear existing content
-      
+
+      if (view) {
+        view.innerHTML = ''; // Clear existing content
+      }
+
       if (name === 'none' && location.search) {
         name = location.search.slice(1);
       }
@@ -153,77 +152,108 @@ export default {
 
         const ast = parseSpec(spec);
         const el = await (this.loadDOM)(ast, options);
-        view.appendChild(el);
+        if (view) {
+          view.appendChild(el);
+        }
       }
     },
+    ////////////////////////////////////////////////////////////////////////////
     async loadDOM(ast, options) {
-      this.clear();
+      //this.clear();
       const { element } = await astToDOM(ast, { ...options, api: this.vg });
       return element;
     },
-    
+
     ////////////////////////////////////////////////////////////////////////////
 
     getYaml(table, selectedFields, schema) {
-    const yaml = {
+      const yaml = {
         meta: {
-            title: `Cross-Filter ${table.charAt(0).toUpperCase() + table.slice(1)}`,
-            description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
+          title: `Cross-Filter ${table.charAt(0).toUpperCase() + table.slice(1)}`,
+          description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
         },
         data: {
-            [table]: { file: `data/${table}.parquet` }
+          [table]: { file: `data/${table}.parquet` }
         },
         params: {
-            brush: { select: "crossfilter" }
+          brush: { select: "crossfilter" }
         },
-        vconcat: selectedFields.map(field => {
-            if (schema[field]) {
-                if (schema[field].startsWith('int') || schema[field].startsWith('float')) {
-                    // Gráfico de histogramas para campos numéricos
-                    return {
-                        plot: [
-                            {
-                                mark: "rectY",
-                                data: { from: table, filterBy: "$brush" },
-                                x: { bin: field },
-                                y: { count: null },
-                                fill: "steelblue",
-                                inset: 0.5
-                            },
-                            {
-                                select: "intervalX",
-                                as: "$brush"
-                            }
-                        ],
-                        xDomain: "Fixed",
-                        yTickFormat: "s",
-                        width: 600,
-                        height: 200
-                    };
-                } else if (schema[field] === "varchar" || schema[field] === "string"|| schema[field] === "object") {
-                    // Diagrama de sectores para campos categóricos
-                    /*return {
-                        plot: [
-                            {
-                                mark: "arc",
-                                data: { from: table, filterBy: "$brush" },
-                                theta: { field: field, type: "nominal", aggregate: "count" },
-                                color: { field: field, type: "nominal" },
-                                inset: 0.5
-                            }
-                        ],
-                        width: 400,
-                        height: 400
-                    };*/
-                }
-            }
-            return null;
-        }).filter(plot => plot !== null)
-    };
+        vconcat: this.createColumns(selectedFields, schema, table)
+      };
 
-    return yaml;
+      return yaml;
     },
+    createColumns(selectedFields, schema, table) {
+      // Divide the fields into two groups
+      const mid = Math.ceil(selectedFields.length / 2);
+      const leftColumn = selectedFields.slice(0, mid);
+      const rightColumn = selectedFields.slice(mid);
+
+      // Create the visualizations for each column
+      const createPlots = (fields) => {
+        return fields.map(field => {
+          if (schema[field]) {
+            if (schema[field].startsWith('int') || schema[field].startsWith('float')) {
+              // Numeric field: histogram
+              return {
+                plot: [
+                  {
+                    mark: "rectY",
+                    data: { from: table, filterBy: "$brush" },
+                    x: { bin: field },
+                    y: { count: null },
+                    fill: "steelblue",
+                    inset: 0.5
+                  },
+                  {
+                    select: "intervalX",
+                    as: "$brush"
+                  }
+                ],
+                xDomain: "Fixed",
+                yTickFormat: "s",
+                width: 600,
+                height: 200
+              };
+            } else if (schema[field] === "varchar" || schema[field] === "string" || schema[field] === "object") {
+              // Categorical field: (Commented out, since arc doesn't work)
+              /*return {
+                  plot: [
+                      {
+                          mark: "arc",
+                          data: { from: table, filterBy: "$brush" },
+                          theta: { field: field, type: "nominal", aggregate: "count" },
+                          color: { field: field, type: "nominal" },
+                          inset: 0.5
+                      }
+                  ],
+                  width: 400,
+                  height: 400
+              };*/
+            }
+          }
+          return null;
+        }).filter(plot => plot !== null);
+      };
+
+      // Return a horizontal concatenation of the two columns
+      return [{
+        hconcat: [
+          { vconcat: createPlots(leftColumn) },
+          { vconcat: createPlots(rightColumn) }
+        ]
+      }];
+    }
   },
+  ////////////////////////////////////////////////////////////////////////////
+  async dropCubes() {
+    // Call dropCubes endpoint (GET)
+    const url = 'http://localhost:8000/database/restConnector/dropCubes';
+    const response = await fetch(url);
+    const data = await response.json();
+    console.log('Drop Cubes:', data);
+
+  }
 
 };
 </script>

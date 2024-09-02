@@ -35,7 +35,7 @@ def getTables():
     tableList = databaseService.getTableList()
     # Remove all metatables starting from "__" from the list
     tableList = [x for x in tableList if not x.startswith("__")]
-    #tableList = [x for x in tableList if not x.startswith("cube_index_")]
+    tableList = [x for x in tableList if not x.startswith("cube_index_")]
 
     print("Tables: " + str(tableList))
     #tableList=["iris"]
@@ -290,3 +290,13 @@ async def handle_query(request: Request):
         log.info(f"DONE. Query took {total} ms: {sql}")
 
     return response
+
+@router.get("/dropCubes")
+def dropCubes():
+    # Drop all cube tables
+    tables = databaseService.getTableList()
+    for table in tables:
+        if table.startswith("cube_index_"):
+            print("Dropping table " + table)
+            databaseService.runQuery("DROP TABLE IF EXISTS " + table)
+    return {"status": "ok"}

@@ -42,7 +42,13 @@
         Show table profile
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showPlot }" @click="plotData(tableName)">
+      <!--<button class="btn btn-primary m-1 opcion-style" :class="{ active: showPlot }" @click="plotData(tableName)">
+        <i class="bi bi-graph-up-arrow"></i>
+        Plot data
+      </button>
+      -->
+
+      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMosaic }" @click="toggleMosaic()">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
@@ -52,10 +58,7 @@
         Show map
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMosaic }" @click="toggleMosaic()">
-        <i class="bi bi-graph-up-arrow"></i>
-        Show mosaic
-      </button>
+      
     </div>
 
 
@@ -115,24 +118,22 @@
         <br />
       </div>
 
-      <!-- Charts -->
+      <!-- Charts 
       <GenericCross :key="genericCrossKey" :dataStr="sampleData" :chartConfig="chartConfig">
       </GenericCross>
+      -->
+    </div>
+
+    <div v-if="showMosaic">
+      <Mosaic :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
+      </Mosaic>
     </div>
 
     <!-- H3 Maps-->
     <div v-if="showMap">
       <MapH3 :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
-
       </MapH3>
     </div>
-
-    <div v-if="showMosaic">
-      <Mosaic :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
-
-      </Mosaic>
-    </div>
-
   </div>
 </template>
 
@@ -325,6 +326,7 @@ export default {
       this.showProfile = false;
       this.showPlot = false;
       this.showMap = false;
+      this.showMosaic = false;
 
 
       await axios.get(`${apiUrl}/database/getSampleData`, {
@@ -369,6 +371,7 @@ export default {
       this.showProfile = true;
       this.showPlot = false;
       this.showMap = false;
+      this.showMosaic = false;
 
 
       const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
@@ -409,6 +412,7 @@ export default {
       this.showProfile = false;
       this.showPlot = true;
       this.showMap = false;
+      this.showMosaic = false;
 
       var latFound = false;
       var lonFound = false;
@@ -439,6 +443,7 @@ export default {
       this.showProfile = false;
       this.showPlot = false;
       this.showMap = true;
+      this.showMosaic = false;
 
       var latFound = false;
       var lonFound = false;
