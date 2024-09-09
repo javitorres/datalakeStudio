@@ -2,7 +2,7 @@
 
 
   <div>
-    <button class="btn m-1 opcion-style btn-primary" @click="renderChart()">Render chart</button>
+    <!--<button class="btn m-1 opcion-style btn-primary" @click="renderChart()">Render chart</button>-->
     <div id="chart"></div>
     <br />
     <!-- General controls  -->
@@ -52,7 +52,7 @@
 
     <!-- H3 Layer  controls  -->
     <div class="row">
-      <div class="col-2">
+      <div class="col-5">
         <div class="form-check form-switch">
           <label class="form-check-label">H3 Data / Geom</label>
           <input class="form-check-input" type="checkbox" v-model="showData" @change="updateVisibility()">
@@ -66,10 +66,6 @@
           </select>
         </div>
       </div>
-
-      
-
-
       <!-- Show data toggle -->
 
       <!-- Selector for H3 level, from 1 to 10 -->
@@ -147,11 +143,18 @@
                 @change="changeLimits('H3')">
             </div>
             <div class="value-display">
-              <span>Absolute Min<br/>{{ min }}</span>
-              <span>Selected Min<br/>{{ minValue }}</span>
-              <span>Selected Max<br/>{{ maxValue }}</span>
-              <span>Absolute Max<br/>{{ max }}</span>
+              <span>Absolute Min<br />{{ min }}</span>
+              <span>Selected Min<br />{{ minValue }}</span>
+              <span>Selected Max<br />{{ maxValue }}</span>
+              <span>Absolute Max<br />{{ max }}</span>
             </div>
+          </div>
+
+          <div v-if="percentilesH3">
+
+            <DataSelector :values="percentilesH3.percentiles" :count="percentilesH3.histogram">
+
+            </DataSelector>
           </div>
         </div>
         <!-- Blue button if limits are seted manually , gray if not -->
@@ -167,14 +170,14 @@
 
     <!-- Points control  -->
     <div class="row">
-      <div class="col-2">
+      <div class="col-5">
         <div class="form-check form-switch">
           <label class="form-check-label">Points</label>
           <input class="form-check-input" type="checkbox" v-model="showDataPoints" @change="updateVisibility()">
         </div>
         <br />
-      
-              <!-- Selector del campo a mostrar (de selectedFields) -->
+
+        <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group" v-if="showDataPoints">
           <span class="input-group-text">Show field</span>
           <select class="form-select" v-model="selectedFieldForPoints" @change="showField('POINTS')">
@@ -183,7 +186,7 @@
         </div>
 
       </div>
-      
+
 
       <div class="col-2">
         <div class="row">
@@ -300,6 +303,7 @@ import { toast } from 'vue3-toastify';
 import qs from 'qs';
 import csv2geojson, { csv } from 'csv2geojson';
 import * as vg from "@uwdata/vgplot";
+import DataSelector from './DataSelector.vue';
 
 export default {
   name: 'MapH3',
@@ -309,6 +313,9 @@ export default {
     selectedFields: Array,
     schema: Object,
   },
+  components: {
+    DataSelector
+  },
 
   data() {
     return {
@@ -317,6 +324,7 @@ export default {
       latitudeField: null,
       longitudeField: null,
       geomField: null,
+      percentilesH3: null,
       sourceId: 'vector-tiles-source',
       geojson: null,
       token: null,
@@ -375,8 +383,6 @@ export default {
       }
     },
   },
-
-
 
   watch: {
     table: {
@@ -633,7 +639,8 @@ export default {
       this.minValue = Math.round(percentiles.p25, 2);
       this.maxValue = Math.round(percentiles.p75, 2);
       this.maxCount = this.getMaxCount(geojson, field);
-      
+      this.percentilesH3 = percentiles;
+
       this.changeLimits('H3');
     },
     ////////////////////////////
@@ -646,7 +653,7 @@ export default {
       this.maxPoints = Math.round(percentiles.p100, 2);
       this.minValuePoints = Math.round(percentiles.p25, 2);
       this.maxValuePoints = Math.round(percentiles.p75, 2);
-      
+
       this.changeLimits('POINTS');
     },
     //////////////////////
@@ -656,10 +663,12 @@ export default {
       geojson.features.forEach(feature => {
         const value = feature.properties[field];
         if (!isNaN(value)) {
-            values.push(value);
+          values.push(value);
         }
-    });
+      });
+
       values.sort((a, b) => a - b);
+
       const getPercentile = (arr, p) => {
         const index = (p / 100) * (arr.length - 1);
         const lower = Math.floor(index);
@@ -668,18 +677,34 @@ export default {
         return arr[lower] * (1 - weight) + arr[upper] * weight;
       };
 
+      // Build histogram, where each position has the number of elements in the range
+      let histogram = new Array(100).fill(0);
+
+      values.forEach(value => {
+        const percentile = getPercentile(values, value);
+        const index = Math.floor((percentile / getPercentile(values, 100)) * 100);
+        histogram[index] += 1;
+      });
+      // Save percentiles 0 to 99 in an array
+      var allPercentiles = [];
+      for (let i = 0; i < 100; i++) {
+        allPercentiles.push(getPercentile(values, i));
+      }
+
       let percentiles = {
         p0: getPercentile(values, 0),
         p25: getPercentile(values, 25),
         p50: getPercentile(values, 50),
         p75: getPercentile(values, 75),
-        p100: getPercentile(values, 100)
+        p100: getPercentile(values, 100),
+        percentiles: allPercentiles,
+        histogram: histogram
       };
 
       return percentiles;
     },
     ////////////////////////////
-    getMaxCount(geojson, field){
+    getMaxCount(geojson, field) {
       var maxCount = -1;
       geojson.features.forEach(feature => {
         const value = feature.properties[field];
@@ -687,7 +712,7 @@ export default {
           maxCount = feature.properties.count;
         }
       });
-      
+
       return maxCount;
     },
     ////////////////////////////
@@ -983,18 +1008,10 @@ export default {
         console.log("CSV data is null. Cannot render chart");
         return;
       }
-      console.log("Rendering chart");
-      /*await vg.coordinator().exec([
-        vg.loadParquet("aapl", "data/stocks.parquet", { where: "Symbol = 'AAPL'" })
-      ]);*/
-      // consolo.log 3 rows of the csvData variable
+
       console.log(this.csvData.split(/\r\n|\r|\n/).slice(0, 3));
-
       const jsonData = this.convertCsvToJson(this.csvData);
-
-      const data = vg.from(jsonData); // Carga tus propios datos
-
-      console.log("Rendering chart 22");
+      const data = vg.from(jsonData); 
       this.chartInstance = vg.plot(
         vg.lineY(
           vg.from("aapl"),
@@ -1003,10 +1020,8 @@ export default {
         vg.width(680),
         vg.height(200)
       );
-      console.log("Rendering chart 3");
 
       document.getElementById("chart").appendChild(this.chartInstance);
-      console.log("Rendering chart 4");
     },
   }
 };
