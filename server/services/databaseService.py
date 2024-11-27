@@ -17,9 +17,12 @@ BUNDLE_DIR = Path(".mosaic/bundle")
 
 format = "%(asctime)s %(filename)s:%(lineno)d - %(message)s "
 log.basicConfig(format=format, level=log.INFO, datefmt="%H:%M:%S")
+secretsLoaded = None
 
 def init(secrets, config):
     global db
+    global secretsLoaded
+    secretsLoaded = secrets
 
     if not os.path.exists(config["downloadFolder"]):
         os.makedirs(config["downloadFolder"])
@@ -37,10 +40,18 @@ def init(secrets, config):
         print("Connecting to in-memory database")
         db = duckdb.connect(':memory:', config={"allow_unsigned_extensions": "true"})
 
+    loadExtensions(secrets)
+
+    global configLoaded
+    configLoaded = True
+
+
+def loadExtensions(secrets):
     try:
         runQuery("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
         runQuery("INSTALL spatial;LOAD spatial;")
-        runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets["s3_secret_access_key"] +"'", False)
+        runQuery("SET s3_access_key_id='" + secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + secrets[
+            "s3_secret_access_key"] + "'", False)
         print("Loaded S3 credentials")
     except Exception as e:
         print("Could not load S3 credentials from secrets.yml file")
@@ -48,16 +59,12 @@ def init(secrets, config):
         runQuery("INSTALL spatial;LOAD spatial;")
         runQuery("INSTALL aws;LOAD aws")
         runQuery("CALL load_aws_credentials();")
-
     try:
-        runQuery("INSTALL h3 FROM community;LOAD h3")
+        runQuery("INSTALL h3 FROM community;LOAD h3;")
         print("Loaded H3 extension")
     except Exception as e:
         print("Could not load H3 extension:  " + str(e))
 
-
-    global configLoaded
-    configLoaded = True
 
 ####################################################
 def loadTable(config, tableName, fileName):
@@ -246,6 +253,9 @@ def changeDatabase(config, databaseName):
     log.info("Changing database to " + databaseName)
     db.close()
     db = duckdb.connect(config["databasesFolder"] + "/" + databaseName + ".db")
+    # Load extensions
+    loadExtensions(secretsLoaded)
+
     return True
 
 def createDatabase(config, databaseName):

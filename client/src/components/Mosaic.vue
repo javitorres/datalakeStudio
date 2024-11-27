@@ -216,20 +216,10 @@ export default {
                 height: 200
               };
             } else if (schema[field] === "varchar" || schema[field] === "string" || schema[field] === "object") {
-              // Categorical field: (Commented out, since arc doesn't work)
-              /*return {
-                  plot: [
-                      {
-                          mark: "arc",
-                          data: { from: table, filterBy: "$brush" },
-                          theta: { field: field, type: "nominal", aggregate: "count" },
-                          color: { field: field, type: "nominal" },
-                          inset: 0.5
-                      }
-                  ],
-                  width: 400,
-                  height: 400
-              };*/
+              // TODO Categorical field
+              // Categorical field: rect mark for bar-like visualization
+            
+              
             }
           }
           return null;

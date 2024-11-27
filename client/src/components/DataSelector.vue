@@ -1,7 +1,7 @@
 <template>
   <div class="row">
-    <p>DataSelector values: {{ values }}</p>
-    <p>count: {{ count }}</p>
+    <!--<p>DataSelector values: {{ values }}</p>
+    <p>count: {{ count }}</p>-->
 
     <div id="view"></div>
   </div>
