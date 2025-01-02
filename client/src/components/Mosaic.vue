@@ -218,7 +218,30 @@ export default {
             } else if (schema[field] === "varchar" || schema[field] === "string" || schema[field] === "object") {
               // TODO Categorical field
               // Categorical field: rect mark for bar-like visualization
-            
+              if (schema[field].cardinality && schema[field].cardinality > 100) {
+                return null;
+              }
+              return {
+                plot: [
+                  {
+                    mark: "rectX",
+                    data: { from: table, filterBy: "$brush" },
+                    x: { count: null },
+                    y: field,
+                    fill: "steelblue",
+                    inset: 0.5
+                  },
+                  {
+                    select: "intervalY",
+                    
+                    as: "$brush"
+                  }
+                ],
+                xDomain: "Fixed",
+                yTickFormat: "s",
+                width: 600,
+                height: 200
+              };
               
             }
           }
