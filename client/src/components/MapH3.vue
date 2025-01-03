@@ -438,6 +438,10 @@ export default {
     ////////////////////////////
     setNumericFields() {
       var n = Object.keys(this.schema).filter(key => this.schema[key].startsWith('int') || this.schema[key].startsWith('float'));
+      // Build list of fields with prefix avg_ and stddev_ for efevry numeric field
+      //n = n.map(field => {
+      //  return ['avg_' + field, 'stddev_' + field];
+      //}).flat();
       this.numericFields = n;
     },
     ////////////////////////////
