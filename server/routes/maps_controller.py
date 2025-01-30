@@ -41,10 +41,6 @@ def getH3Data(table: str, latitudeField: str, longitudeField: str, aggFields: li
     # Aplicamos la función de agregación 'avg' a cada campo de aggFields
     aggFields_sql = ', '.join([f'avg({field}) as avg_{field}' for field in aggFields])
 
-    aggFields_sql += ', '
-    # Agregar desviacion tipica a cada campo de aggFields
-    aggFields_sql += ', '.join([f'stddev({field}) as stddev_{field}' for field in aggFields])
-
     # La consulta completa
     query = f"""
     SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count, {aggFields_sql} FROM
@@ -110,9 +106,7 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
             if fields is not None and len(fields) > 0:
                 for field in fields:
                     if f'avg_{field}' in row:
-                        properties['avg_' + field] = row[f'avg_{field}']
-                        if f'stddev_{field}' in row:
-                            properties['stddev_' + field] = row[f'stddev_{field}']
+                        properties[field] = row[f'avg_{field}']
 
                     else:
                         properties[field] = row[field]
