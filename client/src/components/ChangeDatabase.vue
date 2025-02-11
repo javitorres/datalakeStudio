@@ -1,13 +1,13 @@
 <template>
   <div class="row">
     <h2>Select database</h2>
-    <div v-if="databases">
+    <div v-if="databases" class="col-md-8">
       <!-- for each database a button to connect -->
-      <div v-for="(db, index) in databases" :key="db.id">
-  
-        <button type="button" class="btn m-1 opcion-style" :class="index == 0 ? 'btn-primary' : 'btn-secondary'" 
-        @click="changeDatabase(db)">{{ db }}</button>
-        <br/><br/>
+      <div class="d-flex flex-wrap">
+        <div v-for="(db, index) in databases" :key="db.id" class="m-1">
+          <button type="button" class="btn opcion-style fixed-size" :class="index == 0 ? 'btn-primary' : 'btn-secondary'" 
+          @click="changeDatabase(db)">{{ db.toUpperCase() }}</button>
+        </div>
       </div>
     </div>
     
@@ -113,4 +113,8 @@ const createDatabase = async () => {
 
 </script>
 
-<style scoped></style>
+<style scoped>
+.fixed-size {
+  width: 150px; /* Set the desired width */
+  height: 50px; /* Set the desired height */
+}</style>

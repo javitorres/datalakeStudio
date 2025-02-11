@@ -107,6 +107,7 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
                 for field in fields:
                     if f'avg_{field}' in row:
                         properties[field] = row[f'avg_{field}']
+
                     else:
                         properties[field] = row[field]
             feature = Feature(geometry=geom, properties=properties)

@@ -438,6 +438,10 @@ export default {
     ////////////////////////////
     setNumericFields() {
       var n = Object.keys(this.schema).filter(key => this.schema[key].startsWith('int') || this.schema[key].startsWith('float'));
+      // Build list of fields with prefix avg_ and stddev_ for efevry numeric field
+      //n = n.map(field => {
+      //  return ['avg_' + field, 'stddev_' + field];
+      //}).flat();
       this.numericFields = n;
     },
     ////////////////////////////
@@ -786,7 +790,7 @@ export default {
         });
 
         const colorScaleH3 = this.generateColorScale(this.minValue, this.maxValue, this.selectedFieldForH3, 'h3');
-        const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, 500000];
+        const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, 50000];
 
         if (this.show3D) {
           this.map.addLayer({
