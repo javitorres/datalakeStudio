@@ -307,15 +307,18 @@ export default {
       this.querySuccesful = false;
 
       var queryToRun = this.query;
-      if (this.activeTab === 'aux1') {
+      console.log('this.activeQueryTab: "' + this.activeQueryTab + '" main query: ' + queryToRun);
+      if (this.activeQueryTab === 'aux1') {
         queryToRun = this.auxQuery1;
-      } else if (this.activeTab === 'aux2') {
+        console.log('aux1 query: ', queryToRun);
+      } else if (this.activeQueryTab === 'aux2') {
         queryToRun = this.auxQuery2;
-      } else if (this.activeTab === 'aux3') {
+        console.log('aux2 query: ', queryToRun);
+      } else if (this.activeQueryTab === 'aux3') {
         queryToRun = this.auxQuery3;
-      } else if (this.activeTab === 'aux4') {
+      } else if (this.activeQueryTab === 'aux4') {
         queryToRun = this.auxQuery4;
-      } else if (this.activeTab === 'aux5') {
+      } else if (this.activeQueryTab === 'aux5') {
         queryToRun = this.auxQuery5;
       }
       const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {

@@ -9,7 +9,7 @@ from services import databaseService
 from services import mapsService
 import time
 from fastapi.responses import Response
-import math
+import pandas as pd
 
 router = APIRouter(prefix="/maps")
 
@@ -107,6 +107,7 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
                 for field in fields:
                     if f'avg_{field}' in row:
                         properties[field] = row[f'avg_{field}']
+
                     else:
                         properties[field] = row[field]
             feature = Feature(geometry=geom, properties=properties)
@@ -150,7 +151,11 @@ async def create_map_geojson(table: str, latitudeField: str,  longitudeField: st
         log.error("No latitude-longitude or geom fields provided")
         return Response(status_code=400)
 
-    log.info("df head " + str(df.head()))
+    with pd.option_context('display.max_columns', None, 'display.width', 1000):
+        log.info("df head:\n" + str(df.head()))
+
+    # Reflace Nans in df with -1
+    df = df.fillna(-1)
     geojson_obj = getFeatureCollection(df, fields)
     log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
     responseObject = {
@@ -162,6 +167,7 @@ async def create_map_geojson(table: str, latitudeField: str,  longitudeField: st
         },
         "geojson": geojson_obj
     }
+    #log.info("Geojson: " + str(geojson_obj))
     responseObject["metadata"]["objectSize"] = round(len(str(responseObject)) / 1024 ** 2, 2)
     return JSONResponse(content=responseObject)
 

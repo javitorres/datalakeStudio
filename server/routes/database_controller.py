@@ -83,7 +83,7 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
 ####################################################
 @router.post("/runQuery")
 def runQuery(queryRequest: QueryRequest):
-    print("Running query " + str(queryRequest))
+    print("POST runQuery " + str(queryRequest))
 
     databaseService.runQuery("DROP TABLE IF EXISTS __lastQuery")
 
@@ -91,6 +91,9 @@ def runQuery(queryRequest: QueryRequest):
     #query = queryRequest.query.replace("'", '"')
     query = queryRequest.query
 
+    query = query.strip()
+    if query[-1] == ";":
+        query = query[:-1]
 
     try:
         databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")

@@ -1,5 +1,7 @@
 <template>
   <div class="row">
+    <!--<p>DataSelector values: {{ values }}</p>
+    <p>count: {{ count }}</p>-->
 
     <div id="view"></div>
   </div>
@@ -12,12 +14,12 @@ import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 import yaml from 'yaml';
 
 export default {
-  name: 'Mosaic',
+  name: 'DataSelector',
 
   props: {
-    table: String,
-    selectedFields: Array,
-    schema: Object,
+    values: [],
+    count: [],
+    
   },
 
   data() {
@@ -41,27 +43,7 @@ export default {
 
   },
   watch: {
-    table: {
-      async handler(newVal, oldVal) {
-        this.dropCubes();
-        this.reload();
-      },
-      immediate: true
-    },
-    selectedFields: {
-      async handler(newVal, oldVal) {
-        this.reload();
-      },
-      deep: true,
-      immediate: true
-    },
-    schema: {
-      async handler(newVal, oldVal) {
-        this.reload();
-      },
-      deep: true,
-      immediate: true
-    },
+    
   },
   ////////////////////////////////////////////////////////////////////////////
   methods: {
@@ -137,7 +119,7 @@ export default {
       const view = document.getElementById('view');
 
       if (view) {
-        view.innerHTML = ''; // Clear existing content
+        view.innerHTML = ''; 
       }
 
       if (name === 'none' && location.search) {
@@ -165,108 +147,25 @@ export default {
     },
 
     ////////////////////////////////////////////////////////////////////////////
-
-    getYaml(table, selectedFields, schema) {
-      const yaml = {
-        meta: {
-          title: `Cross-Filter ${table.charAt(0).toUpperCase() + table.slice(1)}`,
-          description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
-        },
+    getYaml() {
+      const spec = {
         data: {
-          [table]: { file: `data/${table}.parquet` }
+          values: this.values,
         },
-        params: {
-          brush: { select: "crossfilter" }
+        mark: 'bar',
+        encoding: {
+          x: { field: 'a', type: 'ordinal' },
+          y: { field: 'b', type: 'quantitative' },
         },
-        vconcat: this.createColumns(selectedFields, schema, table)
       };
-
-      return yaml;
+      return yaml.stringify(spec);
     },
-    createColumns(selectedFields, schema, table) {
-      // Divide the fields into two groups
-      const mid = Math.ceil(selectedFields.length / 2);
-      const leftColumn = selectedFields.slice(0, mid);
-      const rightColumn = selectedFields.slice(mid);
-
-      // Create the visualizations for each column
-      const createPlots = (fields) => {
-        return fields.map(field => {
-          if (schema[field]) {
-            if (schema[field].startsWith('int') || schema[field].startsWith('float')) {
-              // Numeric field: histogram
-              return {
-                plot: [
-                  {
-                    mark: "rectY",
-                    data: { from: table, filterBy: "$brush" },
-                    x: { bin: field },
-                    y: { count: null },
-                    fill: "steelblue",
-                    inset: 0.5
-                  },
-                  {
-                    select: "intervalX",
-                    as: "$brush"
-                  }
-                ],
-                xDomain: "Fixed",
-                yTickFormat: "s",
-                width: 600,
-                height: 200
-              };
-            } else if (schema[field] === "varchar" || schema[field] === "string" || schema[field] === "object") {
-              // TODO Categorical field
-              // Categorical field: rect mark for bar-like visualization
-              if (schema[field].cardinality && schema[field].cardinality > 100) {
-                return null;
-              }
-              return {
-                plot: [
-                  {
-                    mark: "rectX",
-                    data: { from: table, filterBy: "$brush" },
-                    x: { count: null },
-                    y: field,
-                    fill: "steelblue",
-                    inset: 0.5
-                  },
-                  {
-                    select: "intervalY",
-                    
-                    as: "$brush"
-                  }
-                ],
-                xDomain: "Fixed",
-                yTickFormat: "s",
-                width: 600,
-                height: 200
-              };
-              
-            }
-          }
-          return null;
-        }).filter(plot => plot !== null);
-      };
-
-      // Return a horizontal concatenation of the two columns
-      return [{
-        hconcat: [
-          { vconcat: createPlots(leftColumn) },
-          { vconcat: createPlots(rightColumn) }
-        ]
-      }];
-    }
   },
-  ////////////////////////////////////////////////////////////////////////////
-  async dropCubes() {
-    // Call dropCubes endpoint (GET)
-    const url = 'http://localhost:8000/database/restConnector/dropCubes';
-    const response = await fetch(url);
-    const data = await response.json();
-    console.log('Drop Cubes:', data);
 
-  }
+    ////////////////////////////////////////////////////////////////////////////
+    
+  ////////////////////////////////////////////////////////////////////////////
+
 
 };
 </script>
