@@ -101,8 +101,9 @@ def listEndpoints():
         df = databaseService.runQuery("SELECT * FROM __endpoints ORDER BY endpoint ASC")
 
     if (df is not None):
-        result = df.dropna().to_dict(orient="records")
-        print("Result:" + str(result))
+        #result = df.dropna().to_dict(orient="records")
+        result = df.to_dict(orient="records")
+        print("Endpoints found:" + str(result))
         return result
     else:
         None      

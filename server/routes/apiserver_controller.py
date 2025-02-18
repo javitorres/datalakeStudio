@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 import services.apiRetrieverService as apiRetrieverService
 from config import Config
@@ -34,22 +34,19 @@ def getServices(id_query: int):
     
 ####################################################
 @router.get("/create")
-def create(endpoint: str  ):
-    print("Checking if endpoint exists " + str(endpoint))
-    exists = apiServerService.checkIfEndPointExists(endpoint)
-    
-    if (not exists):
-        print("Creating empty endpoint")
-        id_endpoint = apiServerService.createEndpoint()
+def create():
 
-        if (id is not None):
-            result = {"id_endpoint" : id_endpoint}
-            print("Result:" + str(result))
-            return JSONResponse(content=result, status_code=200)
-        else:
-            return JSONResponse(content=[], status_code=200)
+
+    print("Creating empty endpoint")
+    id_endpoint = apiServerService.createEndpoint()
+
+    if (id is not None):
+        result = {"id_endpoint" : id_endpoint}
+        print("Result:" + str(result))
+        return JSONResponse(content=result, status_code=200)
     else:
-        return JSONResponse(content={"error": "Endpoint exists"}, status_code=400)
+        return JSONResponse(content=[], status_code=200)
+
 
 
 
@@ -71,8 +68,6 @@ def publish( publishEndpointRequestDTO: PublishEndpointRequestDTO ):
 @router.get("/listEndpoints")
 def listEndpoints():
     print("Getting available endpoints")
-
-
     endpoints = apiServerService.listEndpoints()
 
     if (endpoints is not None):

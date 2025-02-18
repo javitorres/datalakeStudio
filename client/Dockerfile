@@ -1,5 +1,5 @@
 # Elegir una versión de Node.js
-FROM node:14
+FROM node:18
 
 # Establecer el directorio de trabajo
 WORKDIR /app
