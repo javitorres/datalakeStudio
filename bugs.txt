@@ -1,0 +1,2 @@
+- If mapbox_access_token is not defined app fails
+- In API configuration check why some components don't update when query changes

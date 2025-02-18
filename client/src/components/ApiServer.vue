@@ -7,11 +7,12 @@
         @click.prevent="reloadAvailableEndpoints()">Published endpoints</a>
     </li>
 
-    <!-- New endpoint -->
+    <!-- New endpoint 
     <li class="nav-item">
       <a :class="{ 'nav-link': true, active: activeTab === 'newEndpoint' }" aria-current="page" href="#"
-        @click.prevent="activeTab = 'newEndpoint'">New endpoint</a>
+        @click.prevent="createEmptyEndpoint()">New endpoint</a>
     </li>
+    -->
 
     <!-- Edit endpoint -->
     <li class="nav-item">
@@ -68,6 +69,10 @@
 
 
     </div>
+    <!-- Create endpoint button -->
+    <div v-if="availableEndpoints && availableEndpoints.length > 0">
+      <button type="button" class="btn btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
+    </div>
   </div>
 
 
@@ -77,30 +82,30 @@
   <!-- Endpoint editor  -->
   <div class="form-group" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
     <br />
-    <div v-if="activeTab === 'newEndpoint'">
-      <h3>New endpoint</h3>
-      <p>Select the query your endpoint will be based on</p>
-      <div class="input-group mb-3">
-        <span class="input-group-text" id="basic-addon1">Search query</span>
-        <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
-      </div>
-
-      <div v-if="queries && queries.length > 0">
-        <ul class="list-group d-flex flex-wrap">
-          <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
-            @click="selectQuery(queryCandidate)">
-            <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
-              queryCandidate.description }}<br /><b>SQL:</b>{{ queryCandidate.query }}
-          </li>
-        </ul>
-      </div>
+    
+    
+    <p>Select the query your endpoint will be based on</p>
+    <div class="input-group mb-3">
+      <span class="input-group-text" id="basic-addon1">Search query</span>
+      <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
     </div>
+
+    <div v-if="queries && queries.length > 0">
+      <ul class="list-group d-flex flex-wrap">
+        <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
+          @click="selectQuery(queryCandidate)">
+          <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
+            queryCandidate.description }}<br /><b>SQL:</b>{{ queryCandidate.query }}
+        </li>
+      </ul>
+    </div>
+    
 
     <div v-if="activeTab === 'editEndpoint' && ! endpoint.id_endpoint">
       <p>No endpoint selected, select one of published endpoints list</p>
     </div>
 
-    <div v-if="endpoint.query">
+    
 
       <p>Add any {parameter} in your SQL query to add query params:</p>
       <div class="form-group">
@@ -115,12 +120,12 @@
           <input type="text" class="form-control" placeholder="Query name" v-model="endpoint.endpoint">
         </div>
       </div>
-    </div>
-    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters.length > 0) ?
+    
+    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters && endpoint.parameters.length > 0) ?
       endpoint.queryStringTest : "" }}</h3>
 
     <!-- For each parameter an imput -->
-    <div v-if="endpoint.query && endpoint.parameters.length > 0">
+    <div v-if="endpoint.query && endpoint.parameters && endpoint.parameters.length > 0">
       <br />
       <div class="col-md-4" v-for="parameter in endpoint.parameters" :key="parameter">
         <div class="input-group mb-3">
@@ -139,6 +144,18 @@
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Description</span>
         <input type="text" class="form-control" placeholder="Description" v-model="endpoint.description">
+      </div>
+    </div>
+
+    <!-- status: combo with DEV, READY-->
+    <div v-if="endpoint.endpoint">
+      <br />
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon1">Status</span>
+        <select class="form-select" v-model="endpoint.status">
+          <option value="DEV">DEV</option>
+          <option value="PROD">PROD</option>
+        </select>
       </div>
     </div>
 
@@ -327,6 +344,8 @@ export default {
         { position: toast.POSITION.BOTTOM_RIGHT }
       ).then((response) => {
         this.endpoint.id_endpoint = response.data.id_endpoint;
+        // Refresh the list of available endpoints
+      this.reloadAvailableEndpoints();
 
       }).catch((error) => {
         if (error.response.data.message) {
@@ -335,6 +354,7 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
+      
     },
 
     /////////////////////////////////////////////////
@@ -419,8 +439,7 @@ export default {
       toast.promise(
         fetchData(),
         {
-          pending: 'Loading endpoints, please wait...',
-          success: 'Endpoints loaded',
+          
           error: 'Error loading endpoints'
         },
         { position: toast.POSITION.BOTTOM_RIGHT }
