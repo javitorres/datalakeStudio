@@ -1,30 +1,13 @@
 <template>
-  
-  <ul class="nav nav-tabs">
-    <!-- Published endpoints  -->
-    <li class="nav-item">
-      <a :class="{ 'nav-link': true, active: activeTab === 'listEndpoints' }" aria-current="page" href="#"
-        @click.prevent="reloadAvailableEndpoints()">Published endpoints</a>
-    </li>
-
-    <!-- New endpoint 
-    <li class="nav-item">
-      <a :class="{ 'nav-link': true, active: activeTab === 'newEndpoint' }" aria-current="page" href="#"
-        @click.prevent="createEmptyEndpoint()">New endpoint</a>
-    </li>
-    -->
-
-    <!-- Edit endpoint -->
-    <li class="nav-item">
-      <a :class="{ 'nav-link': true, active: activeTab === 'editEndpoint' }" aria-current="page" href="#"
-        @click.prevent="activeTab = 'editEndpoint'">Edit endpoint</a>
-    </li>
-  </ul>
 
   <!-- Show endpoints list  -->
   <div class="form-group" v-if="activeTab === 'listEndpoints'">
+    <h2>Published endpoints</h2>
     <br />
-    <p v-if="availableEndpoints && availableEndpoints.length == 0">No endpoints published </p>
+    <div  v-if="availableEndpoints && availableEndpoints.length == 0">
+      <p >No endpoints published </p>
+    </div>
+    
     <div v-if="availableEndpoints && availableEndpoints.length > 0">
 
       <table class="table table-striped table-hover table-bordered">
@@ -69,10 +52,8 @@
 
 
     </div>
-    <!-- Create endpoint button -->
-    <div v-if="availableEndpoints && availableEndpoints.length > 0">
-      <button type="button" class="btn btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
-    </div>
+    
+    <button type="button" class="btn btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
   </div>
 
 
@@ -81,9 +62,9 @@
 
   <!-- Endpoint editor  -->
   <div class="form-group" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
+    <h2>Edit endpoint</h2>
     <br />
-    
-    
+
     <p>Select the query your endpoint will be based on</p>
     <div class="input-group mb-3">
       <span class="input-group-text" id="basic-addon1">Search query</span>
@@ -163,6 +144,13 @@
     <div v-if="endpoint.query">
       <button type="button" class="btn btn-primary" @click="testEndpoint">Save and Test endpoint</button>
     </div>
+
+    <br />
+    <!-- Cancel button, go to list of endpoints -->
+    <div v-if="endpoint.query">
+      <button type="button" class="btn btn-danger" @click="activeTab = 'listEndpoints'">Cancel and back to endpoint list</button>
+    </div>
+
     <br />
 
     <!-- Show json response -->
