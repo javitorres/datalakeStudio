@@ -21,7 +21,7 @@ def askGPT(question: str):
         for table in tables:
             #if (table != "__lastQuery"):
             questionForChatGPT += " " + databaseService.getTableDescriptionForChatGpt(table)
-        questionForChatGPT += ". The query I need is:" + question
+        questionForChatGPT += ". The query I need, for DuckDB is:" + question
 
         chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, Config.get_instance().get_secrets.get("openai_api_key"))
         print("GPT response: " + chatGPTResponse)

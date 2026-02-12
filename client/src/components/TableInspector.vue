@@ -99,7 +99,7 @@
     <!-- Data profile -->
     <div v-if="tableProfile && showProfile">
       <h4>Table profile</h4>
-      <div ref="tableProfile"></div>
+      <div ref="tableProfileEl"></div>
     </div>
 
     <!-- Cross filters -->
@@ -137,7 +137,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { onMounted, ref, watch } from 'vue';
 import axios from 'axios';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
@@ -151,367 +152,304 @@ import Mosaic from './Mosaic.vue';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'TableInspector',
+const props = defineProps({
+  tableName: String,
+  showOptions: Boolean,
+});
 
-  // This variable cant be reactive to avoid interactions with Tabulator state
-  myTabulator: null,
-  data() {
-    return {
-      selectedFields: null,
-      showSampleData: true,
-      showProfile: false,
-      showPlot: false,
-      showMap: false,
-      showMosaic: false,
-      hideMap: false,
-      latField: null,
-      lonField: null,
+let myTabulator = null;
 
-      sampleData: Object,
-      tableSchema: Object,
-      tableProfile: Object,
-      rowcount: 0,
-      type: 'First',
-      records: 10,
-      rowSelected: null,
+const selectedFields = ref(null);
+const showSampleData = ref(true);
+const showProfile = ref(false);
+const showPlot = ref(false);
+const showMap = ref(false);
+const showMosaic = ref(false);
+const hideMap = ref(false);
+const latField = ref(null);
+const lonField = ref(null);
+const sampleData = ref(Object);
+const tableSchema = ref(Object);
+const tableProfile = ref(Object);
+const rowcount = ref(0);
+const type = ref('First');
+const records = ref(10);
+const rowSelected = ref(null);
+const chartConfig = ref(null);
+const genericCrossKey = ref(0);
+const loading = ref(false);
+const table = ref(null);
+const tableProfileEl = ref(null);
 
-      chartConfig: null,
-      genericCrossKey: 0,
-    };
-  },
+onMounted(() => {
+  load();
+});
 
-  components: {
-    GenericCross, Map, MapH3, Mosaic
-  },
-  props: {
-    tableName: String,
-    showOptions: Boolean,
-  },
-  mounted() {
-    this.load();
-  },
+watch(() => props.tableName, async () => {
+  await load();
+  setRecords(50);
+});
 
-  emits: [],
-
-  watch: {
-    tableName: {
-      async handler(newVal, oldVal) {
-        // To avoid load a big table if previous table was analyzed with all records enabled
-        //console.log("Table Inspector: reloading table: " + newVal);
-        await this.load();
-        //console.log("Table Inspector: table changed to: " + newVal + " Selected fields seted to: " + this.selectedFields);
-        this.setRecords(50);
-      }
-    }
-  },
-
-  methods: {
-    selectAllFields(all) {
-      this.selectedFields = [];
-      if (all) {
-        this.selectedFields = Object.keys(this.tableSchema)
-      }
-      this.generateCharts();
-      this.updateTable();
-    },
-    ////////////////////////////////////////////////////
-    toggleField(field) {
-      if (this.selectedFields == null) {
-        this.selectedFields = [];
-      }
-      if (this.selectedFields.includes(field)) {
-        this.selectedFields = this.selectedFields.filter(item => item !== field);
-      } else {
-        this.selectedFields.push(field);
-      }
-      this.generateCharts();
-      this.updateTable();
-
-    },
-    ////////////////////////////////////////////////////
-    copyToClipboard() {
-      var text = this.selectedFields.join(", ");
-      navigator.clipboard.writeText(text).then(function () {
-        toast.success('Fields names copied to clipboard');
-      }, function (err) {
-        toast.error('Error copying fields names to clipboard');
-      });
-    },
-    ////////////////////////////////////////////////////
-    updateTable() {
-      var columns = [];
-      for (var key in this.tableSchema) {
-        if (this.selectedFields && this.selectedFields.includes(key)) {
-          columns.push({ title: key, field: key });
-        }
-      }
-
-      this.myTabulator.setColumns(columns);
-      //this.$refs.table.setColumns(columns);
-    },
-    /////////////////////////////////////////////////
-    setType(newType) {
-      this.type = newType;
-      this.getSampleData(this.tableName);
-    },
-    ////////////////////////////////////////////////////
-    setRecords(newRecords) {
-      this.records = newRecords;
-      this.getSampleData(this.tableName);
-    },
-    ////////////////////////////////////////////////////
-    async load() {
-      await this.getSampleData(this.tableName);
-      await this.getRowcount();
-      await this.getTableSchema(this.tableName);
-    },
-    ////////////////////////////////////////////////////
-    imageSrc(type) {
-      if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
-      else if (type === 'float32') return '<i class="bi bi-123"></i>';
-      else if (type === 'float64') return '<i class="bi bi-123"></i>';
-      else if (type === 'int64') return '<i class="bi bi-123"></i>';
-      else if (type === 'boolean') return "MNO";
-      else if (type === 'null') return "PQR";
-      else return type;
-    },
-    /////////////////////////////////////////////////
-    async getRowcount() {
-      await axios.get(`${apiUrl}/database/getRowCount`, {
-        params: {
-          tableName: this.tableName,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.rowcount = response.data.rows;
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${response.message}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    ////////////////////////////////////////////////////
-    async getTableSchema(table) {
-      await axios.get(`${apiUrl}/database/getTableSchema`, {
-        params: {
-          tableName: table,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.tableSchema = response.data;
-
-          this.selectedFields = [];
-          // All fields selected by default. Fill selectedFields with fields from schema
-          for (var key in this.tableSchema) {
-            this.selectedFields.push(key).field;
-          }
-
-
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${response.message}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    ////////////////////////////////////////////////////
-    async getSampleData(tableName) {
-      this.showSampleData = true;
-      this.showProfile = false;
-      this.showPlot = false;
-      this.showMap = false;
-      this.showMosaic = false;
-
-
-      await axios.get(`${apiUrl}/database/getSampleData`, {
-        params: {
-          tableName: tableName,
-          type: this.type,
-          records: this.records,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.sampleData = response.data;
-
-          this.myTabulator = new Tabulator(this.$refs.table, {
-            data: this.sampleData,
-            importFormat: "csv",
-            autoColumns: true,
-            layout: "fitColumns",
-            //layout: "fitDataStretch",
-            persistence: true, // TODO: Review this, not working
-
-          });
-
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error:: HTTP ${error.message}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-
-      // Update selected columns state
-      this.myTabulator.on("tableBuilt", (data) => {
-        //console.log("tableBuilt.selectedFields: " + this.selectedFields);
-        // TODO It doens't work
-        this.updateTable();
-      });
-    },
-    ////////////////////////////////////////////////////
-    async getTableProfile(table) {
-      this.showSampleData = false;
-      this.showProfile = true;
-      this.showPlot = false;
-      this.showMap = false;
-      this.showMosaic = false;
-
-
-      const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
-        params: {
-          tableName: table,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Loading table profile, please wait...',
-          success: 'Profile loaded',
-          error: 'Error loading profile'
-        },
-        {
-          position: toast.POSITION.BOTTOM_RIGHT,
-        }
-      ).then((response) => {
-        if (response.status === 200) {
-          this.tableProfile = response.data;
-
-          new Tabulator(this.$refs.tableProfile, {
-            data: this.tableProfile,
-            reactiveData: true,
-            layout: "fitColumns",
-            importFormat: "csv",
-            autoColumns: true,
-          });
-        }
-      }).catch((error) => {
-        console.error('Error: ', error.message);
-      });
-    },
-    ////////////////////////////////////////////////////
-    async plotData(table) {
-      this.showSampleData = false;
-      this.showProfile = false;
-      this.showPlot = true;
-      this.showMap = false;
-      this.showMosaic = false;
-
-      var latFound = false;
-      var lonFound = false;
-      // if this.tableSchema contains lat and lon fields, show map
-      for (var key in this.tableSchema) {
-        if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
-          latFound = true;
-          this.latField = key;
-        }
-        if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
-          lonFound = true;
-          this.lonField = key;
-        }
-      }
-
-      /*if (latFound && lonFound) {
-        this.showMap = true;
-      } else {
-        this.showMap = false;
-      }*/
-
-      //await this.getTableSchema(table);
-      this.generateCharts();
-    },
-    ////////////////////////////////////////////////////
-    async mapData(table) {
-      this.showSampleData = false;
-      this.showProfile = false;
-      this.showPlot = false;
-      this.showMap = true;
-      this.showMosaic = false;
-
-      var latFound = false;
-      var lonFound = false;
-      // if this.tableSchema contains lat and lon fields, show map
-      for (var key in this.tableSchema) {
-        if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
-          latFound = true;
-          this.latField = key;
-        }
-        if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
-          lonFound = true;
-          this.lonField = key;
-        }
-      }
-
-      /*if (latFound && lonFound) {
-        this.showMap = true;
-      } else {
-        this.showMap = false;
-      }*/
-
-      //await this.getTableSchema(table);
-      this.generateCharts();
-    },
-    ////////////////////////////////////////////////////
-    generateCharts() {
-      var charts = [];
-      for (var key in this.tableSchema) {
-        // if key in selectedFields
-        if (this.selectedFields.includes(key)) {
-          var chart = {
-            title: key,
-            type: this.tableSchema[key],
-            fields: key
-          };
-          if (chart.type === 'object' || chart.type === 'bool') {
-            chart.type = 'categorical';
-          } else if (chart.type === 'int64' || chart.type === 'float64') {
-            chart.type = 'numerical';
-          } else if (chart.type === 'datetime64[ns]') {
-            chart.type = 'date';
-          } else {
-            chart.type = 'categorical';
-          }
-          charts.push(chart);
-        }
-      }
-      this.chartConfig = {
-        charts: charts
-      };
-
-      // Invalidate GenericCross to force re-render
-      this.genericCrossKey++;
-    },
-    ////////////////////////////////////////////////////
-    toggleMosaic() {
-      this.showSampleData = false;
-      this.showProfile = false;
-      this.showPlot = false;
-      this.showMap = false;
-
-      this.showMosaic = !this.showMosaic;
-
-    },
-
-  },
+function selectAllFields(all) {
+  selectedFields.value = [];
+  if (all) {
+    selectedFields.value = Object.keys(tableSchema.value);
+  }
+  generateCharts();
+  updateTable();
 }
 
+function toggleField(field) {
+  if (selectedFields.value == null) {
+    selectedFields.value = [];
+  }
+  if (selectedFields.value.includes(field)) {
+    selectedFields.value = selectedFields.value.filter(item => item !== field);
+  } else {
+    selectedFields.value.push(field);
+  }
+  generateCharts();
+  updateTable();
+}
+
+function copyToClipboard() {
+  var text = selectedFields.value.join(', ');
+  navigator.clipboard.writeText(text).then(function () {
+    toast.success('Fields names copied to clipboard');
+  }, function () {
+    toast.error('Error copying fields names to clipboard');
+  });
+}
+
+function updateTable() {
+  var columns = [];
+  for (var key in tableSchema.value) {
+    if (selectedFields.value && selectedFields.value.includes(key)) {
+      columns.push({ title: key, field: key });
+    }
+  }
+
+  myTabulator.setColumns(columns);
+}
+
+function setType(newType) {
+  type.value = newType;
+  getSampleData(props.tableName);
+}
+
+function setRecords(newRecords) {
+  records.value = newRecords;
+  getSampleData(props.tableName);
+}
+
+async function load() {
+  await getSampleData(props.tableName);
+  await getRowcount();
+  await getTableSchema(props.tableName);
+}
+
+function imageSrc(typeInput) {
+  if (typeInput === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
+  else if (typeInput === 'float32') return '<i class="bi bi-123"></i>';
+  else if (typeInput === 'float64') return '<i class="bi bi-123"></i>';
+  else if (typeInput === 'int64') return '<i class="bi bi-123"></i>';
+  else if (typeInput === 'boolean') return 'MNO';
+  else if (typeInput === 'null') return 'PQR';
+  else return typeInput;
+}
+
+async function getRowcount() {
+  await axios.get(`${apiUrl}/database/getRowCount`, {
+    params: {
+      tableName: props.tableName,
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      rowcount.value = response.data.rows;
+    } else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch(() => {
+    toast.error('Error loading rowcount');
+  }).finally(() => {
+    loading.value = false;
+  });
+}
+
+async function getTableSchema(tableName) {
+  await axios.get(`${apiUrl}/database/getTableSchema`, {
+    params: {
+      tableName: tableName,
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      tableSchema.value = response.data;
+
+      selectedFields.value = [];
+      for (var key in tableSchema.value) {
+        selectedFields.value.push(key).field;
+      }
+    } else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch(() => {
+    toast.error('Error loading schema');
+  }).finally(() => {
+    loading.value = false;
+  });
+}
+
+async function getSampleData(tableName) {
+  showSampleData.value = true;
+  showProfile.value = false;
+  showPlot.value = false;
+  showMap.value = false;
+  showMosaic.value = false;
+
+  await axios.get(`${apiUrl}/database/getSampleData`, {
+    params: {
+      tableName: tableName,
+      type: type.value,
+      records: records.value,
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      sampleData.value = response.data;
+
+      myTabulator = new Tabulator(table.value, {
+        data: sampleData.value,
+        importFormat: 'csv',
+        autoColumns: true,
+        layout: 'fitColumns',
+        persistence: true,
+      });
+    } else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch((error) => {
+    toast.error(`Error:: HTTP ${error.message}`);
+  }).finally(() => {
+    loading.value = false;
+  });
+
+  myTabulator.on('tableBuilt', () => {
+    updateTable();
+  });
+}
+
+async function getTableProfile(tableName) {
+  showSampleData.value = false;
+  showProfile.value = true;
+  showPlot.value = false;
+  showMap.value = false;
+  showMosaic.value = false;
+
+  const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
+    params: {
+      tableName: tableName,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Loading table profile, please wait...',
+      success: 'Profile loaded',
+      error: 'Error loading profile'
+    },
+    {
+      position: toast.POSITION.BOTTOM_RIGHT,
+    }
+  ).then((response) => {
+    if (response.status === 200) {
+      tableProfile.value = response.data;
+
+      new Tabulator(tableProfileEl.value, {
+        data: tableProfile.value,
+        reactiveData: true,
+        layout: 'fitColumns',
+        importFormat: 'csv',
+        autoColumns: true,
+      });
+    }
+  }).catch((error) => {
+    console.error('Error: ', error.message);
+  });
+}
+
+async function plotData(tableName) {
+  showSampleData.value = false;
+  showProfile.value = false;
+  showPlot.value = true;
+  showMap.value = false;
+  showMosaic.value = false;
+
+  for (var key in tableSchema.value) {
+    if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
+      latField.value = key;
+    }
+    if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
+      lonField.value = key;
+    }
+  }
+
+  generateCharts();
+}
+
+async function mapData(tableName) {
+  showSampleData.value = false;
+  showProfile.value = false;
+  showPlot.value = false;
+  showMap.value = true;
+  showMosaic.value = false;
+
+  for (var key in tableSchema.value) {
+    if (key.toLowerCase() === 'lat' || key.toLowerCase() === 'latitude' || key.toLowerCase() === 'latitud') {
+      latField.value = key;
+    }
+    if (key.toLowerCase() === 'lon' || key.toLowerCase() === 'longitude' || key.toLowerCase() === 'longitud') {
+      lonField.value = key;
+    }
+  }
+
+  generateCharts();
+}
+
+function generateCharts() {
+  var charts = [];
+  for (var key in tableSchema.value) {
+    if (selectedFields.value.includes(key)) {
+      var chart = {
+        title: key,
+        type: tableSchema.value[key],
+        fields: key
+      };
+      if (chart.type === 'object' || chart.type === 'bool') {
+        chart.type = 'categorical';
+      } else if (chart.type === 'int64' || chart.type === 'float64') {
+        chart.type = 'numerical';
+      } else if (chart.type === 'datetime64[ns]') {
+        chart.type = 'date';
+      } else {
+        chart.type = 'categorical';
+      }
+      charts.push(chart);
+    }
+  }
+  chartConfig.value = {
+    charts: charts
+  };
+
+  genericCrossKey.value++;
+}
+
+function toggleMosaic() {
+  showSampleData.value = false;
+  showProfile.value = false;
+  showPlot.value = false;
+  showMap.value = false;
+  showMosaic.value = !showMosaic.value;
+}
 </script>
 <style scoped>
 .tabulator {

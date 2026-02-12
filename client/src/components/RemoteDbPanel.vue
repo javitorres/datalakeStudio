@@ -109,7 +109,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
 import axios from 'axios';
 
 import { Codemirror } from "vue-codemirror";
@@ -122,193 +123,167 @@ import 'vue3-toastify/dist/index.css';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'RemoteDbPanel',
-  data() {
-    return {
-      expanded: true,
-      tabulator: null,
-      connectedDatabase: '',
-      loading: false,
+const emit = defineEmits(['tableCreated']);
 
-      databaseInput: '',
-      databases: [],
-      schemas: [],
-      schemaSelected: '',
-      showSchemas: true,
-      tables: [],
+const extensions = [sql()];
+const expanded = ref(true);
+const tabulator = ref(null);
+const connectedDatabase = ref('');
+const loading = ref(false);
+const databaseInput = ref('');
+const databases = ref([]);
+const schemas = ref([]);
+const schemaSelected = ref('');
+const showSchemas = ref(true);
+const tables = ref([]);
+const query = ref('');
+const sampleData = ref([]);
+const tableFromQuery = ref('');
+const filterTable = ref('');
+const table = ref(null);
+const error = ref('');
 
-      query: '',
-      sampleData: [],
-      tabulator: null,
-      tableFromQuery: '',
-      filterTable: '',
-    };
-  },
-  components: {
-    Codemirror,
-  },
-
-  setup() {
-      const extensions = [sql()]
-      return { extensions }
-  },
-
-  emits: ['tableCreated'],
-
-  methods: {
-
-    ////////////////////////////////////////////////////
-    clickTable(table) {
-      this.query = 'SELECT * FROM ' + this.schemaSelected + '.' + table + ' LIMIT 30';
-      this.runRemoteQuery(this.query);
-    },
-
-    async searchDatabase() {
-      if (this.databaseInput.length > 0) {
-        axios.get(`${apiUrl}/remotedb/getDatabaseList`, {
-          params: {
-            databaseName: this.databaseInput
-          },
-        }).then((response) => {
-          if (response.status === 200) {
-            //console.log('response.data: ' + response.data);
-            this.databases = response.data;
-
-            //toast.success('Table created successfully');
-          }
-          else {
-            toast.error(`Error: HTTP ${response.message}`);
-          }
-        }).catch((error) => {
-          toast.error(`Error: HTTP ${response.data}`);
-        }).finally(() => {
-          this.loading = false;
-          //this.info = '';
-          //this.getTables();
-        });
-      }
-    },
-    ////////////////////////////////////////////////////
-    async clickDatabase(database) {
-      console.log('clickDatabase()');
-      console.log('database: ' + database);
-      axios.get(`${apiUrl}/remotedb/connectDatabase`, {
-        params: {
-          databaseName: database
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          //console.log('response.data: ' + response.data);
-          if (response.data.status === 'ok') {
-            this.connectedDatabase = database;
-            this.databases = [];
-            this.schemas = response.data.schemas;
-            toast.success('Database ' + database + ' connected');
-          }
-          else {
-            toast.error(`Error: HTTP ${response.message}`);
-          }
-        }
-        else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${response.data}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    ///////////////////////////////////////////////////
-    async clickSchema(schema) {
-      this.showSchemas = false;
-      this.loading = true;
-      this.schemaSelected = schema;
-      axios.get(`${apiUrl}/remotedb/getTablesFromRemoteSchema`, {
-        params: {
-          schema: schema
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          //console.log('response.data: ' + response.data);
-          if (response.data.status === 'ok') {
-            this.tables = response.data.tables;
-            //toast.success('Schema ' + schema + ' connected');
-          }
-          else {
-            toast.error(`Error: HTTP ${response.data.message}`);
-          }
-        }
-        else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${response.data}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    /////////////////////////////////////////////////////////////
-    async runRemoteQuery(query) {
-      this.loading = true;
-      console.log('runRemoteQuery()');
-      var response = await axios.get(`${apiUrl}/remotedb/runRemoteQuery`, {
-        params: {
-          database: this.database,
-          query: this.query,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          this.error = '';
-          this.sampleData = response.data;
-          var columns = [];
-          for (var key in this.sampleData[0]) {
-            columns.push({ title: key, field: key });
-          }
-          var table = new Tabulator(this.$refs.table, {
-            data: this.sampleData,
-            reactiveData: true,
-            importFormat: "csv",
-            autoColumns: true,
-            layout: "fitColumns",
-          });
-
-        } else {
-          this.error = `Error: HTTP ${response.message}`;
-        }
-      }).catch((error) => {
-        this.error = `Error: ${error.message}`;
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    ///////////////////////////////////////////////////////
-    async createTableFromRemoteQuery() {
-      var response = await axios.get(`${apiUrl}/remotedb/createTableFromRemoteQuery`, {
-        params: {
-          query: this.query,
-          tableName: this.tableFromQuery,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          toast.success('Table created successfully');
-          this.$emit('tableCreated');
-        } else {
-          toast.error('Table creation error::' + response.message);
-        }
-      }).catch((error) => {
-        toast.error('Table creation error:' + error);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-
-  },
-
+function clickTable(nextTable) {
+  query.value = 'SELECT * FROM ' + schemaSelected.value + '.' + nextTable + ' LIMIT 30';
+  runRemoteQuery(query.value);
 }
 
+async function searchDatabase() {
+  if (databaseInput.value.length > 0) {
+    axios.get(`${apiUrl}/remotedb/getDatabaseList`, {
+      params: {
+        databaseName: databaseInput.value
+      },
+    }).then((response) => {
+      if (response.status === 200) {
+        databases.value = response.data;
+      }
+      else {
+        toast.error(`Error: HTTP ${response.message}`);
+      }
+    }).catch(() => {
+      toast.error('Error searching databases');
+    }).finally(() => {
+      loading.value = false;
+    });
+  }
+}
 
+async function clickDatabase(database) {
+  axios.get(`${apiUrl}/remotedb/connectDatabase`, {
+    params: {
+      databaseName: database
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      if (response.data.status === 'ok') {
+        connectedDatabase.value = database;
+        databases.value = [];
+        schemas.value = response.data.schemas;
+        toast.success('Database ' + database + ' connected');
+      }
+      else {
+        toast.error(`Error: HTTP ${response.message}`);
+      }
+    }
+    else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch(() => {
+    toast.error('Error connecting to remote database');
+  }).finally(() => {
+    loading.value = false;
+  });
+}
 
+async function clickSchema(schema) {
+  showSchemas.value = false;
+  loading.value = true;
+  schemaSelected.value = schema;
+  axios.get(`${apiUrl}/remotedb/getTablesFromRemoteSchema`, {
+    params: {
+      schema: schema
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      if (response.data.status === 'ok') {
+        tables.value = response.data.tables;
+      }
+      else {
+        toast.error(`Error: HTTP ${response.data.message}`);
+      }
+    }
+    else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch(() => {
+    toast.error('Error loading schemas');
+  }).finally(() => {
+    loading.value = false;
+  });
+}
 
+async function runRemoteQuery(nextQuery) {
+  loading.value = true;
+  await axios.get(`${apiUrl}/remotedb/runRemoteQuery`, {
+    params: {
+      database: connectedDatabase.value,
+      query: nextQuery,
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      error.value = '';
+      sampleData.value = response.data;
+      tabulator.value = new Tabulator(table.value, {
+        data: sampleData.value,
+        reactiveData: true,
+        importFormat: 'csv',
+        autoColumns: true,
+        layout: 'fitColumns',
+      });
+    } else {
+      error.value = `Error: HTTP ${response.message}`;
+    }
+  }).catch((err) => {
+    error.value = `Error: ${err.message}`;
+  }).finally(() => {
+    loading.value = false;
+  });
+}
+
+async function createTableFromRemoteQuery() {
+  await axios.get(`${apiUrl}/remotedb/createTableFromRemoteQuery`, {
+    params: {
+      query: query.value,
+      tableName: tableFromQuery.value,
+    },
+  }).then((response) => {
+    if (response.status === 200) {
+      toast.success('Table created successfully');
+      emit('tableCreated');
+    } else {
+      toast.error('Table creation error::' + response.message);
+    }
+  }).catch((error) => {
+    toast.error('Table creation error:' + error);
+  }).finally(() => {
+    loading.value = false;
+  });
+}
+
+async function disconnectDatabase(database) {
+  await axios.get(`${apiUrl}/remotedb/disconnectDatabase`, {
+    params: {
+      databaseName: database,
+    },
+  }).then(() => {
+    connectedDatabase.value = '';
+    schemas.value = [];
+    tables.value = [];
+    schemaSelected.value = '';
+  }).catch(() => {
+    toast.error('Error disconnecting remote database');
+  });
+}
 </script>
 <style scoped></style>

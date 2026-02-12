@@ -72,7 +72,7 @@ def askGptGenericQuestion(question, apikey):
     )
 
     print("Sending question to GPT: " + question)
-    completion = client.chat.completions.create(model="gpt-4-1106-preview", messages=[
+    completion = client.chat.completions.create(model="o3-mini", messages=[
         {"role": "system", "content": """You are a data assistant, you have to read the user question and the data provided and return a response 
          to help the user. You can use any text, but you have to return a response that is useful for the user. 
         """},

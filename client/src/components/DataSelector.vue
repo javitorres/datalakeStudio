@@ -7,167 +7,151 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { onMounted, ref } from 'vue';
 import { socketConnector, restConnector, wasmConnector } from '@uwdata/mosaic-core';
 import { createAPIContext } from '@uwdata/vgplot';
 import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
 import yaml from 'yaml';
 
-export default {
-  name: 'DataSelector',
-
-  props: {
-    values: [],
-    count: [],
-    
+const props = defineProps({
+  values: {
+    type: Array,
+    default: () => []
   },
-
-  data() {
-    return {
-      selectedConnector: 'rest', // 'socket', 'rest', 'rest_https', 'wasm'
-      queryLog: false,
-      cacheEnabled: true,
-      consolidateEnabled: true,
-      indexEnabled: true,
-      wasm: null,
-    };
+  count: {
+    type: Array,
+    default: () => []
   },
-  mounted() {
+});
 
-    this.initializeVgContext();
-    this.setQueryLog();
-    this.setCache();
-    this.setConsolidate();
-    this.setIndex();
-    this.setConnector();
+const selectedConnector = ref('rest');
+const queryLog = ref(false);
+const cacheEnabled = ref(true);
+const consolidateEnabled = ref(true);
+const indexEnabled = ref(true);
+const wasm = ref(null);
+const vg = ref(null);
+const coordinator = ref(null);
+const namedPlots = ref(null);
 
-  },
-  watch: {
-    
-  },
-  ////////////////////////////////////////////////////////////////////////////
-  methods: {
-    initializeVgContext() {
-      this.vg = createAPIContext();
-      self.vg = this.vg; // Para hacer accesible la API desde la consola
-      this.coordinator = this.vg.context.coordinator;
-      this.namedPlots = this.vg.context.namedPlots;
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    async setConnector() {
-      await this.setDatabaseConnector(this.selectedConnector);
-      this.reload();
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    clear() {
-      this.coordinator.clear();
-      this.namedPlots.clear();
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    async setDatabaseConnector(type) {
-      let connector;
-      switch (type) {
-        case 'socket':
-          console.log('Socket Connector');
-          connector = socketConnector();
-          break;
-        case 'rest':
-          console.log('REST Connector');
-          connector = restConnector('http://localhost:8000/database/restConnector/');
-          break;
-        case 'rest_https':
-          console.log('REST HTTPS Connector');
-          connector = restConnector('https://localhost:8000/database/restConnector/');
-          break;
-        case 'wasm':
-          console.log('WASM Connector');
-          connector = this.wasm || (this.wasm = wasmConnector());
-          break;
-        default:
-          throw new Error(`Unrecognized connector type: ${type}`);
-      }
-      console.log('Database Connector:', type);
-      this.coordinator.databaseConnector(connector);
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    setQueryLog() {
-      this.vg.coordinator().manager.logQueries(this.queryLog);
-    },
-    setCache() {
-      this.vg.coordinator().manager.cache(this.cacheEnabled);
-    },
-    setConsolidate() {
-      this.vg.coordinator().manager.consolidate(this.consolidateEnabled);
-    },
-    setIndex() {
-      this.vg.coordinator().dataCubeIndexer.enabled(this.indexEnabled);
-    },
-    logIndexState() {
-      const { indexes } = this.vg.coordinator().dataCubeIndexer || {};
-      if (indexes) {
-        console.warn('Data Cube Index Entries', Array.from(indexes.values()));
-      } else {
-        console.warn('No Active Data Cube Index');
-      }
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    async reload() {
-      this.load(this.table);
-    },
-    ////////////////////////////////////////////////////////////////////////////
-    async load(name) {
-      const view = document.getElementById('view');
+onMounted(() => {
+  initializeVgContext();
+  setQueryLog();
+  setCache();
+  setConsolidate();
+  setIndex();
+  setConnector();
+});
 
-      if (view) {
-        view.innerHTML = ''; 
-      }
+function initializeVgContext() {
+  vg.value = createAPIContext();
+  self.vg = vg.value;
+  coordinator.value = vg.value.context.coordinator;
+  namedPlots.value = vg.value.context.namedPlots;
+}
 
-      if (name === 'none' && location.search) {
-        name = location.search.slice(1);
-      }
-      if (name !== 'none') {
-        const spec = this.getYaml(this.table, this.selectedFields, this.schema);
-        console.log('Spec', spec);
+async function setConnector() {
+  await setDatabaseConnector(selectedConnector.value);
+  reload();
+}
 
-        const baseURL = location.origin + '/';
-        const options = this.selectedConnector === 'wasm' ? { baseURL } : {};
+function clear() {
+  coordinator.value.clear();
+  namedPlots.value.clear();
+}
 
-        const ast = parseSpec(spec);
-        const el = await (this.loadDOM)(ast, options);
-        if (view) {
-          view.appendChild(el);
-        }
-      }
+async function setDatabaseConnector(type) {
+  let connector;
+  switch (type) {
+    case 'socket':
+      connector = socketConnector();
+      break;
+    case 'rest':
+      connector = restConnector('http://localhost:8000/database/restConnector/');
+      break;
+    case 'rest_https':
+      connector = restConnector('https://localhost:8000/database/restConnector/');
+      break;
+    case 'wasm':
+      connector = wasm.value || (wasm.value = wasmConnector());
+      break;
+    default:
+      throw new Error(`Unrecognized connector type: ${type}`);
+  }
+  coordinator.value.databaseConnector(connector);
+}
+
+function setQueryLog() {
+  vg.value.coordinator().manager.logQueries(queryLog.value);
+}
+
+function setCache() {
+  vg.value.coordinator().manager.cache(cacheEnabled.value);
+}
+
+function setConsolidate() {
+  vg.value.coordinator().manager.consolidate(consolidateEnabled.value);
+}
+
+function setIndex() {
+  vg.value.coordinator().dataCubeIndexer.enabled(indexEnabled.value);
+}
+
+function logIndexState() {
+  const { indexes } = vg.value.coordinator().dataCubeIndexer || {};
+  if (indexes) {
+    console.warn('Data Cube Index Entries', Array.from(indexes.values()));
+  } else {
+    console.warn('No Active Data Cube Index');
+  }
+}
+
+async function reload() {
+  await load(props.table);
+}
+
+async function load(name) {
+  const view = document.getElementById('view');
+
+  if (view) {
+    view.innerHTML = '';
+  }
+
+  if (name === 'none' && location.search) {
+    name = location.search.slice(1);
+  }
+  if (name !== 'none') {
+    const spec = getYaml(props.table, props.selectedFields, props.schema);
+    const baseURL = location.origin + '/';
+    const options = selectedConnector.value === 'wasm' ? { baseURL } : {};
+
+    const ast = parseSpec(spec);
+    const el = await loadDOM(ast, options);
+    if (view) {
+      view.appendChild(el);
+    }
+  }
+}
+
+async function loadDOM(ast, options) {
+  const { element } = await astToDOM(ast, { ...options, api: vg.value });
+  return element;
+}
+
+function getYaml() {
+  const spec = {
+    data: {
+      values: props.values,
     },
-    ////////////////////////////////////////////////////////////////////////////
-    async loadDOM(ast, options) {
-      //this.clear();
-      const { element } = await astToDOM(ast, { ...options, api: this.vg });
-      return element;
+    mark: 'bar',
+    encoding: {
+      x: { field: 'a', type: 'ordinal' },
+      y: { field: 'b', type: 'quantitative' },
     },
-
-    ////////////////////////////////////////////////////////////////////////////
-    getYaml() {
-      const spec = {
-        data: {
-          values: this.values,
-        },
-        mark: 'bar',
-        encoding: {
-          x: { field: 'a', type: 'ordinal' },
-          y: { field: 'b', type: 'quantitative' },
-        },
-      };
-      return yaml.stringify(spec);
-    },
-  },
-
-    ////////////////////////////////////////////////////////////////////////////
-    
-  ////////////////////////////////////////////////////////////////////////////
-
-
-};
+  };
+  return yaml.stringify(spec);
+}
 </script>
 
 <style scoped>
