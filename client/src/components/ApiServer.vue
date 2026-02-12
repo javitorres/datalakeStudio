@@ -27,24 +27,24 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="endpoint in availableEndpoints" :key="endpoint.id_endpoint">
-            <td>{{ endpoint.id_endpoint }}</td>
-            <td>{{ endpoint.endpoint }}</td>
-            <td>{{ endpoint.description }}</td>
+          <tr v-for="endpointItem in availableEndpoints" :key="endpointItem.id_endpoint">
+            <td>{{ endpointItem.id_endpoint }}</td>
+            <td>{{ endpointItem.endpoint }}</td>
+            <td>{{ endpointItem.description }}</td>
             <td>
-              <a :href="`${apiUrl}/api/${endpoint.endpoint}`" target="_blank">{{ apiUrl }}/api/{{ endpoint.endpoint }}</a>
+              <a :href="`${apiUrl}/api/${endpointItem.endpoint}`" target="_blank">{{ apiUrl }}/api/{{ endpointItem.endpoint }}</a>
             </td>
-            <td>{{ endpoint.parameters }}</td>
-            <td>{{ endpoint.id_query }}</td>
-            <td>{{ endpoint.status }}</td>
-            <td>{{ endpoint.query }}</td>
+            <td>{{ endpointItem.parameters }}</td>
+            <td>{{ endpointItem.id_query }}</td>
+            <td>{{ endpointItem.status }}</td>
+            <td>{{ endpointItem.query }}</td>
             <td>
-              <a :href="`${apiUrl}/api/${endpoint.endpoint}${endpoint.queryStringTest}`" target="_blank">{{ apiUrl
-              }}/api/{{ endpoint.endpoint }}{{ endpoint.queryStringTest }}</a>
+              <a :href="`${apiUrl}/api/${endpointItem.endpoint}${endpointItem.queryStringTest}`" target="_blank">{{ apiUrl
+              }}/api/{{ endpointItem.endpoint }}{{ endpointItem.queryStringTest }}</a>
             </td>
             <td>
-              <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpoint.id_endpoint)">Delete</button>
-              <button type="button" class="btn btn-secondary" @click="editEndpoint(endpoint)">Edit</button>
+              <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpointItem.id_endpoint)">Delete</button>
+              <button type="button" class="btn btn-secondary" @click="editEndpoint(endpointItem)">Edit</button>
             </td>
           </tr>
         </tbody>
@@ -82,7 +82,7 @@
     </div>
     
 
-    <div v-if="activeTab === 'editEndpoint' && ! endpoint.id_endpoint">
+    <div v-if="activeTab === 'editEndpoint' && ! endpointForm.id_endpoint">
       <p>No endpoint selected, select one of published endpoints list</p>
     </div>
 
@@ -90,7 +90,7 @@
 
       <p>Add any {parameter} in your SQL query to add query params:</p>
       <div class="form-group">
-        <codemirror v-model="endpoint.query" placeholder="code goes here..." :style="{ height: '300px' }"
+        <codemirror v-model="endpointForm.query" placeholder="code goes here..." :style="{ height: '300px' }"
           :autofocus="true" :indent-with-tab="true" :tab-size="4" :extensions="extensions"
           @change="sqlChanged('change', $event)" />
       </div>
@@ -98,17 +98,17 @@
       <div class="col-md-3">
         <div class="input-group mb-3">
           <span class="input-group-text" id="basic-addon1">Endpoint</span>
-          <input type="text" class="form-control" placeholder="Query name" v-model="endpoint.endpoint">
+          <input type="text" class="form-control" placeholder="Query name" v-model="endpointForm.endpoint">
         </div>
       </div>
     
-    <h3 v-if="endpoint.endpoint">URL: {{ apiUrl }}/api/{{ endpoint.endpoint }}{{ (endpoint.parameters && endpoint.parameters.length > 0) ?
-      endpoint.queryStringTest : "" }}</h3>
+    <h3 v-if="endpointForm.endpoint">URL: {{ apiUrl }}/api/{{ endpointForm.endpoint }}{{ (endpointForm.parameters && endpointForm.parameters.length > 0) ?
+      endpointForm.queryStringTest : "" }}</h3>
 
     <!-- For each parameter an imput -->
-    <div v-if="endpoint.query && endpoint.parameters && endpoint.parameters.length > 0">
+    <div v-if="endpointForm.query && endpointForm.parameters && endpointForm.parameters.length > 0">
       <br />
-      <div class="col-md-4" v-for="parameter in endpoint.parameters" :key="parameter">
+      <div class="col-md-4" v-for="parameter in endpointForm.parameters" :key="parameter">
         <div class="input-group mb-3">
           <span class="input-group-text" id="basic-addon1">{{ parameter.name }}</span>
           <input type="text" class="form-control" placeholder="Write an example value for testing"
@@ -120,20 +120,20 @@
 
 
     <!-- Description -->
-    <div v-if="endpoint.endpoint">
+    <div v-if="endpointForm.endpoint">
       <br />
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Description</span>
-        <input type="text" class="form-control" placeholder="Description" v-model="endpoint.description">
+        <input type="text" class="form-control" placeholder="Description" v-model="endpointForm.description">
       </div>
     </div>
 
     <!-- status: combo with DEV, READY-->
-    <div v-if="endpoint.endpoint">
+    <div v-if="endpointForm.endpoint">
       <br />
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Status</span>
-        <select class="form-select" v-model="endpoint.status">
+        <select class="form-select" v-model="endpointForm.status">
           <option value="DEV">DEV</option>
           <option value="PROD">PROD</option>
         </select>
@@ -141,20 +141,20 @@
     </div>
 
     <!-- Simulate endpoint -->
-    <div v-if="endpoint.query">
+    <div v-if="endpointForm.query">
       <button type="button" class="btn btn-primary" @click="testEndpoint">Save and Test endpoint</button>
     </div>
 
     <br />
     <!-- Cancel button, go to list of endpoints -->
-    <div v-if="endpoint.query">
+    <div v-if="endpointForm.query">
       <button type="button" class="btn btn-danger" @click="activeTab = 'listEndpoints'">Cancel and back to endpoint list</button>
     </div>
 
     <br />
 
     <!-- Show json response -->
-    <div v-if="endpoint.query && response">
+    <div v-if="endpointForm.query && response">
       <br />
       <div class="input-group mb-3">
         <span class="input-group-text" id="basic-addon1">Response</span>
@@ -173,7 +173,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { onMounted, ref } from 'vue';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -184,301 +185,289 @@ import { sql } from "@codemirror/lang-sql";
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'ApiServer',
+const extensions = [sql()];
 
-  setup() {
-    const extensions = [sql()]
-    return { extensions }
-  },
+const sqlSearchQuery = ref(null);
+const queries = ref([]);
+const endpointForm = ref({
+  id_query: null,
+  id_endpoint: null,
+  endpoint: null,
+  query: null,
+  parameters: [],
+  description: null,
+  queryStringTest: null,
+  status: 'DEV'
+});
+const response = ref(null);
+const activeTab = ref('listEndpoints');
+const availableEndpoints = ref(null);
+const published = ref(false);
 
-  data() {
-    return {
-      sqlSearchQuery: null,
-      queries: [],
+onMounted(() => {
+  reloadAvailableEndpoints();
+});
 
-      query: null,
-      endpoint:
-      {
-        id_query: null,
-        id_endpoint: null,
-        endpoint: null,
-        query: null,
-        parameters: [],
-        description: null,
-        queryStringTest: null,
-        status: 'DEV'
-      },
+function sqlChanged(event, editor) {
+  const oldParameters = endpointForm.value.parameters || [];
+  endpointForm.value.parameters = [];
+  const regex = /{([^}]+)}/g;
+  let m;
+  while ((m = regex.exec(endpointForm.value.query || '')) !== null) {
+    if (m.index === regex.lastIndex) {
+      regex.lastIndex++;
+    }
 
-      response: null,
-      apiUrl: apiUrl,
-      activeTab: 'listEndpoints',
-      availableEndpoints: null,
-    };
-  },
-  props: {},
-
-  components: {
-    Codemirror,
-  },
-
-  mounted() {
-    this.reloadAvailableEndpoints();
-  },
-  computed: {
-    // Get possible keys in the json response
-    getFields() {
-      if (this.response) {
-        return Object.keys(JSON.parse(this.response)[0]);
+    m.forEach((match, groupIndex) => {
+      if (groupIndex == 1) {
+        endpointForm.value.parameters.push({ "name": match, "exampleValue": null });
       }
-    },
-
-  },
-
-  methods: {
-    sqlChanged(event, editor) {
-      // TODO There is a delay of one keypressed 
-      //console.log('sqlChanged: ' + this.endpoint.query);
-
-      // Find all {parameters} in the query and add them to the parameters array
-      var oldParameters = this.endpoint.parameters;
-      this.endpoint.parameters = [];
-      const regex = /{([^}]+)}/g;
-      let m;
-      while ((m = regex.exec(this.endpoint.query)) !== null) {
-        // This is necessary to avoid infinite loops with zero-width matches
-        if (m.index === regex.lastIndex) {
-          regex.lastIndex++;
-        }
-
-        m.forEach((match, groupIndex) => {
-          if (groupIndex == 1) {
-            this.endpoint.parameters.push({ "name": match, "exampleValue": null });
-          }
-        });
-      }
-      // Set parameters example values if they existed before
-      for (let i = 0; i < this.endpoint.parameters.length; i++) {
-        for (let j = 0; j < oldParameters.length; j++) {
-          if (this.endpoint.parameters[i].name == oldParameters[j].name) {
-            this.endpoint.parameters[i].exampleValue = oldParameters[j].exampleValue;
-          }
-        }
-      }
-
-      this.rebuildQueryStringTest();
-    },
-    /////////////////////////////////////////////////
-    rebuildQueryStringTest() {
-      this.endpoint.queryStringTest = "?";
-      for (let i = 0; i < this.endpoint.parameters.length; i++) {
-        this.endpoint.queryStringTest += this.endpoint.parameters[i].name + "=" + this.endpoint.parameters[i].exampleValue + "&";
-      }
-      this.endpoint.queryStringTest = this.endpoint.queryStringTest.slice(0, -1);
-    },
-    /////////////////////////////////////////////////
-    async searchQuery(query) {
-      const fetchData = async () => await axios.get(`${apiUrl}/queries/searchQuery`, {
-        params: {
-          query: this.sqlSearchQuery,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Searching SQL queries, please wait...',
-          success: 'SQL queries loaded',
-          error: 'Error loading SQL queries'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.queries = response.data;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    /////////////////////////////////////////////////
-    async selectQuery(queryCandidate) {
-      this.sqlSearchQuery = queryCandidate.name;
-      this.queries = [];
-
-      this.endpoint.endpoint = queryCandidate.name;
-      this.endpoint.id_query = queryCandidate.id_query;
-      this.endpoint.query = queryCandidate.query;
-    },
-    /////////////////////////////////////////////////
-    async createEmptyEndpoint() {
-      // Create new endpoint and get the id
-      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/create`, {
-        params: {
-          endpoint: this.endpoint.endpoint,
-        },
-
-      });
-
-      // This return is needed because this method is called from a wait method
-      return toast.promise(
-        fetchData(),
-        {
-          pending: 'Creating new endpoint, please wait...',
-          success: 'New endpoint created',
-          error: 'Error creating new endpoint'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.endpoint.id_endpoint = response.data.id_endpoint;
-        // Refresh the list of available endpoints
-      this.reloadAvailableEndpoints();
-
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-      
-    },
-
-    /////////////////////////////////////////////////
-    async testEndpoint() {
-      if (this.endpoint.id_endpoint == null) {
-        await this.createEmptyEndpoint();
-      }
-
-      await this.update(this.endpoint)
-
-      var url = this.apiUrl + "/api/" + this.endpoint.endpoint + ((this.endpoint.parameters.length > 0) ? this.endpoint.queryStringTest : "");
-
-      toast.info('Info' + `Testing endpoint: ${url}`, { position: toast.POSITION.BOTTOM_RIGHT });
-      const fetchData = async () => await axios.get(url, {
-
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Testing endpoint, please wait...',
-          success: 'Endpoint tested',
-          error: 'Error testing endpoint'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.response = JSON.stringify(response.data, null, 2);
-      }).catch((error) => {
-        if (error.response && error.response.status === 400) {
-          this.response = JSON.stringify(error.response.data, null, 2);
-          console.log(JSON.stringify(error.response.data, null, 2));
-          toast.error('Info' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          this.response = JSON.stringify(error, null, 2);
-          console.log(JSON.stringify(error, null, 2));
-          toast.error('Info' + `Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    /////////////////////////////////////////////////
-    async update() {
-      const fetchData = async () => await axios.post(`${apiUrl}/apiserver/update`, {
-        id_query: this.endpoint.id_query,
-        id_endpoint: this.endpoint.id_endpoint,
-        endpoint: this.endpoint.endpoint,
-        parameters: this.endpoint.parameters,
-        description: this.endpoint.description,
-        queryStringTest: this.endpoint.queryStringTest,
-        status: this.endpoint.status,
-        query: btoa(this.endpoint.query)
-
-      });
-
-      return toast.promise(
-        fetchData(),
-        {
-          pending: 'Publishing endpoint, please wait...',
-          success: 'Endpoint published',
-          error: 'Error publishing endpoint'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        // get id_endpoint
-        //this.newEndpointId = response.data;
-
-        this.published = true;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-
-    /////////////////////////////////////////////////
-    async reloadAvailableEndpoints() {
-      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/listEndpoints`, {
-
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          
-          error: 'Error loading endpoints'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.availableEndpoints = response.data;
-        this.activeTab = 'listEndpoints'
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    /////////////////////////////////////////////////
-    async deleteEndpoint(id_endpoint) {
-      const fetchData = async () => await axios.get(`${apiUrl}/apiserver/deleteEndpoint`, {
-        params: {
-          id_endpoint: id_endpoint
-        },
-
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Deleting endpoint, please wait...',
-          success: 'Endpoint deleted',
-          error: 'Error deleting endpoint'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.reloadAvailableEndpoints();
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    /////////////////////////////////////////////////
-    async editEndpoint(endpoint) {
-      this.endpoint = endpoint;
-      console.log("params:" + this.endpoint.parameters);
-      this.endpoint.parameters = JSON.parse(this.endpoint.parameters);
-      this.activeTab = 'editEndpoint';
-    },
+    });
   }
+  for (let i = 0; i < endpointForm.value.parameters.length; i++) {
+    for (let j = 0; j < oldParameters.length; j++) {
+      if (endpointForm.value.parameters[i].name == oldParameters[j].name) {
+        endpointForm.value.parameters[i].exampleValue = oldParameters[j].exampleValue;
+      }
+    }
+  }
+
+  rebuildQueryStringTest();
 }
 
+function rebuildQueryStringTest() {
+  endpointForm.value.queryStringTest = "?";
+  for (let i = 0; i < endpointForm.value.parameters.length; i++) {
+    endpointForm.value.queryStringTest += endpointForm.value.parameters[i].name + "=" + endpointForm.value.parameters[i].exampleValue + "&";
+  }
+  endpointForm.value.queryStringTest = endpointForm.value.queryStringTest.slice(0, -1);
+}
+
+async function searchQuery() {
+  const fetchData = async () => await axios.get(`${apiUrl}/queries/searchQuery`, {
+    params: {
+      query: sqlSearchQuery.value,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Searching SQL queries, please wait...',
+      success: 'SQL queries loaded',
+      error: 'Error loading SQL queries'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    queries.value = response.data;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function selectQuery(queryCandidate) {
+  sqlSearchQuery.value = queryCandidate.name;
+  queries.value = [];
+
+  endpointForm.value.endpoint = queryCandidate.name;
+  endpointForm.value.id_query = queryCandidate.id_query;
+  endpointForm.value.query = queryCandidate.query;
+}
+
+async function createEmptyEndpoint() {
+  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/create`, {
+    params: {
+      endpoint: endpointForm.value.endpoint,
+    },
+
+  });
+
+  return toast.promise(
+    fetchData(),
+    {
+      pending: 'Creating new endpoint, please wait...',
+      success: 'New endpoint created',
+      error: 'Error creating new endpoint'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    endpointForm.value.id_endpoint = response.data.id_endpoint;
+    reloadAvailableEndpoints();
+
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function testEndpoint() {
+  if (endpointForm.value.id_endpoint == null) {
+    await createEmptyEndpoint();
+  }
+
+  await update();
+
+  const url = apiUrl + "/api/" + endpointForm.value.endpoint + ((endpointForm.value.parameters.length > 0) ? endpointForm.value.queryStringTest : "");
+
+  toast.info('Info' + `Testing endpoint: ${url}`, { position: toast.POSITION.BOTTOM_RIGHT });
+  const fetchData = async () => await axios.get(url, {});
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Testing endpoint, please wait...',
+      success: 'Endpoint tested',
+      error: 'Error testing endpoint'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((result) => {
+    response.value = JSON.stringify(result.data, null, 2);
+  }).catch((error) => {
+    if (error.response && error.response.status === 400) {
+      response.value = JSON.stringify(error.response.data, null, 2);
+      toast.error('Info' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      response.value = JSON.stringify(error, null, 2);
+      toast.error('Info' + `Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function update() {
+  const fetchData = async () => await axios.post(`${apiUrl}/apiserver/update`, {
+    id_query: endpointForm.value.id_query,
+    id_endpoint: endpointForm.value.id_endpoint,
+    endpoint: endpointForm.value.endpoint,
+    parameters: endpointForm.value.parameters,
+    description: endpointForm.value.description,
+    queryStringTest: endpointForm.value.queryStringTest,
+    status: endpointForm.value.status,
+    query: btoa(endpointForm.value.query || '')
+
+  });
+
+  return toast.promise(
+    fetchData(),
+    {
+      pending: 'Publishing endpoint, please wait...',
+      success: 'Endpoint published',
+      error: 'Error publishing endpoint'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then(() => {
+    published.value = true;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function reloadAvailableEndpoints() {
+  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/listEndpoints`, {});
+
+  toast.promise(
+    fetchData(),
+    {
+      error: 'Error loading endpoints'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((result) => {
+    availableEndpoints.value = result.data;
+    activeTab.value = 'listEndpoints';
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function deleteEndpoint(id_endpoint) {
+  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/deleteEndpoint`, {
+    params: {
+      id_endpoint: id_endpoint
+    },
+
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Deleting endpoint, please wait...',
+      success: 'Endpoint deleted',
+      error: 'Error deleting endpoint'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then(() => {
+    reloadAvailableEndpoints();
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function editEndpoint(selectedEndpoint) {
+  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/getEndpoint`, {
+    params: {
+      id_endpoint: selectedEndpoint.id_endpoint,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Loading endpoint configuration...',
+      success: 'Endpoint loaded',
+      error: 'Error loading endpoint'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((result) => {
+    endpointForm.value = JSON.parse(JSON.stringify(result.data));
+    if (typeof endpointForm.value.parameters === 'string') {
+      try {
+        endpointForm.value.parameters = JSON.parse(endpointForm.value.parameters);
+      } catch {
+        endpointForm.value.parameters = [];
+      }
+    }
+    activeTab.value = 'editEndpoint';
+  }).catch((error) => {
+    // Fallback for older backends (without /getEndpoint) or missing ids.
+    if (error.response?.status === 404) {
+      endpointForm.value = JSON.parse(JSON.stringify(selectedEndpoint));
+      if (typeof endpointForm.value.parameters === 'string') {
+        try {
+          endpointForm.value.parameters = JSON.parse(endpointForm.value.parameters);
+        } catch {
+          endpointForm.value.parameters = [];
+        }
+      }
+      activeTab.value = 'editEndpoint';
+      toast.info('Loaded endpoint from local list (server detail endpoint not available).', { position: toast.POSITION.BOTTOM_RIGHT });
+      return;
+    }
+
+    if (error.response?.data?.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response?.data || error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
 </script>
 
 <style scoped></style>

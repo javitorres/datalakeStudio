@@ -12,7 +12,7 @@
               </button>
             </li>
             <li>
-              <button v-if="selectedTable" class="btn btn-secondary m-1 opcion-style" @click="selectedTable = None">
+              <button v-if="selectedTable" class="btn btn-secondary m-1 opcion-style" @click="selectedTable = null">
                 <i class="bi bi-x-square"></i>
                 Close table view
               </button>
@@ -91,7 +91,8 @@
 
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
 import TableInspector from './TableInspector.vue';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
@@ -100,122 +101,100 @@ import 'vue3-toastify/dist/index.css';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'TablesPanel',
-  components: {
-    TableInspector
-  },
-  data() {
-    return {
-      showDialog: false,
-      showDownloadDialog: false,
-      expanded: true,
-      showOptions: true,
+defineProps({
+  tables: Object,
+});
 
-      selectedTable: '',
-    };
-  },
-  props: {
-    tables: Object,
-  },
+const emit = defineEmits(['deleteTable']);
 
-  emits: ['deleteTable'],
+const showDialog = ref(false);
+const showDownloadDialog = ref(false);
+const expanded = ref(true);
+const showOptions = ref(true);
+const selectedTable = ref(null);
+const loading = ref(false);
 
-  methods: {
-    selectTable(table) {
-      this.selectedTable = table;
+function selectTable(table) {
+  selectedTable.value = table;
+}
+
+function imageSrc(type) {
+  if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
+  else if (type === 'float32') return '<i class="bi bi-123"></i>';
+  else if (type === 'float64') return '<i class="bi bi-123"></i>';
+  else if (type === 'int64') return '<i class="bi bi-123"></i>';
+  else if (type === 'boolean') return "MNO";
+  else if (type === 'null') return "PQR";
+  else return type;
+}
+
+function confirmDelete() {
+  showDialog.value = true;
+}
+
+function confirmDownload() {
+  showDownloadDialog.value = true;
+}
+
+function download(format) {
+  const fetchData = async () => await axios.get(`${apiUrl}/database/exportData`, {
+    params: {
+      format: format,
+      tableName: selectedTable.value,
     },
-    imageSrc(type) {
-      if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
-      else if (type === 'float32') return '<i class="bi bi-123"></i>';
-      else if (type === 'float64') return '<i class="bi bi-123"></i>';
-      else if (type === 'int64') return '<i class="bi bi-123"></i>';
-      else if (type === 'boolean') return "MNO";
-      else if (type === 'null') return "PQR";
-      else return type;
+    responseType: 'blob'
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Exporting data, please wait...',
+      success: 'Data exported successfully',
+      error: 'Error creating export'
     },
-    ////////////////////////////////////////////////////
-    confirmDelete() {
-      this.showDialog = true;
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    showDownloadDialog.value = false;
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'exported_data.' + format);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function deleteTable() {
+  emit('deleteTable', selectedTable.value);
+  selectedTable.value = null;
+  showDialog.value = false;
+}
+
+async function analyzeField(field) {
+  await axios.get(`${apiUrl}/database/analyzeField`, {
+    params: {
+      tableName: selectedTable.value,
+      fieldName: field,
     },
-    ////////////////////////////////////////////////////
-    confirmDownload() {
-      this.showDownloadDialog = true;
-
-    },
-    ////////////////////////////////////////////////////
-    download(format) {
-      console.log('downloading ' + format);
-
-      const fetchData = async () => await axios.get(`${apiUrl}/database/exportData`, {
-        params: {
-          format: format,
-          tableName: this.selectedTable,
-        },
-        responseType: 'blob'
-        
-      });
-        
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Exporting data, please wait...',
-          success: 'Data exported successfully',
-          error: 'Error creating export'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.showDownloadDialog = false;  
-
-        const url = window.URL.createObjectURL(new Blob([response.data]));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', 'exported_data.' + format); 
-        document.body.appendChild(link);
-        link.click();
-        link.parentNode.removeChild(link);
-
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-
-
-      
-    },
-    
-    ////////////////////////////////////////////////////
-    async deleteTable() {
-      this.$emit('deleteTable', this.selectedTable);
-      this.selectedTable = '';
-      this.showDialog = false;
-    },
-    ////////////////////////////////////////////////////
-    async analyzeField(field) {
-      var response = await axios.get(`${apiUrl}/database/analyzeField`, {
-        params: {
-          tableName: this.selectedTable,
-          fieldName: field,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          toast.success('Field analyzed successfully');
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${error.message}`);
-      }).finally(() => {
-        this.loading = false;
-      });
-    },
-    ////////////////////////////////////////////////////
-    
-
-  }
+  }).then((response) => {
+    if (response.status === 200) {
+      toast.success('Field analyzed successfully');
+    } else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch((error) => {
+    toast.error(`Error: HTTP ${error.message}`);
+  }).finally(() => {
+    loading.value = false;
+  });
 }
 
 </script>

@@ -23,7 +23,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { computed, onBeforeUnmount, ref } from 'vue';
 import Recorder from "../lib/Recorder";
 import convertTimeMMSS from "../lib/Utils";
 
@@ -34,104 +35,95 @@ const SUCCESS_MESSAGE = "Recorded";
 const SUCCESS_MESSAGE_SUBMIT = "Successfully submitted audio message";
 const ERROR_SUBMITTING_MESSAGE = "Error submitting audio message";
 
-export default {
-  name: "RecorderWidget",
-  props: {
-    // in minutes
-    time: { type: Number, default: 1 },
-    bitRate: { type: Number, default: 128 },
-    sampleRate: { type: Number, default: 44100 },
-    backendEndpoint: { type: String },
-    buttonColor: { type: String, default: "green" },
+const props = defineProps({
+  time: { type: Number, default: 1 },
+  bitRate: { type: Number, default: 128 },
+  sampleRate: { type: Number, default: 44100 },
+  backendEndpoint: { type: String },
+  buttonColor: { type: String, default: "green" },
+  afterRecording: { type: Function },
+  successfulUpload: { type: Function },
+  failedUpload: { type: Function },
+  customUpload: { type: Function, default: null }
+});
+const emit = defineEmits(["newRecording"]);
 
-    // callback functions
-    afterRecording: { type: Function },
-    successfulUpload: { type: Function },
-    failedUpload: { type: Function },
-    customUpload: { type: Function, default: null }
-  },
-  components: {},
-  emits: ["newRecording"],
-  data() {
-    return {
-      recording: false,
-      recordedAudio: null,
-      recordedBlob: null,
-      recorder: null,
-      successMessage: null,
-      errorMessage: null,
-      instructionMessage: INSTRUCTION_MESSAGE,
-    };
-  },
-  computed: {
-    buttonClass() {
-      return "mx-auto h-14 w-14 fill-current text-black cursor-pointer rounded-50 border-2 m-4 p-2";
-    },
-    recordedTime() {
-      if (this.time && this.recorder?.duration >= this.time * 60) {
-        this.toggleRecording();
-      }
-      return convertTimeMMSS(this.recorder?.duration);
-    },
-  },
-  beforeUnmount() {
-    if (this.recording) {
-      this.stopRecorder();
-    }
-  },
-  methods: {
-    toggleRecording() {
-      this.recording = !this.recording;
-      if (this.recording) {
-        this.initRecorder();
-      } else {
-        this.stopRecording();
-      }
-    },
-    initRecorder() {
-      this.recorder = new Recorder({
-        micFailed: this.micFailed,
-        bitRate: this.bitRate,
-        sampleRate: this.sampleRate,
-      });
-      this.recorder.start();
-      this.successMessage = null;
-      this.errorMessage = null;
-      this.instructionMessage = INSTRUCTION_MESSAGE_STOP;
-    },
-    stopRecording() {
-      this.recorder.stop();
-      const recordList = this.recorder.recordList();
-      this.recordedAudio = recordList[0].url;
-      this.recordedBlob = recordList[0].blob;
-      if (this.recordedAudio) {
-        this.successMessage = SUCCESS_MESSAGE;
-        this.instructionMessage = null;
-        this.sendData();
-      }
-      if (this.afterRecording) {
-        this.afterRecording();
-      }
-    },
-    async sendData() {
-      if (!this.recordedBlob) {
-        return;
-      }
+const recording = ref(false);
+const recordedAudio = ref(null);
+const recordedBlob = ref(null);
+const recorder = ref(null);
+const successMessage = ref(null);
+const errorMessage = ref(null);
+const instructionMessage = ref(INSTRUCTION_MESSAGE);
 
-      let result = null;
-      if (this.customUpload) {
-        result = await this.customUpload(this.recordedBlob);
-      } else {
-        this.$emit("newRecording", this.recordedBlob);
-      }
-    
-    },
+const buttonClass = computed(() => {
+  return "mx-auto h-14 w-14 fill-current text-black cursor-pointer rounded-50 border-2 m-4 p-2";
+});
 
-    micFailed() {
-      this.recording = false;
-      this.instructionMessage = INSTRUCTION_MESSAGE;
-      this.errorMessage = ERROR_MESSAGE;
-    },
-  },
-};
+const recordedTime = computed(() => {
+  if (props.time && recorder.value?.duration >= props.time * 60) {
+    toggleRecording();
+  }
+  return convertTimeMMSS(recorder.value?.duration);
+});
+
+onBeforeUnmount(() => {
+  if (recording.value) {
+    stopRecording();
+  }
+});
+
+function toggleRecording() {
+  recording.value = !recording.value;
+  if (recording.value) {
+    initRecorder();
+  } else {
+    stopRecording();
+  }
+}
+
+function initRecorder() {
+  recorder.value = new Recorder({
+    micFailed,
+    bitRate: props.bitRate,
+    sampleRate: props.sampleRate,
+  });
+  recorder.value.start();
+  successMessage.value = null;
+  errorMessage.value = null;
+  instructionMessage.value = INSTRUCTION_MESSAGE_STOP;
+}
+
+function stopRecording() {
+  recorder.value.stop();
+  const recordList = recorder.value.recordList();
+  recordedAudio.value = recordList[0].url;
+  recordedBlob.value = recordList[0].blob;
+  if (recordedAudio.value) {
+    successMessage.value = SUCCESS_MESSAGE;
+    instructionMessage.value = null;
+    sendData();
+  }
+  if (props.afterRecording) {
+    props.afterRecording();
+  }
+}
+
+async function sendData() {
+  if (!recordedBlob.value) {
+    return;
+  }
+
+  if (props.customUpload) {
+    await props.customUpload(recordedBlob.value);
+  } else {
+    emit("newRecording", recordedBlob.value);
+  }
+}
+
+function micFailed() {
+  recording.value = false;
+  instructionMessage.value = INSTRUCTION_MESSAGE;
+  errorMessage.value = ERROR_MESSAGE;
+}
 </script>
