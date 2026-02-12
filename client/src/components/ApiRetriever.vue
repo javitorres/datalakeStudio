@@ -1,6 +1,12 @@
 <template>
   <div class="row" v-if="tables && tables.length > 0">
     <div class="col-md-6">
+      <p>Mode: {{mode}}</p>
+      <p>Service:'{{service}}'</p>
+      <p>Method:'{{method}}'</p>
+      <p>methodPathManualMode:'{{methodPathManualMode}}'</p>
+      
+
       <h3>Select Dataset</h3>
       <div class="row">
         <!-- Table selector -->
@@ -58,7 +64,8 @@
         </ul>
       </div>
 
-      <div v-if="service">
+      
+      <div v-if="service && mode === 'search'">
         Service: {{ service }}
 
         <div class="input-group mb-3">
@@ -98,25 +105,52 @@
           </div>
         </div>
 
-        <div v-if="mode === 'write'">
-          <p>write</p>
+        
+      </div>
+
+      <div v-if="mode === 'write'">
+          <p>Write the URL with this format http://service/endpoint?param1={param1Value}&param2={param2Value}</p>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">URL</span>
+            <input id="methodPath" type="text" class="form-control" placeholder="URL" aria-label="File"
+              aria-describedby="basic-addon1" v-model="methodPathManualMode">
         </div>
+
       </div>
     </div>
 
-    <div class="row" v-if="methodInfo">
+    <div class="row" v-if="methodInfo || methodPathManualMode">
       <div class="col-md-4">
         <p><i class="bi bi-puzzle"></i> Field mapping </p>
-        <p>Select the field to map with the API parameter</p>
 
-        <div v-for="param in methodInfo.parameters" :key="param.name">
-          <label :for="'fieldSelector-' + param.name">{{ param.name }}</label>
-          <select class="form-control" :id="'fieldSelector-' + param.name" v-model="selectedFields[param.name]" @change="buildQueryString">
-            <option value="">None</option>
-            <option v-for="(type, field) in schema" :key="field" :value="field">{{ field }}</option>
-          </select>
+        <div v-if="mode === 'search'">
+          <p>Select the field to map with the API parameter</p>
+
+          <div v-for="param in methodInfo.parameters" :key="param.name">
+            <label :for="'fieldSelector-' + param.name">{{ param.name }}</label>
+            <select class="form-control" :id="'fieldSelector-' + param.name" v-model="selectedFields[param.name]" @change="buildQueryString">
+              <option value="">None</option>
+              <option v-for="(type, field) in schema" :key="field" :value="field">{{ field }}</option>
+            </select>
           <br />
         </div>
+
+
+        <div v-if="mode === write">
+          <p>Write the field to map with the API parameter</p>
+          <div class="input-group mb-3">
+            <span class="input-group-text" id="basic-addon1">Field name</span>
+            <input id="fieldSelector" type="text" class="form-control" placeholder="Field name" aria-label="File"
+              aria-describedby="basic-addon1" v-model="selectedFields['field']" @change="buildQueryString">
+          </div>
+          <br />
+          </div>
+
+
+
+      </div>
+
+
       </div>
 
       <div class="col-md-4">
@@ -218,6 +252,8 @@ export default {
       fullUrlExample: '',
       sampleData: null,
       sampleResponse: null,
+
+      methodPathManualMode: '',
 
       mappings: [{ jsonField: "", newFieldName: "" }],
       recordsToProcess: 10,

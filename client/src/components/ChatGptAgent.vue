@@ -35,6 +35,17 @@
     <recorder-widget :time="2" buttonColor="green" @newRecording="processRecording" />
   </div>
 
+  <!-- text question for chat -->
+  <div class="row">
+    <div class="col-md-10">
+      <div class="input-group mb-3">
+        <span class="input-group-text" id="basic-addon2">Text Question</span>
+        <input v-model="textQuestion" placeholder="Type your question here" class="form-control">
+        <button @click="processTextQuestion(textQuestion)" class="btn btn-primary">Ask</button>
+      </div>
+    </div>
+  </div>
+
   <div class="form-check form-switch">
     <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" :checked="blindMode"
       @click="blindMode = !blindMode">
@@ -81,6 +92,7 @@ export default {
       interpretation: null,
       tableName: "__lastQuery",
       showOptions: true,
+      textQuestion: null,
     };
   },
   props: {},
@@ -126,6 +138,14 @@ export default {
           toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
         }
       });
+    },
+
+    ///////////////////////////////////////////////////////
+    async processTextQuestion(textQuestion) {
+          this.userQuestion = textQuestion;
+          this.conversation.push({ "speaker": "user", "text": this.userQuestion });
+          this.chatGPTInput = this.userQuestion;
+          this.askChatGPT();
     },
 
     ///////////////////////////////////////////////////////

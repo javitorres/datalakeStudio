@@ -66,7 +66,7 @@
           <br />
           <div v-if=" ! folderMetadata ">
             <h2>No metadata found</h2>
-            <p>Metadata is relevant convenient to maintain your datalake well documented. Also, if documentation is clear, SQL AI assistant will give you more accurate results</p>
+            <p>Metadata is convenient to maintain your datalake well documented. Also, if documentation is clear, SQL AI assistant will give you more accurate results</p>
             <!-- Button create metadata -->
             <button class="btn btn-primary m-1 opcion-style" @click="createEmptyMetadata">
               Create metadata

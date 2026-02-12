@@ -1,2 +1,7 @@
+CRITICAL
 - If mapbox_access_token is not defined app fails
+
+NOT CRITICAL
 - In API configuration check why some components don't update when query changes
+- In API configuration: check how to use the same {variable} two or more times
+- API: Should not be neccesary to select a query to start the API
