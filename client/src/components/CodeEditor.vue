@@ -11,56 +11,36 @@
           />
 </template>
 
-<script>
+<script setup>
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 
-export default {
-  name: 'CodeEditor',
-  data() {
-    return {
-    };
-  },
+function sqlHint(editor) {
+  const cursor = editor.getCursor();
+  const currentLine = editor.getLine(cursor.line);
+  const start = cursor.ch;
+  const end = cursor.ch;
+  const currentWord = currentLine.slice(start, end);
 
-  components: {
-    Codemirror,
-  },
+  const suggestions = [
+    { text: 'iris', displayText: 'iris de s3' },
+    { text: 'tableName2', displayText: 'Table Name 2' },
+  ];
 
-  setup() {
-      function sqlHint(editor) {
-        // Obtener el texto hasta la posición del cursor
-        const cursor = editor.getCursor();
-        const currentLine = editor.getLine(cursor.line);
-        const start = cursor.ch;
-        const end = cursor.ch;
-        const currentWord = currentLine.slice(start, end);
+  const filteredSuggestions = suggestions.filter(s => s.text.startsWith(currentWord));
 
-        // Aquí defines tus sugerencias. Estas podrían venir de tu esquema de base de datos.
-        const suggestions = [
-          { text: 'iris', displayText: 'iris de s3' },
-          { text: 'tableName2', displayText: 'Table Name 2' },
-          // ... más sugerencias ...
-        ];
-
-        // Filtrar sugerencias basadas en la palabra actual
-        const filteredSuggestions = suggestions.filter(s => s.text.startsWith(currentWord));
-
-        return {
-          list: filteredSuggestions,
-          from: CodeMirror.Pos(cursor.line, start - currentWord.length),
-          to: CodeMirror.Pos(cursor.line, end)
-        };
-      }
-
-      const extensions = [sql(),
-          autocompletion({ override: [sqlHint] }),
-          completionKeymap]
-
-      return { extensions }
-  },
-
-  methods: {  },
+  return {
+    list: filteredSuggestions,
+    from: CodeMirror.Pos(cursor.line, start - currentWord.length),
+    to: CodeMirror.Pos(cursor.line, end)
+  };
 }
+
+const extensions = [
+  sql(),
+  autocompletion({ override: [sqlHint] }),
+  completionKeymap
+];
 </script>
 <style scoped></style>

@@ -232,7 +232,8 @@
   <!-- <CodeEditor  /> -->
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
@@ -247,253 +248,216 @@ import CodeEditor from './CodeEditor.vue';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'QueryPanel',
+defineProps({
+  tables: Object,
+  secrets: Object,
+});
 
-  components: {
-    Codemirror,
-    GenericCross,
-    TableInspector,
-    CodeEditor
-  },
+const emit = defineEmits(['tableCreated']);
 
-  setup() {
-      const extensions = [sql()]
-      return { extensions }
-  },
+const extensions = [sql()];
+const expanded = ref(true);
+const query = ref('SELECT * FROM iris');
+const mainQuery = ref('');
+const auxQuery1 = ref('');
+const auxQuery2 = ref('');
+const auxQuery3 = ref('');
+const auxQuery4 = ref('');
+const auxQuery5 = ref('');
+const sampleData = ref(null);
+const activeTab = ref('');
+const activeQueryTab = ref('mainQuery');
+const table = ref(null);
+const tableFromQuery = ref('');
+const sqlQueryName = ref('');
+const sqlQueryDescription = ref('');
+const sqlSearchQuery = ref('');
+const queries = ref([]);
+const chatGPTInput = ref('dame askingprice medio');
+const chatGPTOutput = ref('');
+const tableName = ref('__lastQuery');
+const querySuccesful = ref(false);
+const showOptions = ref(true);
+const queryError = ref(null);
 
-  data() {
-    return {
-      expanded: true,
-      query: 'SELECT * FROM iris',
-      mainQuery: '',
-      auxQuery1: '',
-      auxQuery2: '',
-      auxQuery3: '',
-      auxQuery4: '',
-      auxQuery5: '',
-      sampleData: null,
+async function runQuery() {
+  queryError.value = null;
+  querySuccesful.value = false;
 
-      activeTab: '',
-      activeQueryTab: 'mainQuery',
-
-      table: null,
-      tableFromQuery: '',
-      sqlQueryName: '',
-      sqlQueryDescription: '',
-      sqlSearchQuery: '',
-      queries: [],
-
-      chatGPTInput: 'dame askingprice medio',
-      chatGPTOutput: '',
-
-      tableName: "__lastQuery",
-      querySuccesful: false,
-      showOptions: true,
-
-      queryError: null,
-    };
-  },
-  props: {
-    tables: Object,
-    secrets: Object,
-  },
-  emits: ['tableCreated'],
-
-  methods: {
-    ///////////////////////////////////////////////////////
-    async runQuery() {
-      this.queryError = null;
-      this.querySuccesful = false;
-
-      var queryToRun = this.query;
-      console.log('this.activeQueryTab: "' + this.activeQueryTab + '" main query: ' + queryToRun);
-      if (this.activeQueryTab === 'aux1') {
-        queryToRun = this.auxQuery1;
-        console.log('aux1 query: ', queryToRun);
-      } else if (this.activeQueryTab === 'aux2') {
-        queryToRun = this.auxQuery2;
-        console.log('aux2 query: ', queryToRun);
-      } else if (this.activeQueryTab === 'aux3') {
-        queryToRun = this.auxQuery3;
-      } else if (this.activeQueryTab === 'aux4') {
-        queryToRun = this.auxQuery4;
-      } else if (this.activeQueryTab === 'aux5') {
-        queryToRun = this.auxQuery5;
-      }
-      const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
-        query: queryToRun,
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Running query, please wait...',
-          success: 'Query executed',
-          error: 'Error running query'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.sampleData = response.data;
-        this.querySuccesful = true;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          this.queryError = error.response.data.message;
-        } else {
-          this.queryError = error.response.data;
-        }
-        
-      });
-    },
-    ///////////////////////////////////////////////////////
-    async createTable() {
-      const fetchData = () => axios.get(`${apiUrl}/database/createTableFromQuery`, {
-        params: {
-          query: this.query,
-          tableName: this.tableFromQuery,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Creating table from query, please wait...',
-          success: 'Table created',
-          error: 'Error creting table from query'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.$emit('tableCreated');
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-
-    },
-    ///////////////////////////////////////////////////////
-    async askChatGPT() {
-      const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
-        params: {
-          question: this.chatGPTInput,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Asking ChatGPT, please wait...',
-          success: 'ChatGPT answered',
-          error: 'Error asking ChatGPT'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.chatGPTOutput = response.data;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    ///////////////////////////////////////////////////////
-    async useChatGPTAnswer() {
-      this.query = this.chatGPTOutput;
-      this.runQuery();
-    },
-    ///////////////////////////////////////////////////////
-    async saveSqlQuery() {
-      const fetchData = () => axios.post(`${apiUrl}/queries/saveSqlQuery`, {
-
-        query: this.query,
-        sqlQueryName: this.sqlQueryName,
-        description: this.sqlQueryDescription
-
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Saving SQL query, please wait...',
-          success: 'SQL query saved',
-          error: 'Error saving SQL query'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    ///////////////////////////////////////////////////////
-    async searchQuery(query) {
-      const fetchData = () => axios.get(`${apiUrl}/queries/searchQuery`, {
-        params: {
-          query: this.sqlSearchQuery,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Searching SQL queries, please wait...',
-          success: 'SQL queries loaded',
-          error: 'Error loading SQL queries'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.queries = response.data;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-    /////////////////////////////////////////////////
-    async selectQuery(queryCandidate) {
-      this.query = queryCandidate.query;
-      this.sqlSearchQuery = null;
-      this.queries = [];
-
-    },
-    
-    /////////////////////////////////////////////////
-    async deleteQuery(queryCandidate) {
-      const fetchData = () => axios.get(`${apiUrl}/queries/deleteQuery`, {
-        params: {
-          id_query: queryCandidate.id_query,
-        },
-        
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Deleting SQL query, please wait...',
-          success: 'SQL query deleted',
-          error: 'Error deleting SQL query'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.searchQuery();
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
+  let queryToRun = query.value;
+  if (activeQueryTab.value === 'aux1') {
+    queryToRun = auxQuery1.value;
+  } else if (activeQueryTab.value === 'aux2') {
+    queryToRun = auxQuery2.value;
+  } else if (activeQueryTab.value === 'aux3') {
+    queryToRun = auxQuery3.value;
+  } else if (activeQueryTab.value === 'aux4') {
+    queryToRun = auxQuery4.value;
+  } else if (activeQueryTab.value === 'aux5') {
+    queryToRun = auxQuery5.value;
   }
+  const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
+    query: queryToRun,
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Running query, please wait...',
+      success: 'Query executed',
+      error: 'Error running query'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    sampleData.value = response.data;
+    querySuccesful.value = true;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      queryError.value = error.response.data.message;
+    } else {
+      queryError.value = error.response.data;
+    }
+  });
+}
+
+async function createTable() {
+  const fetchData = () => axios.get(`${apiUrl}/database/createTableFromQuery`, {
+    params: {
+      query: query.value,
+      tableName: tableFromQuery.value,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Creating table from query, please wait...',
+      success: 'Table created',
+      error: 'Error creting table from query'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then(() => {
+    emit('tableCreated');
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function askChatGPT() {
+  const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
+    params: {
+      question: chatGPTInput.value,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Asking ChatGPT, please wait...',
+      success: 'ChatGPT answered',
+      error: 'Error asking ChatGPT'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    chatGPTOutput.value = response.data;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function useChatGPTAnswer() {
+  query.value = chatGPTOutput.value;
+  runQuery();
+}
+
+async function saveSqlQuery() {
+  const fetchData = () => axios.post(`${apiUrl}/queries/saveSqlQuery`, {
+    query: query.value,
+    sqlQueryName: sqlQueryName.value,
+    description: sqlQueryDescription.value
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Saving SQL query, please wait...',
+      success: 'SQL query saved',
+      error: 'Error saving SQL query'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function searchQuery() {
+  const fetchData = () => axios.get(`${apiUrl}/queries/searchQuery`, {
+    params: {
+      query: sqlSearchQuery.value,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Searching SQL queries, please wait...',
+      success: 'SQL queries loaded',
+      error: 'Error loading SQL queries'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    queries.value = response.data;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+async function selectQuery(queryCandidate) {
+  query.value = queryCandidate.query;
+  sqlSearchQuery.value = null;
+  queries.value = [];
+}
+
+async function deleteQuery(queryCandidate) {
+  const fetchData = () => axios.get(`${apiUrl}/queries/deleteQuery`, {
+    params: {
+      id_query: queryCandidate.id_query,
+    },
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Deleting SQL query, please wait...',
+      success: 'SQL query deleted',
+      error: 'Error deleting SQL query'
+    },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then(() => {
+    searchQuery();
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
 }
 </script>
 

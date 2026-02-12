@@ -75,6 +75,18 @@ def listEndpoints():
         return JSONResponse(content=endpoints, status_code=200)
     else:
         return JSONResponse(content=[], status_code=200)
+
+####################################################
+@router.get("/getEndpoint")
+def getEndpoint(id_endpoint: int):
+    print("Getting endpoint " + str(id_endpoint))
+    endpoint = apiServerService.getEndpoint(id_endpoint)
+
+    if (endpoint is not None):
+        return JSONResponse(content=endpoint, status_code=200)
+    else:
+        return JSONResponse(content={}, status_code=404)
+
 ####################################################
 @router.get("/deleteEndpoint")
 def deleteEndpoint(id_endpoint: int):

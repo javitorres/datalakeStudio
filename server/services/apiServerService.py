@@ -6,12 +6,18 @@ from fastapi.responses import JSONResponse
 import base64
 import requests
 
+def _escape_sql_string(value):
+    if value is None:
+        return ""
+    return str(value).replace("'", "''")
+
 def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
-    
-    # Convert publishEndpointRequestDTO.parameters array to json
-    # parametersJson = json.dumps(publishEndpointRequestDTO.parameters)
-    parametersJson = json.dumps([param.model_dump() for param in publishEndpointRequestDTO.parameters])
+    createTable()
+
+    # Convert parameters array to JSON, accepting null from client payloads.
+    parameters = publishEndpointRequestDTO.parameters or []
+    parametersJson = json.dumps([param.model_dump() for param in parameters])
 
     publishEndpointRequestDTO.query = base64.b64decode(publishEndpointRequestDTO.query).decode('utf-8')  
 
@@ -20,16 +26,21 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     if (publishEndpointRequestDTO.queryStringTest is None):
         publishEndpointRequestDTO.queryStringTest = ""
 
-    publishEndpointRequestDTO.query = publishEndpointRequestDTO.query.replace("'","''")                
+    endpoint = _escape_sql_string(publishEndpointRequestDTO.endpoint)
+    description = _escape_sql_string(publishEndpointRequestDTO.description)
+    query = _escape_sql_string(publishEndpointRequestDTO.query)
+    queryStringTest = _escape_sql_string(publishEndpointRequestDTO.queryStringTest)
+    status = _escape_sql_string(publishEndpointRequestDTO.status)
+    parametersJson = _escape_sql_string(parametersJson)
 
     try:
         updateQuery = "UPDATE __endpoints  SET id_query = " + str(publishEndpointRequestDTO.id_query) + ", \
-                               endpoint = '" + publishEndpointRequestDTO.endpoint + "', \
+                               endpoint = '" + endpoint + "', \
                                parameters = '" + parametersJson + "', \
-                               description = '" + publishEndpointRequestDTO.description + "', \
-                               query = '" + publishEndpointRequestDTO.query + "', \
-                               queryStringTest = '" + publishEndpointRequestDTO.queryStringTest + "', \
-                               status = '" + publishEndpointRequestDTO.status + "' \
+                               description = '" + description + "', \
+                               query = '" + query + "', \
+                               queryStringTest = '" + queryStringTest + "', \
+                               status = '" + status + "' \
                                 WHERE id_endpoint = " + str(publishEndpointRequestDTO.id_endpoint)
         print("updateQuery: " + updateQuery)
         databaseService.runQuery(updateQuery)
@@ -109,6 +120,21 @@ def listEndpoints():
         None      
 
 ####################################################
+def getEndpoint(id_endpoint: int):
+    print("Getting endpoint by id " + str(id_endpoint))
+    try:
+        df = databaseService.runQuery("SELECT * FROM __endpoints WHERE id_endpoint = " + str(id_endpoint))
+    except Exception as e:
+        print("Error getting endpoint: " + str(e))
+        return None
+
+    if (df is not None and len(df) > 0):
+        result = df.to_dict(orient="records")
+        return result[0]
+    else:
+        return None
+
+####################################################
 def createEndpoint():
     print("Creating empty endpoint")
     r = None
@@ -147,11 +173,11 @@ def deleteEndpoint(id_endpoint: int):
 
 ####################################################
 def createTable():
-    tableList = databaseService.getTableList( False)
-    # check if meta data table __endpoints exists
-    if "__endpoints" not in tableList:
-        print("Creating table __endpoints")
-        databaseService.runQuery("CREATE TABLE __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));CREATE SEQUENCE seq_id_endpoint START 1;")
+    databaseService.runQuery(
+        "CREATE TABLE IF NOT EXISTS __endpoints (id_endpoint INTEGER PRIMARY KEY, id_query INTEGER, endpoint VARCHAR(255), parameters VARCHAR(255), description VARCHAR(255), query VARCHAR(255), queryStringTest VARCHAR(255), status VARCHAR(10));",
+        False
+    )
+    databaseService.runQuery("CREATE SEQUENCE IF NOT EXISTS seq_id_endpoint START 1;", False)
 
 ####################################################
 # Return True if endpoint exists        

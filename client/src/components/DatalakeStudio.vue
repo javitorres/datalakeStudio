@@ -97,7 +97,8 @@
   </div>
 </template>
 
-<script>
+<script setup>
+import { computed, onMounted, ref } from 'vue';
 import axios from 'axios';
 
 import Welcome from './Welcome.vue';
@@ -117,153 +118,107 @@ import 'vue3-toastify/dist/index.css';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'DatalakeStudio',
+const activeMenu = ref('welcome');
+const tables = ref([]);
 
-  components: {
-    Welcome,
-    LoadDataPanel,
-    TablesPanel,
-    QueryPanel,
-    RemoteDbPanel,
-    ApiRetriever,
-    ApiServer,
-    ChatGptAgent,
-    S3Explorer,
-    ChangeDatabase
-  },
+onMounted(() => {
+  getTables();
+});
 
-  data() {
-    return {
-      activeMenu: 'welcome',
-      tables: [],
-    };
-  },
+const currentComponent = computed(() => {
+  switch (activeMenu.value) {
+    case 'welcome':
+      return Welcome;
+    case 'changeDatabase':
+      return ChangeDatabase;
+    case 'loadData':
+      return LoadDataPanel;
+    case 'remoteDb':
+      return RemoteDbPanel;
+    case 'showTables':
+      return TablesPanel;
+    case 'queries':
+      return QueryPanel;
+    case 'apiRetriever':
+      return ApiRetriever;
+    case 'apiServer':
+      return ApiServer;
+    case 'chatgpt':
+      return ChatGptAgent;
+    case 's3':
+      return S3Explorer;
+    default:
+      return Welcome;
+  }
+});
 
-  mounted() {
-    this.getTables();
-  },
+const currentProps = computed(() => {
+  switch (activeMenu.value) {
+    case 'showTables':
+      return { tables: tables.value };
+    case 'queries':
+      return { tables: tables.value };
+    case 'apiRetriever':
+      return { tables: tables.value };
+    default:
+      return {};
+  }
+});
 
-  computed: {
-    currentComponent() {
-      switch (this.activeMenu) {
-        case 'welcome':
-          return 'Welcome';
-        case 'changeDatabase':
-          return 'ChangeDatabase';
-        case 'loadData':
-          return 'LoadDataPanel';
-        case 'remoteDb':
-          return 'RemoteDbPanel';
-        case 'showTables':
-          return 'TablesPanel';
-        case 'queries':
-          return 'QueryPanel';
-        case 'apiRetriever':
-          return 'ApiRetriever';
-        case 'apiServer':
-          return 'ApiServer';
-        case 'chatgpt':
-          return 'ChatGptAgent';
-        case 's3':
-          return 'S3Explorer';
-        default:
-          return 'Welcome';
-      }
+const currentListeners = computed(() => {
+  switch (activeMenu.value) {
+    case 'loadData':
+      return { tableCreated };
+    case 'remoteDb':
+      return { tableCreated };
+    case 'showTables':
+      return { deleteTable };
+    case 'queries':
+      return { tableCreated };
+    case 'apiRetriever':
+      return { tableCreated };
+    case 's3':
+      return { tableCreated };
+    case 'changeDatabase':
+      return { changedDatabase };
+    default:
+      return {};
+  }
+});
+
+async function getTables() {
+  await axios.get(`${apiUrl}/database/getTables`, {
+    params: {},
+  }).then((response) => {
+    tables.value = response.data;
+  }).catch(() => {
+    toast.error('Error loading tables');
+  });
+}
+
+async function deleteTable(table) {
+  await axios.get(`${apiUrl}/database/deleteTable`, {
+    params: {
+      tableName: table,
     },
-    currentProps() {
-      switch (this.activeMenu) {
-        case 'loadData':
-          return {  };
-        case 'remoteDb':
-          return {  };
-        case 'showTables':
-          return { tables: this.tables };
-        case 'queries':
-          return { tables: this.tables };
-        case 'apiRetriever':
-          return { tables: this.tables };
-        case 'apiServer':
-          return {  };
-        case 'chatgpt':
-          return {  };
-        case 's3':
-          return {  };
-        default:
-          return {  };
-      }
-    },
-    currentListeners() {
-      switch (this.activeMenu) {
-        case 'loadData':
-          return { tableCreated: this.tableCreated, };
-        case 'remoteDb':
-          return { tableCreated: this.tableCreated, };
-        case 'showTables':
-          return { deleteTable: this.deleteTable, };
-        case 'queries':
-          return { tableCreated: this.tableCreated, };
-        case 'apiRetriever':
-          return { tableCreated: this.tableCreated, };
-        case 'apiServer':
-          return {  };
-        case 'chatgpt':
-          return {  };
-        case 's3':
-          return { tableCreated: this.tableCreated, };
-        case 'changeDatabase':
-          return { changedDatabase: this.changedDatabase, };
-        default:
-          return {  };
-      }
-    },
-  },
-  
+  }).then((response) => {
+    if (response.status === 200) {
+      toast.success('Table deleted successfully');
+      getTables();
+    } else {
+      toast.error(`Error: HTTP ${response.message}`);
+    }
+  }).catch((error) => {
+    toast.error(`Error: HTTP ${error.message}`);
+  });
+}
 
-  methods: {
-    ////////////////////////////////////////////////////////////////
-    async getTables() {
-      await axios.get(`${apiUrl}/database/getTables`, {
-        params: {
-        },
-      }).then((response) => {
-        this.tables = response.data;
+async function tableCreated() {
+  getTables();
+}
 
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${response.data}`);
-      }).finally(() => {
-
-      });
-    },
-    ////////////////////////////////////////////////////////////////
-    async deleteTable(table) {
-      var response = await axios.get(`${apiUrl}/database/deleteTable`, {
-        params: {
-          tableName: table,
-        },
-      }).then((response) => {
-        if (response.status === 200) {
-          toast.success('Table deleted successfully');
-          this.getTables();
-        } else {
-          toast.error(`Error: HTTP ${response.message}`);
-        }
-      }).catch((error) => {
-        toast.error(`Error: HTTP ${error.message}`);
-      }).finally(() => {
-
-      });
-    },
-    ////////////////////////////////////////////////////////////////
-    async tableCreated() {
-      this.getTables();
-    },
-    ////////////////////////////////////////////////////////////////
-    async changedDatabase(id) {
-      this.getTables();
-    },
-  },
-
+async function changedDatabase(id) {
+  getTables();
 }
 </script>
 <style>

@@ -179,174 +179,142 @@
   </div> <!-- row -->
 </template>
 
-<script>
+<script setup>
+import { ref } from 'vue';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
-import { ref } from 'vue'
-const fileInput = ref < HTMLInputElement | null > (null)
-const files = ref()
-
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
-export default {
-  name: 'LoadDataPanel',
-  data() {
-    return {
-      activeTab: 'uploadFile',
+const emit = defineEmits(['tableCreated']);
 
-      bucket: '',
-      fileInputS3: '',
-      fileInputUrl: '',
-      fileInputPath: '',
+const activeTab = ref('uploadFile');
+const bucket = ref('');
+const fileInputS3 = ref('');
+const fileInputUrl = ref('');
+const fileInputPath = ref('');
+const tableNameInputUpload = ref('');
+const tableNameInputS3 = ref('');
+const tableNameInputUrl = ref('');
+const tableNameInputPath = ref('');
+const S3Files = ref([]);
+const fileInputUpload = ref(null);
 
-      tableNameInputUpload: '',
-      tableNameInputS3: '',
-      tableNameInputUrl: '',
-      tableNameInputPath: '',
+function uploadFile() {
+  const file = fileInputUpload.value?.files?.[0];
+  if (!file) {
+    return;
+  }
 
-      S3Files: [],
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('tableName', tableNameInputUpload.value);
 
-    };
-  },
+  const fetchData = () => axios.post(`${apiUrl}/database/uploadFile`, formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
 
-  emits: ['tableCreated'],
-
-  methods: {
-    ////////////////////////////////////////////////////////////////
-    uploadFile(tableNameInputUpload, fileInputUpload) {
-      const file = this.$refs.fileInputUpload.files[0];
-      console.log(file)
-      // post file
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('tableName', this.tableNameInputUpload)
-
-      const fetchData = () => axios.post(`${apiUrl}/database/uploadFile`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Uploading file, please wait...',
-          success: 'Upload finished',
-          error: 'Error uploading file'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        if (response.status=='error'){
-          toast.error('Error' + `Could not load data: ${response.data.status}`, { position: toast.POSITION.BOTTOM_RIGHT });
-          
-        } else {
-          this.$emit('tableCreated');
-        }
-        this.$emit('tableCreated');
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-
-
-
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Uploading file, please wait...',
+      success: 'Upload finished',
+      error: 'Error uploading file'
     },
-    ////////////////////////////////////////////////////////////////
-    handleFileChange() {
-      files.value = fileInput.value?.files
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    if (response.status == 'error') {
+      toast.error('Error' + `Could not load data: ${response.data.status}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      emit('tableCreated');
+    }
+    emit('tableCreated');
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
+
+function getProperty(path, defaultValue = '') {
+  try {
+    return path.split('.').reduce((o, i) => o[i], this);
+  }
+  catch (e) {
+    return defaultValue;
+  }
+}
+
+async function findFileInS3() {
+  if (fileInputS3.value.length < 3) {
+    S3Files.value = [];
+    return;
+  }
+
+  S3Files.value = [];
+
+  const fetchData = () => axios.get(`${apiUrl}/s3/s3Search`, {
+    params: {
+      bucket: bucket.value,
+      fileName: fileInputS3.value,
     },
-    ////////////////////////////////////////////////////////////////
-    doSomething() {
-      const file = files.value[0]
-      console.log(file)
-      // and do other things...
+  });
+
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Searching in S3, please wait...',
+      success: 'S3 search finished',
+      error: 'Error searching in S3'
     },
-    ////////////////////////////////////////////////////////////////
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then((response) => {
+    S3Files.value = response.data.results;
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
+}
 
-    getProperty(path, defaultValue = '') {
-      try {
-        return path.split('.').reduce((o, i) => o[i], this);
-      }
-      catch (e) {
-        return defaultValue;
-      }
+function clickS3File(S3File) {
+  fileInputS3.value = S3File;
+  S3Files.value = [];
+}
+
+async function loadFile(tableNameInput, fileInput) {
+  const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
+    params: {
+      tableName: tableNameInput,
+      fileName: fileInput,
     },
-    ////////////////////////////////////////////////////////////////
-    async findFileInS3() {
-      // If fileName length is less than 3
-      if (this.fileInputS3.length < 3) {
-        this.S3Files = [];
-        return;
-      }
+  });
 
-      this.S3Files = [];
-
-      const fetchData = () => axios.get(`${apiUrl}/s3/s3Search`, {
-        params: {
-          bucket: this.bucket,
-          fileName: this.fileInputS3,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Searching in S3, please wait...',
-          success: 'S3 search finished',
-          error: 'Error searching in S3'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.S3Files = response.data.results;
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-
+  toast.promise(
+    fetchData(),
+    {
+      pending: 'Creating table from file, please wait...',
+      success: 'Table created',
+      error: 'Error creting table from file'
     },
-    ////////////////////////////////////////////////////////////////
-    clickS3File(S3File, isFile) {
-      this.fileInputS3 = S3File;
-      this.S3Files = [];
-    },
-    ////////////////////////////////////////////////////////////////
-    async loadFile(tableNameInput, fileInput) {
-      const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
-        params: {
-          tableName: tableNameInput,
-          fileName: fileInput,
-        },
-      });
-
-      toast.promise(
-        fetchData(),
-        {
-          pending: 'Creating table from file, please wait...',
-          success: 'Table created',
-          error: 'Error creting table from file'
-        },
-        { position: toast.POSITION.BOTTOM_RIGHT }
-      ).then((response) => {
-        this.$emit('tableCreated');
-      }).catch((error) => {
-        if (error.response.data.message) {
-          toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        } else {
-          toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-        }
-      });
-    },
-
-  },
+    { position: toast.POSITION.BOTTOM_RIGHT }
+  ).then(() => {
+    emit('tableCreated');
+  }).catch((error) => {
+    if (error.response.data.message) {
+      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    } else {
+      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    }
+  });
 }
 
 </script>

@@ -1,12 +1,16 @@
 from services import databaseService
 
+def ensure_queries_metadata():
+    # Keep metadata objects available even on fresh databases.
+    databaseService.runQuery(
+        "CREATE TABLE IF NOT EXISTS __queries (id_query INTEGER PRIMARY KEY, name VARCHAR, query VARCHAR, description VARCHAR);",
+        False
+    )
+    databaseService.runQuery("CREATE SEQUENCE IF NOT EXISTS seq_id_query START 1;", False)
+
 def saveSqlQuery(saveQueryRequestDTO):
     print("Saving query " + saveQueryRequestDTO.sqlQueryName + ": " + saveQueryRequestDTO.query + " (" + saveQueryRequestDTO.description + ")")
-    tableList = databaseService.getTableList( False)
-    # check if meta data table __queries exists
-    if "__queries" not in tableList:
-        print("Creating table __queries")
-        databaseService.runQuery("CREATE TABLE __queries (id_query INTEGER PRIMARY KEY, name VARCHAR, query VARCHAR, description VARCHAR);CREATE SEQUENCE seq_id_query START 1;")
+    ensure_queries_metadata()
     
     # Scape single quotes
     query = saveQueryRequestDTO.query.replace("'","''")
@@ -18,9 +22,13 @@ def saveSqlQuery(saveQueryRequestDTO):
 ####################################################
 def searchQuery(query):
     print("Searching query " + query)
+    ensure_queries_metadata()
+    search_term = query.lower().replace("'","''")
     
     # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __queries WHERE LOWER(name) LIKE '%" + query.lower() + "%' OR LOWER(description) LIKE '%" + query.lower() + "%'")
+    df = databaseService.runQuery(
+        "SELECT * FROM __queries WHERE LOWER(name) LIKE '%" + search_term + "%' OR LOWER(description) LIKE '%" + search_term + "%'"
+    )
 
     if (df is not None):
         return df
@@ -29,11 +37,13 @@ def searchQuery(query):
 ####################################################
 def deleteQuery(id_query):
     print("Deleting query " + str(id_query))
+    ensure_queries_metadata()
     databaseService.runQuery("DELETE FROM __queries WHERE id_query = " + str(id_query))
 
 ####################################################
 def getQuery(id_query):
     print("Getting query " + str(id_query))
+    ensure_queries_metadata()
     df = databaseService.runQuery("SELECT * FROM __queries WHERE id_query = " + str(id_query))
 
     if (df is not None):

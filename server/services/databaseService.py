@@ -275,8 +275,23 @@ def get_arrow(sql):
 
 def arrow_to_bytes(arrow):
     sink = pa.BufferOutputStream()
+
+    # DuckDB commonly returns a RecordBatchReader for `r.arrow()`.
+    # Serialize by streaming batches instead of calling writer.write(...) directly.
+    if isinstance(arrow, pa.RecordBatchReader):
+        with pa.ipc.new_stream(sink, arrow.schema) as writer:
+            for batch in arrow:
+                writer.write_batch(batch)
+        return sink.getvalue().to_pybytes()
+
     with pa.ipc.new_stream(sink, arrow.schema) as writer:
-        writer.write(arrow)
+        if isinstance(arrow, pa.Table):
+            writer.write_table(arrow)
+        elif isinstance(arrow, pa.RecordBatch):
+            writer.write_batch(arrow)
+        else:
+            raise ValueError(f"Unsupported Arrow payload type: {type(arrow)}")
+
     return sink.getvalue().to_pybytes()
 
 def get_arrow_bytes(sql):
