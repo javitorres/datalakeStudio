@@ -1,7 +1,7 @@
 <template>
-  <div class="row">
+  <div class="row compact-load-view compact-panel">
 
-    <ul class="nav nav-tabs">
+    <ul class="nav nav-tabs compact-tabs">
       <!-- Upload file  -->
       <li class="nav-item">
         <a :class="{ 'nav-link': true, active: activeTab === 'uploadFile' }" aria-current="page" href="#"
@@ -16,7 +16,7 @@
 
       <!-- Load from URL -->
       <li class="nav-item">
-        <a :class="{ 'nav-link': true, active: activeTab === 'loadSql' }" aria-current="page" href="#"
+        <a :class="{ 'nav-link': true, active: activeTab === 'loadUrl' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadUrl'">Load from URL</a>
       </li>
 
@@ -30,13 +30,12 @@
     <!-- Upload file ########################################################### -->
     <div v-if="activeTab == 'uploadFile'">
       <div class="col-md-6">
-        <div class="mb-3">
-          <br />
+        <div class="mb-3 compact-input-group mt-2">
           <input class="form-control" type="file" id="formFile" ref="fileInputUpload">
         </div>
 
         <!-- Table name input -->
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">Table</span>
           <input id="tableNameInputUpload" type="text" class="form-control" placeholder="Table name"
             aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputUpload">
@@ -44,7 +43,7 @@
 
         <div class="col-md-2" v-if="tableNameInputUpload">
           <!-- Load file button -->
-          <button class="btn btn-primary m-1 opcion-style" @click="uploadFile(tableNameInputUpload, fileInputUpload)">
+          <button class="btn btn-sm btn-primary" @click="uploadFile(tableNameInputUpload, fileInputUpload)">
             Load file
           </button>
         </div> <!-- col-md-2 -->
@@ -55,8 +54,7 @@
     <div v-if="activeTab == 'loadS3'">
 
       <div class="col-md-6">
-        <br />
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group mt-2">
           <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
           <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File"
             aria-describedby="basic-addon1" v-model="bucket">
@@ -64,7 +62,7 @@
       </div>
 
       <div class="col-md-6">
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">Data file to load</span>
           <input id="fileInput" type="text" class="form-control" placeholder="Search S3 file" aria-label="File"
             aria-describedby="basic-addon1" v-model="fileInputS3" @input="findFileInS3">
@@ -73,7 +71,7 @@
 
       <div class="col-md-4" v-if="fileInputS3">
         <!-- Table name input -->
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">Table</span>
           <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
             aria-describedby="basic-addon1" v-model="tableNameInputS3">
@@ -82,7 +80,7 @@
 
       <div class="col-md-2" v-if="fileInputS3 && tableNameInputS3">
         <!-- Load file button -->
-        <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInputS3, fileInputS3)">
+        <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputS3, fileInputS3)">
           Load file
         </button>
       </div> <!-- col-md-2 -->
@@ -91,9 +89,9 @@
         <div class="col-md-6">
           <div class="row">
             <div v-if="S3Files && S3Files.length > 0">
-              <ul class="list-unstyled d-flex flex-wrap">
+              <ul class="list-unstyled compact-chip-list">
                 <li v-for="S3File in S3Files" :key="S3File.id">
-                  <button class="btn btn-primary m-1 opcion-style" @click="clickS3File(S3File, true)">
+                  <button class="btn btn-sm btn-outline-primary compact-chip-btn" @click="clickS3File(S3File, true)">
                     {{ S3File }}
                   </button>
                 </li>
@@ -108,13 +106,12 @@
     <!-- Load from URL ###########################################################  -->
     <div v-if="activeTab == 'loadUrl'">
       <div class="col-md-6">
-        <br />
         <p>Example:</p>
         <ul>
           <li>https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv</li>
         </ul>
 
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">URL to load</span>
           <input id="fileInputUrl" type="text" class="form-control"
             placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
@@ -124,7 +121,7 @@
 
         <div class="col-md-4" v-if="fileInputUrl">
           <!-- Table name input -->
-          <div class="input-group mb-3">
+          <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">Table</span>
             <input id="tableNameInputUrl" type="text" class="form-control" placeholder="Table name"
               aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputUrl">
@@ -133,7 +130,7 @@
 
         <div class="col-md-2" v-if="fileInputUrl && tableNameInputUrl">
           <!-- Load file button -->
-          <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInputUrl, fileInputUrl)">
+          <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputUrl, fileInputUrl)">
             Load file
           </button>
         </div> <!-- col-md-2 -->
@@ -143,14 +140,13 @@
     <!-- Load from PATH ###########################################################  -->
     <div v-if="activeTab == 'loadPath'">
       <div class="col-md-6">
-        <br />
         <p>Examples:</p>
         <ul>
           <li>/home/mydata/myfile.csv</li>
           <li>/home/mydata/*.csv</li>
         </ul>
 
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">Path or file to load</span>
           <input id="fileInputUrl" type="text" class="form-control"
             placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
@@ -160,7 +156,7 @@
 
         <div class="col-md-4" v-if="fileInputPath">
           <!-- Table name input -->
-          <div class="input-group mb-3">
+          <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">Table</span>
             <input id="tableNameInputUrl" type="text" class="form-control" placeholder="Table name"
               aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputPath">
@@ -169,7 +165,7 @@
 
         <div class="col-md-2" v-if="fileInputPath && tableNameInputPath">
           <!-- Load file button -->
-          <button class="btn btn-primary m-1 opcion-style" @click="loadFile(tableNameInputPath, fileInputPath)">
+          <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputPath, fileInputPath)">
             Load file
           </button>
         </div> <!-- col-md-2 -->
@@ -318,4 +314,14 @@ async function loadFile(tableNameInput, fileInput) {
 }
 
 </script>
-<style scoped></style>
+<style scoped>
+.compact-load-view {
+  font-size: 13px;
+  row-gap: 8px;
+}
+
+.compact-load-view p,
+.compact-load-view li {
+  font-size: 12px;
+}
+</style>

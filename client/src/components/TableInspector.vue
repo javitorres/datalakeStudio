@@ -1,42 +1,46 @@
 <template>
-  <!-- Fields -->
-  <div class="col-md-1" v-if="tableSchema && showOptions">
+  <div class="inspector-layout">
+    <div class="field-column" v-if="tableSchema && showOptions">
+      <div class="field-toolbar">
+        <button class="btn btn-sm btn-outline-secondary compact-btn" @click="selectAllFields(false)">
+          <i class="bi bi-x-square"></i>
+          None
+        </button>
+        <button class="btn btn-sm btn-primary compact-btn" @click="selectAllFields(true)">
+          <i class="bi bi-check-square"></i>
+          All
+        </button>
+        <button class="btn btn-sm btn-outline-primary compact-btn" @click="copyToClipboard(true)">
+          <i class="bi bi-clipboard"></i>
+          Copy names
+        </button>
+      </div>
 
-    <!-- Check all and check none buttons -->
-    <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(false)">
-      <i class="bi bi-x-square"></i>
-      Select None
-    </button>
-    <button class="btn btn-primary m-1 opcion-style" @click="selectAllFields(true)">
-      <i class="bi bi-check-square"></i>
-      Select All
-    </button>
-    <button class="btn btn-primary m-1 opcion-style" @click="copyToClipboard(true)">
-      <i class="bi bi-clipboard"></i>
-      Copy field names to clipboard
-    </button>
-
-    <div class="row" v-if="selectedFields" v-for="(type, field) in tableSchema" :key="field">
-      <button class="btn m-1 opcion-style" :class="selectedFields.includes(field) ? 'btn-primary' : 'btn-secondary'"
-        @click="toggleField(field)">
-        <span v-html="imageSrc(type)"></span>
-        {{ field }}
-      </button>
+      <div class="field-list" v-if="selectedFields">
+        <button
+          v-for="(type, field) in tableSchema"
+          :key="field"
+          class="btn field-chip"
+          :class="selectedFields.includes(field) ? 'field-chip-active' : 'field-chip-idle'"
+          @click="toggleField(field)"
+        >
+          <span class="field-name">{{ field }}</span>
+          <span class="field-type">{{ type }}</span>
+        </button>
+      </div>
     </div>
-  </div>
 
-  <!-- Data and metadata -->
-  <div class="col-md-10 custom-col">
-    <div class="row-md-2" v-if="showOptions">
+    <div class="data-column">
+      <div class="action-row" v-if="showOptions">
       <!--<p>Row: {{ rowSelected }}</p>-->
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showSampleData }"
+      <button class="btn btn-sm btn-primary m-1 opcion-style" :class="{ active: showSampleData }"
         @click="getSampleData(tableName)">
         <i class="bi bi-table"></i>
         Show sample data
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showProfile }"
+      <button class="btn btn-sm btn-primary m-1 opcion-style" :class="{ active: showProfile }"
         @click="getTableProfile(tableName)">
         <i class="bi bi-search"></i>
         Show table profile
@@ -48,47 +52,45 @@
       </button>
       -->
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMosaic }" @click="toggleMosaic()">
+      <button class="btn btn-sm btn-primary m-1 opcion-style" :class="{ active: showMosaic }" @click="toggleMosaic()">
         <i class="bi bi-graph-up-arrow"></i>
         Plot data
       </button>
 
-      <button class="btn btn-primary m-1 opcion-style" :class="{ active: showMap }" @click="mapData(tableName)">
+      <button class="btn btn-sm btn-primary m-1 opcion-style" :class="{ active: showMap }" @click="mapData(tableName)">
         <i class="bi bi-graph-up-arrow"></i>
         Show map
       </button>
-
-      
     </div>
 
 
     <!-- Sample data -->
-    <div class="row" v-show="sampleData && showSampleData">
-      <div class="col-md-3" v-if="showOptions">
+    <div class="table-view" v-show="sampleData && showSampleData">
+      <div class="col-md-3 compact-stat-row" v-if="showOptions">
         <div class="btn-group">
-          <button class="btn btn-secondary"><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
-          <button class="btn btn-secondary"><i class="bi bi-eyedropper"></i>{{ records != 0 ? records : rowcount }}
+          <button class="btn btn-sm btn-secondary"><i class="bi bi-list-columns-reverse"></i> {{ rowcount }} rows</button>
+          <button class="btn btn-sm btn-secondary"><i class="bi bi-eyedropper"></i>{{ records != 0 ? records : rowcount }}
             showed</button>
         </div>
       </div>
 
-      <div class="col-md-2" v-show="showOptions">
+      <div class="col-md-2 compact-stat-row" v-show="showOptions">
         <div class="btn-group">
-          <button class="btn btn-primary"><i class="bi bi-arrows-vertical"></i></button>
-          <button class="btn btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
-          <button class="btn btn-primary" :class="{ active: type === 'Shuffle' }"
+          <button class="btn btn-sm btn-primary"><i class="bi bi-arrows-vertical"></i></button>
+          <button class="btn btn-sm btn-primary" :class="{ active: type === 'First' }" @click="setType('First')">First</button>
+          <button class="btn btn-sm btn-primary" :class="{ active: type === 'Shuffle' }"
             @click="setType('Shuffle')">Shuffle</button>
-          <button class="btn btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
+          <button class="btn btn-sm btn-primary" :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
         </div>
 
       </div>
-      <div class="col-md-2" v-show="showOptions">
+      <div class="col-md-2 compact-stat-row" v-show="showOptions">
         <div class="btn-group">
-          <button class="btn btn-primary"><i class="bi bi-grid-3x3-gap-fill"></i></button>
-          <button class="btn btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
-          <button class="btn btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
-          <button class="btn btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
-          <button v-if="records < 1000" class="btn btn-primary" :class="{ active: records === 0 }"
+          <button class="btn btn-sm btn-primary"><i class="bi bi-grid-3x3-gap-fill"></i></button>
+          <button class="btn btn-sm btn-primary" :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
+          <button class="btn btn-sm btn-primary" :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
+          <button class="btn btn-sm btn-primary" :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
+          <button v-if="records < 1000" class="btn btn-sm btn-primary" :class="{ active: records === 0 }"
             @click="setRecords(0)">All</button>
         </div>
       </div>
@@ -134,6 +136,8 @@
       <MapH3 :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
       </MapH3>
     </div>
+
+  </div>
   </div>
 </template>
 
@@ -452,17 +456,116 @@ function toggleMosaic() {
 }
 </script>
 <style scoped>
+.inspector-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.field-column {
+  background: #f8f9fc;
+  border: 1px solid #e4e6ec;
+  border-radius: 10px;
+  padding: 10px;
+  max-height: 84vh;
+  overflow: hidden;
+}
+
+.field-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.compact-btn {
+  font-size: 12px;
+  line-height: 1.1;
+  padding: 5px 8px;
+}
+
+.field-list {
+  max-height: calc(84vh - 62px);
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+}
+
+.field-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.15;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  width: 100%;
+}
+
+.field-chip-idle {
+  background: #eceef3;
+  color: #333842;
+  border-color: #d9dce5;
+}
+
+.field-chip-active {
+  background: #dce8ff;
+  color: #153f88;
+  border-color: #9fbcff;
+}
+
+.field-name {
+  font-weight: 600;
+  text-align: left;
+}
+
+.field-type {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.78;
+}
+
+.data-column {
+  min-width: 0;
+}
+
+.action-row {
+  margin-bottom: 8px;
+}
+
+.table-view {
+  font-size: 12px;
+}
+
+.compact-stat-row {
+  margin-bottom: 8px;
+}
+
 .tabulator {
   background-color: #ffffff;
-  padding-left: 20px;
-  padding-right: 20px;
-  padding-top: 20px;
-  padding-bottom: 20px;
+  font-size: 12px;
+  padding: 10px;
   border: #ffffff;
 }
 
 .custom-col {
-  padding-left: 20px;
+  padding-left: 10px;
+}
 
+@media (max-width: 992px) {
+  .inspector-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .field-column {
+    max-height: none;
+  }
+
+  .field-list {
+    max-height: 220px;
+  }
 }
 </style>
