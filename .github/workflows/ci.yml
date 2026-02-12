@@ -20,11 +20,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: client/package-lock.json
 
       - name: Install deps
-        run: npm ci
+        run: npm install
 
       - name: Run frontend lint
         run: npm run lint
@@ -48,8 +46,23 @@ jobs:
           cache: pip
           cache-dependency-path: server/requirements.txt
 
+      - name: Create test secrets file
+        run: |
+          cat > secrets.yml << 'EOF'
+          s3_access_key_id: "dummy"
+          s3_secret_access_key: "dummy"
+          openai_organization: "dummy"
+          openai_api_key: "dummy"
+          api_domain: "dummy.local"
+          api_context: "dummy"
+          pgpass_file: "/tmp/.pgpass"
+          mapbox_access_token: "dummy"
+          EOF
+
       - name: Install deps
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
 
       - name: Run backend tests
-        run: pytest -q
+        run: python -m pytest -q

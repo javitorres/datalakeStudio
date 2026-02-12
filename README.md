@@ -8,8 +8,8 @@
 
 <p align="center">
     <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Latest Release">
-    <img src="https://img.shields.io/badge/Vue-3.3.4-blue" alt="Vue3">
-    <img src="https://img.shields.io/badge/DuckDB-1.2.0-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/Vue-3.4.38-blue" alt="Vue3">
+    <img src="https://img.shields.io/badge/DuckDB-1.4.4-yellow" alt="DuckDB">
     <img src="https://img.shields.io/badge/OpenAI-1.6.1-green" alt="OpenAI">
 </p>
 
@@ -75,7 +75,8 @@ deactivate
 
 Tests:
 ```
-python3 -m unittest discover -s tests -p 'test_*.py' -v
+pip install pytest
+python -m pytest -q
 ```
 
 
