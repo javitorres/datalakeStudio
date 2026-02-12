@@ -95,7 +95,9 @@
         </div>
       </div>
       <!-- Data Table -->
-      <div ref="table"></div>
+      <div class="table-shell">
+        <div ref="table"></div>
+      </div>
     </div>
 
     <!-- Data profile -->
@@ -324,7 +326,11 @@ async function getSampleData(tableName) {
         data: sampleData.value,
         importFormat: 'csv',
         autoColumns: true,
-        layout: 'fitColumns',
+        layout: 'fitDataTable',
+        columnDefaults: {
+          headerTooltip: true,
+          tooltip: true,
+        },
         persistence: true,
       });
     } else {
@@ -371,9 +377,13 @@ async function getTableProfile(tableName) {
       new Tabulator(tableProfileEl.value, {
         data: tableProfile.value,
         reactiveData: true,
-        layout: 'fitColumns',
+        layout: 'fitDataTable',
         importFormat: 'csv',
         autoColumns: true,
+        columnDefaults: {
+          headerTooltip: true,
+          tooltip: true,
+        },
       });
     }
   }).catch((error) => {
@@ -538,6 +548,35 @@ function toggleMosaic() {
 
 .table-view {
   font-size: 12px;
+}
+
+.table-shell {
+  width: 100%;
+  max-height: 58vh;
+  overflow: auto;
+  border: 1px solid #e4e6ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.table-shell :deep(.tabulator .tabulator-header .tabulator-col .tabulator-col-title) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-shell :deep(.tabulator) {
+  min-width: 100%;
+}
+
+.table-shell :deep(.tabulator .tabulator-tableholder) {
+  overflow: visible;
+}
+
+.table-shell :deep(.tabulator .tabulator-header) {
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .compact-stat-row {
