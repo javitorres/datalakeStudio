@@ -73,6 +73,13 @@ Exit venv:
 deactivate
 ```
 
+Tests:
+```
+python3 -m unittest discover -s tests -p 'test_*.py' -v
+```
+
+
+
 
 
 ## Client
@@ -85,6 +92,12 @@ npm run dev -- --port 8080
 ```
 
 Open http://localhost:8080/ in your browser.
+
+
+Tests:
+```
+npm run test:run
+```
 
 # Configuration files
 
