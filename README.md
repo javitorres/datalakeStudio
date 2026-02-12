@@ -75,7 +75,8 @@ deactivate
 
 Tests:
 ```
-python3 -m unittest discover -s tests -p 'test_*.py' -v
+pip install pytest
+python -m pytest -q
 ```
 
 
