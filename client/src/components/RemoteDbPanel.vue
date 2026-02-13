@@ -2,8 +2,9 @@
   <div class="spinner-border" role="status" v-if="loading">
     <span class="visually-hidden">Loading...</span>
   </div>
+  <div class="compact-panel compact-remote-view">
   <div class="col-md-6">
-    <div class="input-group mb-3">
+    <div class="input-group mb-3 compact-input-group">
       <span class="input-group-text" id="basic-addon1">Database name</span>
       <input id="databaseInput" type="text" class="form-control" placeholder="Write the database name" aria-label="File"
         aria-describedby="basic-addon1" v-model="databaseInput" @input="searchDatabase">
@@ -13,13 +14,13 @@
   <!-- Green button with connectedDatabase -->
   <div class="row">
     <div class="col-md-2" v-if="connectedDatabase">
-      <button class="btn btn-success m-1 opcion-style" @click="disconnectDatabase(connectedDatabase)">
+      <button class="btn btn-sm btn-success m-1" @click="disconnectDatabase(connectedDatabase)">
         Database: {{ connectedDatabase }}.<br /> Click to disconnect
       </button>
     </div> <!-- col-md-2 -->
 
     <div class="col-md-2" v-if="schemaSelected">
-      <button class="btn btn-success m-1 opcion-style" @click="showSchemas = !showSchemas">
+      <button class="btn btn-sm btn-success m-1" @click="showSchemas = !showSchemas">
         Schema active: {{ schemaSelected }}.<br /> {{ showSchemas ? 'Click to hide schemas' : 'Click to show schemas' }}
       </button>
     </div> <!-- col-md-2 -->
@@ -28,9 +29,9 @@
   <!-- Databases -->
   <div class="row">
     <div v-if="databases && databases.length > 0">
-      <ul class="list-unstyled d-flex flex-wrap">
+      <ul class="list-unstyled compact-chip-list">
         <li v-for="database in databases" :key="database.id">
-          <button class="btn btn-primary m-1 opcion-style" @click="clickDatabase(database, true)">
+          <button class="btn btn-sm btn-outline-primary compact-chip-btn" @click="clickDatabase(database, true)">
             {{ database }}
           </button>
         </li>
@@ -41,10 +42,10 @@
   <!-- Schemas -->
   <div class="row" v-if="connectedDatabase && showSchemas">
     <div v-if="schemas && schemas.length > 0">
-      <p>Remote Schemas:</p>
-      <ul class="list-unstyled d-flex flex-wrap">
+      <p class="compact-muted">Remote Schemas:</p>
+      <ul class="list-unstyled compact-chip-list">
         <li v-for="schema in schemas" :key="schema.id">
-          <button class="btn btn-primary m-1 opcion-style" @click="clickSchema(schema, true)">
+          <button class="btn btn-sm btn-outline-primary compact-chip-btn" @click="clickSchema(schema, true)">
             {{ schema }}
           </button>
         </li>
@@ -55,12 +56,14 @@
   <!-- Tables -->
   <div class="row" v-if="connectedDatabase">
     <div v-if="tables && tables.length > 0">
-      <p>Remote Tables:</p>
+      <p class="compact-muted">Remote Tables:</p>
+      <div class="compact-input-group">
       <input type="text" class="form-control" id="tableNameInput" placeholder="Filter by name" v-model="filterTable">
-      <ul class="list-unstyled d-flex flex-wrap">
+      </div>
+      <ul class="list-unstyled compact-chip-list">
         <li v-for="table in tables" :key="table.id">
 
-          <button class="btn btn-primary m-1 opcion-style" v-if="table.indexOf(filterTable) > -1"
+          <button class="btn btn-sm btn-outline-primary compact-chip-btn" v-if="table.indexOf(filterTable) > -1"
             @click="clickTable(table)">
             {{ table }}
           </button>
@@ -71,13 +74,13 @@
 
   <div class="row" v-if="connectedDatabase">
     <div class="col-md-6">
-      <h4>Query on remote database</h4>
+      <h4 class="compact-title">Query on remote database</h4>
       <div class="form-group">
 
         <codemirror
               v-model="query" 
               placeholder="code goes here..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -85,12 +88,11 @@
           />
 
       </div>
-      <button type="button" class="btn btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
+      <button type="button" class="btn btn-sm btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
 
       <!-- Create table from query -->
       <div class="form-group" v-if="sampleData">
-        <br />
-        <label for="tableNameInput">Create table from query</label>
+        <label for="tableNameInput" class="compact-muted mt-2">Create table from query</label>
         <div class="row">
           <div class="md-col-4">
             <input type="text" class="form-control" id="tableNameInput" placeholder="New table name"
@@ -98,7 +100,7 @@
           </div>
 
           <div class="md-col-2">
-            <button type="button" class="btn btn-primary" @click="createTableFromRemoteQuery">Create table</button>
+            <button type="button" class="btn btn-sm btn-primary" @click="createTableFromRemoteQuery">Create table</button>
           </div>
         </div>
       </div>
@@ -106,6 +108,7 @@
     <div class="col-md-6">
       <div ref="table"></div>
     </div>
+  </div>
   </div>
 </template>
 
@@ -286,4 +289,8 @@ async function disconnectDatabase(database) {
   });
 }
 </script>
-<style scoped></style>
+<style scoped>
+.compact-remote-view {
+  font-size: 13px;
+}
+</style>

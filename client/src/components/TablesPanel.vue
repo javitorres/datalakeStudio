@@ -1,54 +1,49 @@
 <template>
-
-  <div v-if="tables && tables.length > 0">
-    <div class="row">
-      <div class="col-md-12">
-        <div v-if="tables && tables.length > 0">
-          <ul class="list-unstyled d-flex flex-wrap">
-            <li v-for="table in tables" :key="table.id">
-              <button class="btn btn-primary m-1 opcion-style" :class="{ active: selectedTable === table }" @click="selectTable(table)">
-                <i class="bi bi-table"></i>
-                {{ table }}
-              </button>
-            </li>
-            <li>
-              <button v-if="selectedTable" class="btn btn-secondary m-1 opcion-style" @click="selectedTable = null">
-                <i class="bi bi-x-square"></i>
-                Close table view
-              </button>
-            </li>
-          </ul>
-        </div>
-      </div>
+  <div v-if="tables && tables.length > 0" class="tables-panel">
+    <div class="panel-header">
+      <h4 class="panel-title">Show Tables</h4>
+      <span class="table-counter">{{ tables.length }} tables</span>
     </div>
 
-    <div class="row" v-if="selectedTable">
-      <!-- Delete button -->
-      <div class="col-md-1">
-        <button class="btn btn-danger m-1 opcion-style" @click="confirmDelete">
-          <i class="bi bi-x-octagon"></i>
-          Delete table
-        </button>
-      </div>
-      <div class="col-md-2">
-        <button class="btn btn-success m-1 opcion-style" @click="confirmDownload">
-          <i class="bi bi-cloud-arrow-down"></i>
-          Download data
-        </button>
-      </div>
-      <br/><br/><br/>
-      <div class="row custom-col" v-if="selectedTable">
-        <TableInspector :tableName="selectedTable" :showOptions="showOptions"/>
-      </div>
+    <div class="table-selector">
+      <button
+        v-for="table in tables"
+        :key="table"
+        class="btn table-chip"
+        :class="selectedTable === table ? 'table-chip-active' : 'table-chip-idle'"
+        @click="selectTable(table)"
+      >
+        <i class="bi bi-table"></i>
+        {{ table }}
+      </button>
+
+      <button v-if="selectedTable" class="btn table-chip table-chip-close" @click="selectedTable = null">
+        <i class="bi bi-x-square"></i>
+        Close table view
+      </button>
+    </div>
+
+    <div v-if="selectedTable" class="action-toolbar">
+      <button class="btn btn-sm btn-danger toolbar-button" @click="confirmDelete">
+        <i class="bi bi-x-octagon"></i>
+        Delete table
+      </button>
+      <button class="btn btn-sm btn-success toolbar-button" @click="confirmDownload">
+        <i class="bi bi-cloud-arrow-down"></i>
+        Download data
+      </button>
+    </div>
+
+    <div class="inspector-container" v-if="selectedTable">
+      <TableInspector :tableName="selectedTable" :showOptions="showOptions" />
     </div>
   </div>
 
-  <div v-else>
+  <div v-else class="empty-state">
     <h2>No tables to show. Load some data</h2>
   </div>
 
-  <!-- Diálogo de confirmación -->
-  <div v-if="showDialog" class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+  <div v-if="showDialog" class="modal fade show" style="display: block" aria-modal="true" role="dialog">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -66,7 +61,7 @@
     </div>
   </div>
 
-  <div v-if="showDownloadDialog" class="modal fade show" style="display: block;" aria-modal="true" role="dialog">
+  <div v-if="showDownloadDialog" class="modal fade show" style="display: block" aria-modal="true" role="dialog">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
@@ -81,14 +76,11 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" @click="showDownloadDialog = false">Cancel</button>
-          <!--<button type="button" class="btn btn-danger" @click="deleteTable">Yes, delete it</button>-->
         </div>
       </div>
     </div>
   </div>
   <div v-if="showDialog" class="modal-backdrop fade show"></div>
-
-
 </template>
 
 <script setup>
@@ -109,23 +101,11 @@ const emit = defineEmits(['deleteTable']);
 
 const showDialog = ref(false);
 const showDownloadDialog = ref(false);
-const expanded = ref(true);
 const showOptions = ref(true);
 const selectedTable = ref(null);
-const loading = ref(false);
 
 function selectTable(table) {
   selectedTable.value = table;
-}
-
-function imageSrc(type) {
-  if (type === 'object') return '<i class="bi bi-alphabet-uppercase"></i>';
-  else if (type === 'float32') return '<i class="bi bi-123"></i>';
-  else if (type === 'float64') return '<i class="bi bi-123"></i>';
-  else if (type === 'int64') return '<i class="bi bi-123"></i>';
-  else if (type === 'boolean') return "MNO";
-  else if (type === 'null') return "PQR";
-  else return type;
 }
 
 function confirmDelete() {
@@ -177,28 +157,100 @@ async function deleteTable() {
   selectedTable.value = null;
   showDialog.value = false;
 }
+</script>
 
-async function analyzeField(field) {
-  await axios.get(`${apiUrl}/database/analyzeField`, {
-    params: {
-      tableName: selectedTable.value,
-      fieldName: field,
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      toast.success('Field analyzed successfully');
-    } else {
-      toast.error(`Error: HTTP ${response.message}`);
-    }
-  }).catch((error) => {
-    toast.error(`Error: HTTP ${error.message}`);
-  }).finally(() => {
-    loading.value = false;
-  });
+<style scoped>
+.tables-panel {
+  font-size: 13px;
 }
 
-</script>
-<style scoped>
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2b2d31;
+}
+
+.table-counter {
+  font-size: 0.78rem;
+  background: #e3e7ef;
+  color: #4f5660;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.table-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.table-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 7px;
+  padding: 5px 9px;
+  font-size: 12px;
+  line-height: 1.2;
+  border: 1px solid transparent;
+}
+
+.table-chip-idle {
+  background: #f2f3f5;
+  color: #313338;
+  border-color: #e3e5e8;
+}
+
+.table-chip-active {
+  background: #dce8ff;
+  color: #0f3d91;
+  border-color: #9fc0ff;
+}
+
+.table-chip-close {
+  background: #f7f7f8;
+  color: #5c6675;
+  border-color: #d9dce2;
+}
+
+.action-toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: #f6f7fb;
+  border: 1px solid #e4e6ec;
+  margin-bottom: 12px;
+}
+
+.toolbar-button {
+  font-size: 12px;
+  padding: 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.inspector-container {
+  background: #ffffff;
+  border: 1px solid #e4e6ec;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.empty-state {
+  font-size: 13px;
+}
+
 .modal {
   display: block;
   position: fixed;
@@ -212,14 +264,19 @@ async function analyzeField(field) {
 
 .modal-backdrop {
   z-index: 1040;
-  /* Backdrop debe estar detrás del modal */
 }
 
 .modal-content {
   background-color: #fefefe;
-  margin: 15% auto;
-  padding: 20px;
-  border: 1px solid #888;
+  margin: 12% auto;
+  padding: 16px;
+  border: 1px solid #d4d7dd;
   width: 80%;
+}
+
+@media (max-width: 768px) {
+  .action-toolbar {
+    flex-wrap: wrap;
+  }
 }
 </style>

@@ -239,10 +239,11 @@ def getDatabaseList():
     # Put current database at the beginning of the list
     databaseList.insert(0, currentDatabase)
 
+    headers = {"X-Current-Database": currentDatabase}
     if (databaseList is not None):
-        return JSONResponse(content=databaseList, status_code=200)
+        return JSONResponse(content=databaseList, status_code=200, headers=headers)
     else:
-        return JSONResponse(content=[], status_code=200)
+        return JSONResponse(content=[], status_code=200, headers=headers)
 
 ####################################################
 @router.get("/changeDatabase")

@@ -1,17 +1,18 @@
 <template>
-  <div class="text-center font-sans w-96 mx-auto rounded-lg shadow-lg border-solid border-2 p-8">
-    <div>
-      <button class="btn btn-danger m-1 opcion-style" v-if="recording" name="stop" @click="toggleRecording">
-        <h1><i class="bi bi-mic-fill" style="color: red;"></i></h1></button>
+  <div class="recorder-shell">
+    <div class="recorder-button-wrap">
+      <button class="btn btn-sm btn-danger recorder-btn" v-if="recording" name="stop" @click="toggleRecording">
+        <i class="bi bi-mic-fill"></i>
+      </button>
 
-      <button class="btn btn-primary m-1 opcion-style" v-else name="mic" @click="toggleRecording">
-        <h1><i class="bi bi-mic"></i></h1></button>
+      <button class="btn btn-sm btn-primary recorder-btn" v-else name="mic" @click="toggleRecording">
+        <i class="bi bi-mic"></i>
+      </button>
     </div>
-    <br />
-    <div>{{ recordedTime }}</div>
-    <div class="text-sm font-bold">{{ successMessage }}</div>
-    <div class="text-sm">{{ instructionMessage }}</div>
-    <div class="text-sm text-red-400">{{ errorMessage }}</div>
+    <div class="recorder-time">{{ recordedTime }}</div>
+    <div class="recorder-success">{{ successMessage }}</div>
+    <div class="recorder-help">{{ instructionMessage }}</div>
+    <div class="recorder-error">{{ errorMessage }}</div>
     <!--<figure class="mt-8">
       <audio controls :src="recordedAudio" type="audio/mpeg" class="mx-auto">
         Your browser does not support the
@@ -127,3 +128,49 @@ function micFailed() {
   errorMessage.value = ERROR_MESSAGE;
 }
 </script>
+
+<style scoped>
+.recorder-shell {
+  border: 1px solid #dbe0ea;
+  border-radius: 10px;
+  padding: 10px;
+  text-align: center;
+  background: #fff;
+}
+
+.recorder-button-wrap {
+  margin-bottom: 6px;
+}
+
+.recorder-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recorder-time {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #2f3440;
+}
+
+.recorder-success {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f8a4d;
+}
+
+.recorder-help {
+  font-size: 12px;
+  color: #5c6675;
+}
+
+.recorder-error {
+  font-size: 12px;
+  color: #cf2f36;
+}
+</style>

@@ -4,7 +4,7 @@
     <!-- Menú Lateral -->
     <div class="side-menu custom-padding">
       <!-- Side Menu https://getbootstrap.com/docs/5.0/examples/sidebars/ -->
-      <div class="d-flex flex-column flex-shrink-0 bg-light" style="width: 4.5rem;">
+      <div class="d-flex flex-column flex-shrink-0 bg-light compact-sidebar">
         <a href="/" class="d-block p-3 link-dark text-decoration-none" 
         title="DatalakeStudio" data-bs-toggle="tooltip"
         @click.prevent="activeMenu = 'welcome'"
@@ -15,7 +15,7 @@
         </a>
         <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
           <li class="nav-item">
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'changeDatabase' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'changeDatabase' }"
               @click.prevent="activeMenu = 'changeDatabase'" title="Change database" aria-current="page" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-database"></i></h2>
@@ -23,7 +23,7 @@
           </li>
 
           <li class="nav-item">
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'loadData' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'loadData' }"
               @click.prevent="activeMenu = 'loadData'" title="Load data from files" aria-current="page" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-box-arrow-down"></i></h2>
@@ -31,7 +31,7 @@
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'remoteDb' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'remoteDb' }"
               @click.prevent="activeMenu = 'remoteDb'" title="Load data from external Database" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-database-down"></i></h2>
@@ -39,21 +39,21 @@
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'showTables' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'showTables' }"
               @click.prevent="activeMenu = 'showTables'" title="Show tables" data-bs-toggle="tooltip" data-bs-placement="right">
               <h2><i class="bi bi-table"></i></h2>
             </a>
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'queries' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'queries' }"
               @click.prevent="activeMenu = 'queries'" title="Queries" data-bs-toggle="tooltip" data-bs-placement="right">
               <h2><i class="bi bi-filetype-sql"></i></h2>
             </a>
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'apiRetriever' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiRetriever' }"
               @click.prevent="activeMenu = 'apiRetriever'" title="Get data from Api " data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-globe2"></i></h2>
@@ -61,7 +61,7 @@
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'apiServer' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiServer' }"
               @click.prevent="activeMenu = 'apiServer'" title="Expose data via API" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-boxes"></i></h2>
@@ -69,7 +69,7 @@
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 's3' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 's3' }"
               @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-bucket"></i></h2>
@@ -77,10 +77,10 @@
           </li>
 
           <li>
-            <a href="#" class="nav-link py-3 border-bottom" :class="{ active: activeMenu === 'chatgpt' }"
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'chatgpt' }"
               @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
               data-bs-placement="right">
-              <img src="../assets/ChatGPT.svg" alt="Logo" width="45" height="45" class="rounded mx-auto d-block">
+              <img src="../assets/ChatGPT.svg" alt="Logo" class="rounded mx-auto d-block compact-menu-img">
             </a>
           </li>
         </ul>
@@ -88,7 +88,7 @@
     </div>
 
     <!-- Contenido Principal -->
-    <div class="container-fluid" style="padding-left: 2rem;">
+    <div class="container-fluid content-shell">
       <keep-alive>
         <component :is="currentComponent" v-bind="currentProps" v-on="currentListeners"></component>
       </keep-alive>
@@ -224,22 +224,53 @@ async function changedDatabase(id) {
 <style>
 .main-container {
   display: flex;
-  /* Activa Flexbox */
+  min-height: calc(100vh - 4rem);
 }
 
 .side-menu {
   width: 4.5rem;
-  /* Ancho fijo para el menú */
   flex-shrink: 0;
-  /* Evita que el menú se encoja */
 }
 
 .content-container {
   flex-grow: 1;
-  /* Permite que el contenido ocupe el espacio restante */
 }
 
 .custom-padding {
-  padding-right: 2rem;
+  padding-right: 1rem;
+}
+
+.compact-sidebar {
+  --sidebar-icon-size: 1.2rem;
+  width: 4rem;
+  border-radius: 10px;
+  border: 1px solid #e4e6ec;
+  overflow: hidden;
+}
+
+.compact-nav-link {
+  min-height: 46px;
+}
+
+.compact-nav-link h2 {
+  font-size: var(--sidebar-icon-size);
+  margin: 0;
+  line-height: 1;
+}
+
+.compact-menu-img {
+  width: var(--sidebar-icon-size);
+  height: var(--sidebar-icon-size);
+}
+
+.content-shell {
+  padding-left: 1rem;
+  padding-right: 0.5rem;
+}
+
+@media (max-width: 992px) {
+  .content-shell {
+    padding-left: 0.5rem;
+  }
 }
 </style>

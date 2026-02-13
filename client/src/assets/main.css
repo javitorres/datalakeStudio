@@ -1,22 +1,32 @@
 @import './base.css';
+@import './compact-ui.css';
 
 #app {
-  
   margin: 0 auto;
-  padding: 2rem;
-
+  padding: 1rem;
   font-weight: normal;
 }
 
 body {
-    font-family: 'Roboto', sans-serif;
+  font-family: 'gg sans', 'Noto Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 13px;
+  color: #2b2d31;
+  background: linear-gradient(180deg, #f6f8fc 0%, #f0f3f9 100%);
 }
 
+a {
+  color: #2c5fb6;
+}
+
+button,
+.btn {
+  font-size: 0.82rem;
+}
 
 a,
 .green {
   text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
+  color: #2c5fb6;
   transition: 0.4s;
 }
 /*

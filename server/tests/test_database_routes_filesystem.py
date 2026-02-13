@@ -72,6 +72,7 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
         body = self._json(resp)
         self.assertEqual(body[0], "main")
         self.assertIn("aux", body)
+        self.assertEqual(resp.headers.get("x-current-database"), "main")
 
     def test_create_database_creates_file(self):
         out = database_controller.createDatabase("newdb.db")
