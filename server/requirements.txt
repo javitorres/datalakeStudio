@@ -20,5 +20,6 @@ plotly==5.22.0
 matplotlib==3.9.1
 ujson==5.10.0
 pyarrow==17.0
-
-
+python-jose[cryptography]==3.3.0
+bcrypt==4.2.1
+google-auth==2.29.0

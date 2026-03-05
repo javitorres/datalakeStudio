@@ -4,13 +4,9 @@ from services import databaseService, fileService
 from fastapi import Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
-from ServerStatus import ServerStatus
 import os
 import logging as log
 import time
-from functools import partial
-
-serverStatus = ServerStatus()
 
 router = APIRouter(prefix="/database")
 SLOW_QUERY_THRESHOLD = 5000
@@ -22,8 +18,8 @@ def loadFile(fileName: str, tableName: str):
         response = {"status": "error", "message": "fileName and tableName are required"}
         return JSONResponse(content=response, status_code=400)
 
-    print("Loading file '" + fileName + "' into table '" + tableName + "'")
-    if databaseService.loadTable(serverStatus.getConfig(), tableName, fileName):
+    log.info(f"Loading file '{fileName}' into table '{tableName}'")
+    if databaseService.loadTable(tableName, fileName):
         df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
         return {"status": "ok", "rows": df.to_json()}
     else:
@@ -37,8 +33,7 @@ def getTables():
     tableList = [x for x in tableList if not x.startswith("__")]
     tableList = [x for x in tableList if not x.startswith("cube_index_")]
 
-    print("Tables: " + str(tableList))
-    #tableList=["iris"]
+    log.info(f"Tables: {tableList}")
 
     if (tableList is not None):
         return JSONResponse(content=tableList, status_code=200)
@@ -50,7 +45,7 @@ def getTableSchema(tableName: str):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Getting schema for table " + tableName)
+    log.info(f"Getting schema for table {tableName}")
     r = databaseService.runQuery("SELECT * FROM " + tableName + " LIMIT 1")
     # If any field name ends with () remove it
     r.columns = r.columns.str.replace(r"\(\)", "", regex=True)
@@ -65,7 +60,7 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Getting data for table " + tableName)
+    log.info(f"Getting data for table {tableName}")
     if (records==0):
         LIMIT = ""
     else:
@@ -75,7 +70,6 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
     # If any field name ends with () remove it
     df.columns = df.columns.str.replace(r"\(\)", "", regex=True)
     if (df is not None):
-        #return JSONResponse(content=r.to_csv(index=False), status_code=200)
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
     else:
         return ""
@@ -83,12 +77,10 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
 ####################################################
 @router.post("/runQuery")
 def runQuery(queryRequest: QueryRequest):
-    print("POST runQuery " + str(queryRequest))
+    log.info(f"POST runQuery {queryRequest}")
 
     databaseService.runQuery("DROP TABLE IF EXISTS __lastQuery")
 
-    # Replace ' with " to avoid problems
-    #query = queryRequest.query.replace("'", '"')
     query = queryRequest.query
 
     query = query.strip()
@@ -98,7 +90,7 @@ def runQuery(queryRequest: QueryRequest):
     try:
         databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
     except Exception as e:
-        print("Error runing query::: " + str(e))
+        log.error(f"Error running query: {e}")
         response = {"status": "error", "message": "Error running query: " + str(e)}
         return JSONResponse(content=response, status_code=400)
 
@@ -108,7 +100,6 @@ def runQuery(queryRequest: QueryRequest):
         LIMIT = " LIMIT " + str(queryRequest.rows)
 
     df = databaseService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
-    #return {"status": "ok", "rows": df.to_json()}
 
     if df is not None:
         csv_data = df.to_csv(index=False)
@@ -121,13 +112,10 @@ def getRowsCount(tableName: str):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Getting rows count for table " + tableName)
+    log.info(f"Getting rows count for table {tableName}")
     df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
     if (df is not None):
-        print("DF:" + str(df))
-        # extract total
         total = df["total"].values[0]
-        print("Total:" + str(total))
         return {"status": "ok", "rows": str(total)}
     else:
         return {"status": "error"}
@@ -138,16 +126,16 @@ def createTableFromQuery(query: str, tableName: str):
     if (query is None or tableName is None):
         response = {"status": "error", "message": "query and tableName are required"}
         return JSONResponse(content=response, status_code=400)
-    print("Creating table " + tableName + " from query " + query)
+    log.info(f"Creating table {tableName} from query {query}")
     try:
         databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     except Exception as e:
-        print("Error dropping table: " + str(e))
+        log.error(f"Error dropping table: {e}")
 
     try:
         databaseService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
     except Exception as e:
-        print("Error creating table: " + str(e))
+        log.error(f"Error creating table: {e}")
         response = {"status": "error", "message": "Error creating table: " + str(e)}
         return JSONResponse(content=response, status_code=400)
 
@@ -158,26 +146,25 @@ def deleteTable(tableName: str):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Deleting table " + tableName)
+    log.info(f"Deleting table {tableName}")
     databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     return {"status": "ok"}
 ####################################################
 @router.get("/exportData")
 def exportData(tableName: str, format: str = "csv", fileName: str = None):
     if fileName is None:
-        fileName = "data/" + tableName + "." + format
+        fileName = databaseService.get_user_temp_folder() + "/" + tableName + "." + format
 
     if (tableName is None or fileName is None):
         response = {"status": "error", "message": "tableName and fileName are required"}
         return JSONResponse(content=response, status_code=400)
-    print("Exporting data from table " + tableName + " to file " + fileName + " in format " + format)
+    log.info(f"Exporting data from table {tableName} to file {fileName} in format {format}")
     r = databaseService.exportData(tableName, format, fileName)
 
     if (r):
-        response = {"status": "ok", "message": "Exported"}
-        return FileResponse(path=fileName, media_type='application/octet-stream', filename=fileName)
+        return FileResponse(path=fileName, media_type='application/octet-stream', filename=os.path.basename(fileName))
     else:
-        response = {"status": "error", "message": "tableName and fileName are required"}
+        response = {"status": "error", "message": "Export failed"}
         return JSONResponse(content=response, status_code=500)
 
 ####################################################
@@ -186,12 +173,10 @@ def getProfile(tableName: str):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
-    print("Getting profile for table " + tableName)
+    log.info(f"Getting profile for table {tableName}")
     df = databaseService.getProfile(tableName)
     if (df is not None):
-
         return Response(df.to_csv(index=False, quotechar='"'), media_type="text/csv", status_code=200)
-        return response
     else:
         return {"status": "error"}
 
@@ -202,25 +187,16 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
         response = {"status": "error", "message": "file is required"}
         return JSONResponse(content=response, status_code=400)
 
-    # Save file to disk
-    data_dir = serverStatus.getConfig()["downloadFolder"]
+    data_dir = databaseService.get_user_temp_folder()
     dest_file = os.path.join(data_dir, file.filename)
-    print("Uploading file " + str(file.filename) + " to temp folder " + dest_file + " and there to table " + tableName)
+    log.info(f"Uploading file {file.filename} to {dest_file}")
     with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-        if os.path.exists(dest_file):
-            print("File saved to " + dest_file)
-        # List files in temp folder
-        #print("Files in temp folder:")
-        #for f in os.listdir(data_dir):
-        #    print(f)
-    # get full path in fs
     dest_file = os.path.abspath(dest_file)
 
-    # Load file into duckdb
     if (tableName is None):
         tableName = file.filename.split(".")[0]
-    if databaseService.loadTable(serverStatus.getConfig(),tableName, dest_file):
+    if databaseService.loadTable(tableName, dest_file):
         df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
         return {"status": "ok", "rows": df.to_json()}
     else:
@@ -228,15 +204,12 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
 ####################################################
 @router.get("/getDatabaseList")
 def getDatabaseList():
-    databaseList = databaseService.getDatabaseList(serverStatus.getConfig())
-    print("Databases: " + str(databaseList))
-    # Get current database
-    currentDatabase = serverStatus.get()["currentDatabase"]
+    databaseList = databaseService.getDatabaseList()
+    currentDatabase = databaseService.get_current_database_name()
     # Remove current database from the list
     databaseList = [x for x in databaseList if x != currentDatabase]
-    # Sort list
     databaseList.sort()
-    # Put current database at the beginning of the list
+    # Put current database at the beginning
     databaseList.insert(0, currentDatabase)
 
     headers = {"X-Current-Database": currentDatabase}
@@ -248,14 +221,13 @@ def getDatabaseList():
 ####################################################
 @router.get("/changeDatabase")
 def changeDatabase(databaseName: str):
-    databaseService.changeDatabase(serverStatus.getConfig(), databaseName)
-    serverStatus.setCurrentDatabase(databaseName)
+    databaseService.changeDatabase(databaseName)
     return {"status": "ok"}
 
 ####################################################
 @router.get("/createDatabase")
 def createDatabase(databaseName: str):
-    databaseService.createDatabase(serverStatus.getConfig(), databaseName)
+    databaseService.createDatabase(databaseName)
     return {"status": "ok"}
 
 # Based on https://github.com/uwdata/mosaic/blob/main/packages/duckdb-server/README.md
@@ -297,10 +269,9 @@ async def handle_query(request: Request):
 
 @router.get("/dropCubes")
 def dropCubes():
-    # Drop all cube tables
     tables = databaseService.getTableList()
     for table in tables:
         if table.startswith("cube_index_"):
-            print("Dropping table " + table)
+            log.info(f"Dropping table {table}")
             databaseService.runQuery("DROP TABLE IF EXISTS " + table)
     return {"status": "ok"}

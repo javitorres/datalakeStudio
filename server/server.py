@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -12,15 +12,15 @@ from routes import queries_controller
 from routes import apiserver_controller
 from routes import api_controller
 from routes import maps_controller
+from routes import auth_controller
 
 import logging as log
 
 from ServerStatus import ServerStatus
-
 from config import Config
+from auth import get_current_user
 
 app = FastAPI()
-connection = None
 
 origins = ["*"]
 
@@ -30,22 +30,28 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["X-Current-Database"],
 )
 
 serverStatus = ServerStatus()
 
+# Auth dependency for protected routes
+auth_dep = [Depends(get_current_user)]
 
-# Include routes
-app.include_router(database_controller.router)
-app.include_router(remoteDb_controller.router)
-app.include_router(s3_controller.router)
-app.include_router(gpt_controller.router)
-app.include_router(apiretriever_controller.router)
-app.include_router(profiler_controller.router)
-app.include_router(queries_controller.router)
-app.include_router(apiserver_controller.router)
-app.include_router(api_controller.router)
-app.include_router(maps_controller.router)
+# Public routes (no auth required)
+app.include_router(auth_controller.router)
+
+# Protected routes (auth required)
+app.include_router(database_controller.router, dependencies=auth_dep)
+app.include_router(remoteDb_controller.router, dependencies=auth_dep)
+app.include_router(s3_controller.router, dependencies=auth_dep)
+app.include_router(gpt_controller.router, dependencies=auth_dep)
+app.include_router(apiretriever_controller.router, dependencies=auth_dep)
+app.include_router(profiler_controller.router, dependencies=auth_dep)
+app.include_router(queries_controller.router, dependencies=auth_dep)
+app.include_router(apiserver_controller.router, dependencies=auth_dep)
+app.include_router(api_controller.router, dependencies=auth_dep)
+app.include_router(maps_controller.router, dependencies=auth_dep)
 
 
 if __name__ == "__main__":
@@ -54,5 +60,3 @@ if __name__ == "__main__":
 
     log.info("Initializing server on port " + str(Config.get_instance().get_config.get("port")) + "...")
     uvicorn.run(app, host="0.0.0.0", port=Config.get_instance().get_config.get("port"))
-    
-    

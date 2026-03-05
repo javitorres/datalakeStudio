@@ -84,6 +84,12 @@
             </a>
           </li>
         </ul>
+        <div class="user-section text-center p-2 border-top">
+          <small class="d-block text-muted user-label" :title="username">{{ username }}</small>
+          <a href="#" class="text-danger small" @click.prevent="$emit('logout')" title="Logout">
+            <i class="bi bi-box-arrow-left"></i>
+          </a>
+        </div>
       </div>
     </div>
 
@@ -117,6 +123,10 @@ import 'vue3-toastify/dist/index.css';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
+
+const props = defineProps({
+  username: { type: String, default: '' }
+});
 
 const activeMenu = ref('welcome');
 const tables = ref([]);
@@ -266,6 +276,17 @@ async function changedDatabase(id) {
 .content-shell {
   padding-left: 1rem;
   padding-right: 0.5rem;
+}
+
+.user-section {
+  font-size: 11px;
+}
+
+.user-label {
+  max-width: 3.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 992px) {

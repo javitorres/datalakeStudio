@@ -8,6 +8,17 @@ from config import Config
 
 router = APIRouter(prefix="/remotedb")
 
+# Per-user remote database connections
+_remote_connections = {}
+
+def _get_connection():
+    username = databaseService.get_current_user()
+    return _remote_connections.get(username)
+
+def _set_connection(conn):
+    username = databaseService.get_current_user()
+    _remote_connections[username] = conn
+
 
 @router.get("/getDatabaseList")
 def getDatabaseList(databaseName: str):
@@ -20,14 +31,13 @@ def getDatabaseList(databaseName: str):
 
 @router.get("/connectDatabase")
 def connectDatabase(databaseName: str):
-    global connection
-
     if (databaseName is None):
         response = {"status": "error", "message": "databaseName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Connecting to database '" + databaseName + "'")
     connection = remoteDbService.connectDatabase(databaseName, Config.get_instance().get_secrets.get("pgpass_file"))
-    
+    _set_connection(connection)
+
     if (connection is not None):
         schemas = remoteDbService.getSchemas(connection)
         response = {"status": "ok", "schemas": schemas}
@@ -37,7 +47,7 @@ def connectDatabase(databaseName: str):
 
 @router.get("/getSchemas")
 def getSchemas():
-    global connection
+    connection = _get_connection()
 
     if (connection is None):
         response = {"status": "error", "message": "You must connect to a database first"}
@@ -48,7 +58,7 @@ def getSchemas():
 
 @router.get("/getTablesFromRemoteSchema")
 def getTablesFromSchema(schema: str):
-    global connection
+    connection = _get_connection()
 
     if (connection is None):
         response = {"status": "error", "message": "You must connect to a database first"}
@@ -60,7 +70,7 @@ def getTablesFromSchema(schema: str):
 
 @router.get("/runRemoteQuery")
 def runRemoteQuery(query: str):
-    global connection
+    connection = _get_connection()
 
     if (connection is None):
         response = {"status": "error", "message": "You must connect to a database first"}
@@ -74,7 +84,7 @@ def runRemoteQuery(query: str):
 
 @router.get("/createTableFromRemoteQuery")
 def createTableFromRemoteQuery(query: str, tableName: str):
-    global connection
+    connection = _get_connection()
 
     if (connection is None):
         response = {"status": "error", "message": "You must connect to a database first"}
