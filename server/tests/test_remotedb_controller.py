@@ -5,6 +5,9 @@ from unittest.mock import patch
 import pandas as pd
 
 from routes import remoteDb_controller
+from services import databaseService
+
+TEST_USER = "test_user"
 
 
 class _FakeConfig:
@@ -14,8 +17,9 @@ class _FakeConfig:
 
 class RemoteDbControllerTest(unittest.TestCase):
     def setUp(self):
-        if hasattr(remoteDb_controller, 'connection'):
-            remoteDb_controller.connection = None
+        databaseService._config = {"databasesFolder": "/tmp/test_db", "downloadFolder": "/tmp/test_dl"}
+        databaseService.set_current_user(TEST_USER)
+        remoteDb_controller._remote_connections[TEST_USER] = None
 
     @staticmethod
     def _json(response):
@@ -52,25 +56,25 @@ class RemoteDbControllerTest(unittest.TestCase):
         self.assertEqual(resp, {'status': 'error'})
 
     def test_get_schemas_requires_connection(self):
-        remoteDb_controller.connection = None
+        remoteDb_controller._remote_connections[TEST_USER] = None
         resp = remoteDb_controller.getSchemas()
         self.assertEqual(resp.status_code, 400)
 
     @patch('routes.remoteDb_controller.remoteDbService.getSchemas', return_value=['public'])
     def test_get_schemas_ok(self, _mock):
-        remoteDb_controller.connection = object()
+        remoteDb_controller._remote_connections[TEST_USER] = object()
         resp = remoteDb_controller.getSchemas()
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self._json(resp), ['public'])
 
     def test_run_remote_query_requires_connection(self):
-        remoteDb_controller.connection = None
+        remoteDb_controller._remote_connections[TEST_USER] = None
         resp = remoteDb_controller.runRemoteQuery('select 1')
         self.assertEqual(resp.status_code, 400)
 
     @patch('routes.remoteDb_controller.remoteDbService.runRemoteQuery')
     def test_run_remote_query_ok(self, mock_run):
-        remoteDb_controller.connection = object()
+        remoteDb_controller._remote_connections[TEST_USER] = object()
         mock_run.return_value = pd.DataFrame([{'id': 1}])
 
         resp = remoteDb_controller.runRemoteQuery('select 1 as id')
@@ -81,7 +85,7 @@ class RemoteDbControllerTest(unittest.TestCase):
     @patch('routes.remoteDb_controller.databaseService.createTableFromDataFrame')
     @patch('routes.remoteDb_controller.remoteDbService.runRemoteQuery')
     def test_create_table_from_remote_query_ok(self, mock_run, mock_create):
-        remoteDb_controller.connection = object()
+        remoteDb_controller._remote_connections[TEST_USER] = object()
         mock_run.return_value = pd.DataFrame([{'id': 1}])
 
         resp = remoteDb_controller.createTableFromRemoteQuery('select 1 as id', 'new_table')

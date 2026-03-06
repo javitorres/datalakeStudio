@@ -6,10 +6,16 @@ from model.QueryRequestDTO import QueryRequest
 from routes import database_controller
 from services import databaseService
 
+TEST_USER = "test_user"
+
 
 class DatabaseRoutesTest(unittest.TestCase):
     def setUp(self):
-        databaseService.db = duckdb.connect(':memory:', config={"allow_unsigned_extensions": "true"})
+        databaseService._config = {"databasesFolder": "/tmp/test_db", "downloadFolder": "/tmp/test_dl"}
+        databaseService.set_current_user(TEST_USER)
+        db = duckdb.connect(':memory:', config={"allow_unsigned_extensions": "true"})
+        databaseService._connections[TEST_USER] = {"test.db": db}
+        databaseService._active_db[TEST_USER] = "test.db"
         self._seed()
 
     @staticmethod

@@ -129,8 +129,7 @@
     </div>
 
     <div v-if="showMosaic">
-      <Mosaic :table="tableName" :selectedFields="selectedFields" :schema="tableSchema">
-      </Mosaic>
+      <CrossFilterCharts :table="tableName" :selectedFields="selectedFields" :schema="tableSchema" @removeField="toggleField" />
     </div>
 
     <!-- H3 Maps-->
@@ -153,7 +152,7 @@ import 'vue3-toastify/dist/index.css';
 import GenericCross from './GenericCross.vue';
 import Map from './Map.vue';
 import MapH3 from './MapH3.vue';
-import Mosaic from './Mosaic.vue';
+import CrossFilterCharts from './CrossFilterCharts.vue';
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;

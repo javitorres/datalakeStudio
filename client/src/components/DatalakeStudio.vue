@@ -87,6 +87,42 @@
       </div>
     </div>
 
+    <!-- User menu (bottom-left) -->
+    <div v-if="username && username !== 'default'" class="user-menu-wrapper">
+      <div class="user-menu-popup" v-if="showUserMenu">
+        <button class="user-menu-item" @click="showAbout = true; showUserMenu = false">
+          <i class="bi bi-info-circle me-2"></i>About
+        </button>
+        <button class="user-menu-item text-danger" @click="$emit('logout'); showUserMenu = false">
+          <i class="bi bi-box-arrow-left me-2"></i>Logout
+        </button>
+      </div>
+      <button class="user-menu-btn" @click="showUserMenu = !showUserMenu" :title="username">
+        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- About modal -->
+    <div v-if="showAbout" class="about-overlay" @click.self="showAbout = false">
+      <div class="about-modal">
+        <div class="text-center mb-3">
+          <img src="../assets/logo.svg" alt="Logo" width="48" height="48">
+          <h5 class="mt-2 mb-1">Datalake Studio</h5>
+          <small class="text-muted">Your personal data workspace</small>
+        </div>
+        <div class="small text-muted">
+          <p class="mb-1"><strong>User:</strong> {{ username }}</p>
+        </div>
+        <div class="text-end mt-3">
+          <button class="btn btn-sm btn-outline-secondary" @click="showAbout = false">Close</button>
+        </div>
+      </div>
+    </div>
+
     <!-- Contenido Principal -->
     <div class="container-fluid content-shell">
       <keep-alive>
@@ -98,7 +134,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import axios from 'axios';
 
 import Welcome from './Welcome.vue';
@@ -118,11 +154,28 @@ import 'vue3-toastify/dist/index.css';
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
+const props = defineProps({
+  username: { type: String, default: '' }
+});
+
 const activeMenu = ref('welcome');
 const tables = ref([]);
+const showUserMenu = ref(false);
+const showAbout = ref(false);
+
+function onClickOutside(e) {
+  if (showUserMenu.value && !e.target.closest('.user-menu-wrapper')) {
+    showUserMenu.value = false;
+  }
+}
 
 onMounted(() => {
   getTables();
+  document.addEventListener('click', onClickOutside);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', onClickOutside);
 });
 
 const currentComponent = computed(() => {
@@ -266,6 +319,86 @@ async function changedDatabase(id) {
 .content-shell {
   padding-left: 1rem;
   padding-right: 0.5rem;
+}
+
+.user-menu-wrapper {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  z-index: 1050;
+}
+
+.user-menu-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #4b5563;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.user-menu-btn:hover {
+  background: #f3f4f6;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+.user-menu-popup {
+  position: absolute;
+  bottom: 48px;
+  left: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  min-width: 140px;
+  padding: 4px 0;
+  overflow: hidden;
+}
+
+.user-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 0.85rem;
+  color: #374151;
+  cursor: pointer;
+  text-align: left;
+}
+
+.user-menu-item:hover {
+  background: #f3f4f6;
+}
+
+.user-menu-item.text-danger {
+  color: #dc3545;
+}
+
+.about-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1060;
+}
+
+.about-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 992px) {
