@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from routes import remoteDb_controller
@@ -19,19 +18,12 @@ import logging as log
 from ServerStatus import ServerStatus
 from config import Config
 from auth import get_current_user
+from middleware.cors_middleware import DualCORSMiddleware
 
 app = FastAPI()
 
-origins = ["*"]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["X-Current-Database"],
-)
+allowed_origins = Config.get_instance().get_config.get("allowedOrigins", ["*"])
+app.add_middleware(DualCORSMiddleware, allowed_origins=allowed_origins)
 
 serverStatus = ServerStatus()
 

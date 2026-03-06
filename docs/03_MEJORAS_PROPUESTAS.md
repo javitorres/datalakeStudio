@@ -4,13 +4,15 @@
 
 ### A.1 Seguridad (Prioridad: ALTA)
 
-#### A.1.1 Autenticación y autorización
-- **Estado actual**: No existe ningún mecanismo de autenticación. Cualquier persona con acceso a la URL puede ejecutar SQL arbitrario, borrar tablas, acceder a S3, etc.
-- **Propuesta**: Implementar autenticación basada en JWT o sesiones. Opciones:
-  - Login local con usuario/contraseña.
-  - SSO con proveedores OAuth2 (Google, GitHub, OIDC corporativo).
-  - Al menos un API key simple para entornos de desarrollo.
-- **Impacto**: Crítico si se despliega fuera de localhost.
+#### A.1.1 Autenticación y autorización ✅ IMPLEMENTADO
+- **Implementado**:
+  - Autenticación JWT con registro e inicio de sesión por usuario/contraseña (bcrypt + python-jose).
+  - Login con Google OAuth (Google Identity Services). Aparece automáticamente si se configura `google_client_id` en `secrets.yml`.
+  - Verificación de email y recuperación de contraseña por SMTP (opcional, se activa al configurar SMTP en `secrets.yml`).
+  - Aislamiento de datos por usuario: cada usuario tiene su propio espacio en `data/{username}/`.
+  - Propiedad `authEnabled` en `config.yml` para activar/desactivar la autenticación. En modo desactivado, se usa el usuario `default` sin pantalla de login.
+  - Interceptores Axios globales para inyección de token y manejo de 401.
+  - Menú de usuario en la esquina inferior izquierda con opciones de Logout y About.
 
 #### A.1.2 Restricción de CORS
 - **Estado actual**: `allow_origins=["*"]` permite requests desde cualquier dominio.

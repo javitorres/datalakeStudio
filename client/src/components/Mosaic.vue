@@ -74,10 +74,10 @@ async function setDatabaseConnector(type) {
       connector = socketConnector();
       break;
     case 'rest':
-      connector = restConnector('http://localhost:8000/database/restConnector/');
+      connector = restConnector('http://localhost:8000/database/restConnector');
       break;
     case 'rest_https':
-      connector = restConnector('https://localhost:8000/database/restConnector/');
+      connector = restConnector('https://localhost:8000/database/restConnector');
       break;
     case 'wasm':
       connector = wasm.value || (wasm.value = wasmConnector());
@@ -114,6 +114,7 @@ function logIndexState() {
 }
 
 async function reload() {
+  if (!vg.value) return;
   await load(props.table);
 }
 
@@ -152,7 +153,7 @@ function getYaml(table, selectedFields, schema) {
       description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
     },
     data: {
-      [table]: { file: `data/${table}.parquet` }
+      [table]: { query: `SELECT * FROM ${table}` }
     },
     params: {
       brush: { select: "crossfilter" }
@@ -231,7 +232,7 @@ function createColumns(selectedFields, schema, table) {
 }
 
 async function dropCubes() {
-  const url = 'http://localhost:8000/database/restConnector/dropCubes';
+  const url = 'http://localhost:8000/database/dropCubes';
   const response = await fetch(url);
   const data = await response.json();
   console.log('Drop Cubes:', data);

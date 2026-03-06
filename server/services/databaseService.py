@@ -370,3 +370,11 @@ def arrow_to_bytes(arrow):
 
 def get_arrow_bytes(sql):
     return arrow_to_bytes(get_arrow(sql))
+
+
+def retrieve_json(query):
+    sql = query.get("sql")
+    df = runQuery(sql)
+    if df is not None:
+        return df.to_dict(orient="records")
+    return []

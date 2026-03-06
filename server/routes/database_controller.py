@@ -242,9 +242,7 @@ async def handle_query(request: Request):
 
     try:
         if command == "exec":
-            if (sql.strip().upper().startswith("CREATE TEMP TABLE IF NOT EXISTS CUBE_INDEX_")):
-                databaseService.runQuery(sql)
-
+            databaseService.runQuery(sql)
             response = {"status": "ok"}
         elif command == "arrow":
             buffer = databaseService.retrieve_arrow_bytes(query)
@@ -257,7 +255,10 @@ async def handle_query(request: Request):
 
     except Exception as e:
         log.exception("Error processing query")
-        response = JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
+        if command == "arrow":
+            response = Response(content=str(e).encode(), media_type="text/plain", status_code=500)
+        else:
+            response = JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
     total = round((time.time() - start) * 1_000)
     if total > SLOW_QUERY_THRESHOLD:

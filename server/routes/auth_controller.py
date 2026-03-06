@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from typing import Optional
 from services import authService
+from auth import is_auth_enabled
 
 router = APIRouter(prefix="/auth")
 
@@ -75,6 +75,10 @@ def reset_password(req: ResetPasswordRequest):
 @router.get("/mail-configured")
 def mail_configured():
     return {"configured": authService.requires_email_verification()}
+
+@router.get("/auth-enabled")
+def auth_enabled():
+    return {"enabled": is_auth_enabled()}
 
 @router.get("/me")
 def me(request: Request):

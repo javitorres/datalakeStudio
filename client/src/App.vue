@@ -1,5 +1,5 @@
 <template>
-  <Login v-if="!isAuthenticated" @login-success="onLoginSuccess" />
+  <Login v-if="authEnabled && !isAuthenticated" @login-success="onLoginSuccess" />
   <DatalakeStudio v-else :username="username" @logout="onLogout" />
 </template>
 
@@ -13,14 +13,28 @@ import { API_HOST, API_PORT } from '../config';
 
 const apiUrl = `${API_HOST}:${API_PORT}`;
 
+const authEnabled = ref(true);
 const isAuthenticated = ref(false);
 const username = ref('');
 
 onMounted(async () => {
+  // Check if auth is enabled
+  try {
+    const resp = await axios.get(`${apiUrl}/auth/auth-enabled`);
+    authEnabled.value = resp.data.enabled;
+  } catch {
+    authEnabled.value = true; // Default to requiring auth if server unreachable
+  }
+
+  if (!authEnabled.value) {
+    isAuthenticated.value = false;
+    username.value = 'default';
+    return;
+  }
+
   const token = localStorage.getItem('token');
   const storedUsername = localStorage.getItem('username');
   if (token && storedUsername) {
-    // Validate token is still valid
     try {
       const response = await axios.get(`${apiUrl}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }

@@ -1,4 +1,13 @@
+# Server port
 port: 8000
+# Folder where user databases are stored
 databasesFolder: "data"
+# Default database name for new users
 defaultDatabase: "datalakeStudio.db"
+# Temporary folder for file uploads and exports
 downloadFolder: "temp"
+# Enable login/registration (true) or allow anonymous access as "default" user (false)
+authEnabled: false
+# Origins allowed for app endpoints (not applied to /api/*)
+allowedOrigins:
+  - "http://localhost:8080"
