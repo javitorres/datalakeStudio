@@ -1,8 +1,8 @@
 <template>
-  <div class="row" v-if="tables && tables.length > 0">
+  <div class="row compact-query-view" v-if="tables && tables.length > 0">
     <div class="row">
-      <div class="col-md-12">
-        <ul class="nav nav-tabs">
+      <div class="col-md-12 compact-panel">
+        <ul class="nav nav-tabs compact-tabs">
       <!-- Main query  -->
       <li class="nav-item">
         <a :class="{ 'nav-link': true, active: activeQueryTab === 'mainQuery' }" aria-current="page" href="#"
@@ -39,8 +39,7 @@
       
     </ul>
 
-        <br/>
-        <div class="form-group">
+        <div class="form-group mt-2">
             <!-- https://dev.to/medilies/codemirror-v6-on-vue3-hooked-to-pinia-store-g8j 
               https://github.com/surmon-china/vue-codemirror  -->
 
@@ -48,7 +47,7 @@
               <codemirror v-if="activeQueryTab === 'mainQuery'"
               v-model="query" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -57,7 +56,7 @@
               <codemirror v-if="activeQueryTab === 'aux1'"
               v-model="auxQuery1" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -66,7 +65,7 @@
               <codemirror v-if="activeQueryTab === 'aux2'"
               v-model="auxQuery2" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -75,7 +74,7 @@
               <codemirror v-if="activeQueryTab === 'aux3'"
               v-model="auxQuery3" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -84,7 +83,7 @@
               <codemirror v-if="activeQueryTab === 'aux4'"
               v-model="auxQuery4" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -93,7 +92,7 @@
               <codemirror v-if="activeQueryTab === 'aux5'"
               v-model="auxQuery5" 
               placeholder="SELECT * FROM ..."
-              :style="{ height: '300px' }"
+              :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
               :tab-size="4"
@@ -102,14 +101,14 @@
 
         </div>
         
-        <div v-if="queryError">
-          <p style="color: red;">{{ queryError }}</p>
+        <div v-if="queryError" class="query-error">
+          <p>{{ queryError }}</p>
         </div>
-        <br />
-        <button type="button" class="btn btn-primary" @click="runQuery">Run Query</button>
-        <br /><br />
+        <div class="compact-actions">
+          <button type="button" class="btn btn-sm btn-primary" @click="runQuery">Run Query</button>
+        </div>
 
-        <ul class="nav nav-tabs">
+        <ul class="nav nav-tabs compact-tabs mt-2">
           <!-- Create table from query  -->
           <li class="nav-item">
             <a :class="{ 'nav-link': true, active: activeTab === 'newTable' }" aria-current="page" href="#"
@@ -142,13 +141,13 @@
           <div class="form-group" v-if="sampleData">
             
             
-            <div class="input-group mb-3">
+            <div class="input-group mb-3 compact-input-group">
               <span class="input-group-text" id="basic-addon1">Table name</span>
               <input type="text" class="form-control" id="tableNameInput" placeholder="New table name" v-model="tableFromQuery">
             </div>
            
             <div class="md-col-2" v-if="tableFromQuery">
-              <button type="button" class="btn btn-primary" @click="createTable">Create table</button>
+              <button type="button" class="btn btn-sm btn-primary" @click="createTable">Create table</button>
             </div>
           </div>
         </div>
@@ -157,17 +156,17 @@
         <div class="col-md-12" v-if="activeTab === 'saveSql'">
           <div class="form-group">
             <br />
-            <div class="input-group mb-3">
+            <div class="input-group mb-3 compact-input-group">
               <span class="input-group-text" id="basic-addon1">Query name</span>
               <input type="text" class="form-control" placeholder="Query name" v-model="sqlQueryName">
             </div>
 
-            <div class="input-group mb-3">
+            <div class="input-group mb-3 compact-input-group">
               <span class="input-group-text" id="basic-addon1">Description</span>
               <input type="text" class="form-control" placeholder="Description" v-model="sqlQueryDescription">
             </div>
 
-            <button type="button" class="btn btn-primary" v-if="sqlQueryName && sqlQueryDescription"
+            <button type="button" class="btn btn-sm btn-primary" v-if="sqlQueryName && sqlQueryDescription"
             @click="saveSqlQuery">Save SQL query</button>
           </div>
         </div>
@@ -176,14 +175,14 @@
         <div class="col-md-12" v-if="activeTab === 'loadSql'">
           <div class="form-group">
             <br />
-            <div class="input-group mb-3">
+            <div class="input-group mb-3 compact-input-group">
               <span class="input-group-text" id="basic-addon1">Search query</span>
               <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
             </div>
 
             <div v-if="queries && queries.length > 0">
-              <ul class="list-group d-flex flex-wrap">
-                <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item" @click="selectQuery(queryCandidate)">
+              <ul class="list-group d-flex flex-wrap compact-query-list">
+                <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item compact-query-item" @click="selectQuery(queryCandidate)">
                   <i class="bi bi-trash" @click.stop="deleteQuery(queryCandidate)"> Delete</i> <br/>
                   <b>Name:</b> {{ queryCandidate.name }}<br/><b>Description:</b>{{ queryCandidate.description }}<br/><b>SQL:</b>{{ queryCandidate.query }}
                 </li>
@@ -196,22 +195,19 @@
         <div class="row" v-if="activeTab === 'askGpt'">
           <div class="col-md-12">
             <br />
-            <div class="input-group mb-8">
+            <div class="input-group mb-3 compact-input-group">
               <span class="input-group-text" id="basic-addon1">Your question</span>
               <input type="text" class="form-control" id="chatGPTInput" placeholder="Ask ChatGPT" v-model="chatGPTInput">
               
             </div>
-            <br />
-            <button type="button" class="btn btn-primary" @click="askChatGPT">Ask ChatGPT</button>
+            <button type="button" class="btn btn-sm btn-primary" @click="askChatGPT">Ask ChatGPT</button>
 
-            <br />
-            <div v-if="chatGPTOutput">
+            <div v-if="chatGPTOutput" class="mt-2">
               <input type="text" class="form-control" id="chatGPTOutput" v-model="chatGPTOutput">
-              <button type="button" class="btn btn-primary" @click="useChatGPTAnswer">Run this query</button>
+              <button type="button" class="btn btn-sm btn-primary mt-2" @click="useChatGPTAnswer">Run this query</button>
             </div>
           </div>
         </div>
-        <br />
       </div>
     </div>
       <div class="row">
@@ -462,13 +458,30 @@ async function deleteQuery(queryCandidate) {
 </script>
 
 <style scoped>
-.nav-tabs {
-  display: flex;
-  flex-wrap: wrap;
+.compact-query-view {
+  font-size: 13px;
 }
 
-.nav-item {
-  flex: 1;
-  /* Esto hará que cada pestaña tenga el mismo ancho */
+.query-error p {
+  color: #cf2f36;
+  font-size: 12px;
+  margin: 8px 0 0;
+}
+
+.compact-query-list {
+  gap: 6px;
+}
+
+.compact-query-item {
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.3;
+  border-radius: 8px;
+  border: 1px solid #dbe0ea;
+  background: #f8f9fc;
+}
+
+.compact-query-item:hover {
+  background: #edf1fa;
 }
 </style>

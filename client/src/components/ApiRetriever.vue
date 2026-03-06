@@ -1,19 +1,13 @@
 <template>
-  <div class="row" v-if="tables && tables.length > 0">
-    <div class="col-md-6">
-      <p>Mode: {{mode}}</p>
-      <p>Service:'{{service}}'</p>
-      <p>Method:'{{method}}'</p>
-      <p>methodPathManualMode:'{{methodPathManualMode}}'</p>
-      
-
-      <h3>Select Dataset</h3>
+  <div class="row compact-api-view" v-if="tables && tables.length > 0">
+    <div class="col-md-6 compact-panel">
+      <h3 class="compact-title">Select Dataset</h3>
       <div class="row">
         <!-- Table selector -->
         <div class="row">
           <div class="col-md-6">
             <div class="form-group">
-              <div class="input-group mb-3">
+              <div class="input-group mb-3 compact-input-group">
                 <span class="input-group-text" id="basic-addon1">Select table</span>
                 
               <select class="form-control" id="tableSelector" v-model="table">
@@ -31,8 +25,8 @@
       </div>
     </div>
 
-    <div class="col-md-6" v-if="table">
-      <h3>API configuration</h3>
+    <div class="col-md-6 compact-panel" v-if="table">
+      <h3 class="compact-title">API configuration</h3>
       <!-- Search API or use a known endpoint -->
       <div class="form-check">
         <input class="form-check-input" type="radio" name="flexRadioDefault" id="flexRadioDefault1" v-model="mode"
@@ -47,7 +41,7 @@
 
 
       <div v-if="mode === 'search'">
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">Service name</span>
         <input id="apiServiceName" type="text" class="form-control" placeholder="Service name" aria-label="File"
           aria-describedby="basic-addon1" v-model="apiServiceName" @input="searchService(apiServiceName)">
@@ -55,9 +49,9 @@
       </div>
 
       <div v-if="services && services.length > 0">
-        <ul class="list-unstyled d-flex flex-wrap">
+        <ul class="list-unstyled compact-chip-list">
           <li v-for="service in services" :key="service.id">
-            <button class="btn btn-primary m-1 opcion-style" @click="searchMethod(service, '')">
+            <button class="btn btn-outline-primary compact-chip-btn" @click="searchMethod(service, '')">
               {{ service }}
             </button>
           </li>
@@ -66,31 +60,31 @@
 
       
       <div v-if="service && mode === 'search'">
-        Service: {{ service }}
+        <p class="compact-muted">Service: {{ service }}</p>
 
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">Method name</span>
         <input id="methodPath" type="text" class="form-control" placeholder="Method name" aria-label="File"
           aria-describedby="basic-addon1" v-model="methodPath" @input="searchMethod(service, methodPath)">
         </div>
 
         <!-- Methods found -->
-        <ul class="list-unstyled d-flex flex-wrap" v-if="methods">
+        <ul class="list-unstyled compact-chip-list" v-if="methods">
           <li v-for="method in methods" :key="method.id">
-            <button class="btn btn-primary m-1 opcion-style" @click="clickMethod(service, method)">
+            <button class="btn btn-outline-primary compact-chip-btn" @click="clickMethod(service, method)">
               {{ method.controller }} - {{ method.method }} - {{ method.path }}
             </button>
           </li>
         </ul>
 
         <!-- Method selected info -->
-        <div v-if="methodInfo">
+        <div v-if="methodInfo" class="compact-card">
 
           <!--<p>Summary: {{ methodInfo.summary }}</p>-->
-          <p><b>Method:</b> {{ methodInfo.method }}</p>
-          <p><b>URL:</b> {{ methodInfo.url }}</p>
+          <p class="compact-muted"><b>Method:</b> {{ methodInfo.method }}</p>
+          <p class="compact-muted"><b>URL:</b> {{ methodInfo.url }}</p>
 
-          <p><b>Query parameters:</b></p>
+          <p class="compact-muted"><b>Query parameters:</b></p>
           <div v-if="methodInfo.method === 'GET'">
 
             <ul>
@@ -109,8 +103,8 @@
       </div>
 
       <div v-if="mode === 'write'">
-          <p>Write the URL with this format http://service/endpoint?param1={param1Value}&param2={param2Value}</p>
-          <div class="input-group mb-3">
+          <p class="compact-muted">Write the URL with this format http://service/endpoint?param1={param1Value}&param2={param2Value}</p>
+          <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">URL</span>
             <input id="methodPath" type="text" class="form-control" placeholder="URL" aria-label="File"
               aria-describedby="basic-addon1" v-model="methodPathManualMode">
@@ -119,12 +113,12 @@
       </div>
     </div>
 
-    <div class="row" v-if="methodInfo || methodPathManualMode">
-      <div class="col-md-4">
-        <p><i class="bi bi-puzzle"></i> Field mapping </p>
+    <div class="row mt-2" v-if="methodInfo || methodPathManualMode">
+      <div class="col-md-4 compact-panel">
+        <p class="compact-title"><i class="bi bi-puzzle"></i> Field mapping </p>
 
         <div v-if="mode === 'search'">
-          <p>Select the field to map with the API parameter</p>
+          <p class="compact-muted">Select the field to map with the API parameter</p>
 
           <div v-for="param in methodInfo.parameters" :key="param.name">
             <label :for="'fieldSelector-' + param.name">{{ param.name }}</label>
@@ -153,12 +147,12 @@
 
       </div>
 
-      <div class="col-md-4">
-        <p><i class="bi bi-check-circle"></i> Api response sample</p>
-        <p>Sample for first record:</p>
+      <div class="col-md-4 compact-panel">
+        <p class="compact-title"><i class="bi bi-check-circle"></i> API response sample</p>
+        <p class="compact-muted">Sample for first record:</p>
         <!-- Show queryString -->
         <div v-if="fullUrlExample">
-          <p><b>Query string:</b> {{ fullUrlExample }}</p>
+          <p class="compact-muted"><b>Query string:</b> {{ fullUrlExample }}</p>
         </div>
         
         <div v-if="sampleData">
@@ -170,9 +164,9 @@
         </div>
       </div>
 
-      <div class="col-md-4">
-        <p><i class="bi bi-check2-square"></i> Extract fields</p>
-        <p>Write field to load, example : data.car.model. If the field is empty the whole response will be loaded in RESPONSE_JSON field</p>
+      <div class="col-md-4 compact-panel">
+        <p class="compact-title"><i class="bi bi-check2-square"></i> Extract fields</p>
+        <p class="compact-muted">Write field to load, example: data.car.model. If empty, full response is stored in RESPONSE_JSON.</p>
       
         <div>
           <div v-for="(mapping, index) in mappings" :key="index" class="row">
@@ -190,22 +184,24 @@
             </div>
           </div>
         
-          <button class="btn btn-primary m-1 opcion-style" @click="addMapping">Add new</button>
-          <button class="btn btn-primary m-1 opcion-style" @click="deleteAllMappings">Delete all mappings</button>
+          <div class="compact-actions">
+            <button class="btn btn-sm btn-primary" @click="addMapping">Add new</button>
+            <button class="btn btn-sm btn-outline-secondary" @click="deleteAllMappings">Delete all mappings</button>
+          </div>
         </div>
       </div>
     </div> <!-- process config -->
-    <div class="row" v-if="table && mappings.length > 0">
-      <div class="col-md-3">
-        <div class="input-group mb-3">
+    <div class="row mt-2" v-if="table && mappings.length > 0">
+      <div class="col-md-4 compact-panel">
+        <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">Records to process (empty for all)</span>
             <input v-model="recordsToProcess" placeholder="10" class="form-control">
         </div>
-            <div class="input-group mb-3">
+            <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">New table name</span>
             <input v-model="newTableName" placeholder="enrichedTable" class="form-control">
         </div>
-        <button v-if="newTableName" class="btn btn-primary m-1 opcion-style" @click="runDataEnrichment()">Run</button>
+        <button v-if="newTableName" class="btn btn-sm btn-primary" @click="runDataEnrichment()">Run</button>
       </div>
       
     </div>
@@ -473,4 +469,17 @@ async function runDataEnrichment() {
   });
 }
 </script>
-<style scoped></style>
+<style scoped>
+.compact-api-view {
+  font-size: 13px;
+  row-gap: 10px;
+}
+
+.compact-api-view .compact-panel {
+  margin-bottom: 10px;
+}
+
+.compact-api-view textarea.form-control {
+  font-size: 12px;
+}
+</style>

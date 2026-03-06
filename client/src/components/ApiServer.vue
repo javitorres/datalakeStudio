@@ -1,16 +1,16 @@
 <template>
 
   <!-- Show endpoints list  -->
-  <div class="form-group" v-if="activeTab === 'listEndpoints'">
-    <h2>Published endpoints</h2>
-    <br />
+  <div class="form-group compact-panel compact-api-server" v-if="activeTab === 'listEndpoints'">
+    <h2 class="compact-title">Published endpoints</h2>
     <div  v-if="availableEndpoints && availableEndpoints.length == 0">
-      <p >No endpoints published </p>
+      <p class="compact-muted">No endpoints published </p>
     </div>
     
     <div v-if="availableEndpoints && availableEndpoints.length > 0">
 
-      <table class="table table-striped table-hover table-bordered">
+      <div class="table-responsive">
+      <table class="table table-striped table-hover table-bordered table-sm">
         <thead>
           <tr class="table-primary">
             <th>ID</th>
@@ -49,11 +49,11 @@
           </tr>
         </tbody>
       </table>
-
+      </div>
 
     </div>
     
-    <button type="button" class="btn btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
+    <button type="button" class="btn btn-sm btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
   </div>
 
 
@@ -61,18 +61,17 @@
 
 
   <!-- Endpoint editor  -->
-  <div class="form-group" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
-    <h2>Edit endpoint</h2>
-    <br />
+  <div class="form-group compact-panel compact-api-server" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
+    <h2 class="compact-title">Edit endpoint</h2>
 
-    <p>Select the query your endpoint will be based on</p>
-    <div class="input-group mb-3">
+    <p class="compact-muted">Select the query your endpoint will be based on</p>
+    <div class="input-group mb-3 compact-input-group">
       <span class="input-group-text" id="basic-addon1">Search query</span>
       <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
     </div>
 
     <div v-if="queries && queries.length > 0">
-      <ul class="list-group d-flex flex-wrap">
+      <ul class="list-group d-flex flex-wrap compact-query-list">
         <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
           @click="selectQuery(queryCandidate)">
           <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
@@ -83,20 +82,19 @@
     
 
     <div v-if="activeTab === 'editEndpoint' && ! endpointForm.id_endpoint">
-      <p>No endpoint selected, select one of published endpoints list</p>
+      <p class="compact-muted">No endpoint selected, select one of published endpoints list</p>
     </div>
 
     
 
-      <p>Add any {parameter} in your SQL query to add query params:</p>
+      <p class="compact-muted">Add any {parameter} in your SQL query to add query params:</p>
       <div class="form-group">
-        <codemirror v-model="endpointForm.query" placeholder="code goes here..." :style="{ height: '300px' }"
+        <codemirror v-model="endpointForm.query" placeholder="code goes here..." :style="{ height: '240px' }"
           :autofocus="true" :indent-with-tab="true" :tab-size="4" :extensions="extensions"
           @change="sqlChanged('change', $event)" />
       </div>
-      <br />
       <div class="col-md-3">
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group mt-2">
           <span class="input-group-text" id="basic-addon1">Endpoint</span>
           <input type="text" class="form-control" placeholder="Query name" v-model="endpointForm.endpoint">
         </div>
@@ -107,9 +105,8 @@
 
     <!-- For each parameter an imput -->
     <div v-if="endpointForm.query && endpointForm.parameters && endpointForm.parameters.length > 0">
-      <br />
       <div class="col-md-4" v-for="parameter in endpointForm.parameters" :key="parameter">
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">{{ parameter.name }}</span>
           <input type="text" class="form-control" placeholder="Write an example value for testing"
             v-model="parameter.exampleValue" @keyup="rebuildQueryStringTest">
@@ -121,8 +118,7 @@
 
     <!-- Description -->
     <div v-if="endpointForm.endpoint">
-      <br />
-      <div class="input-group mb-3">
+      <div class="input-group mb-3 compact-input-group">
         <span class="input-group-text" id="basic-addon1">Description</span>
         <input type="text" class="form-control" placeholder="Description" v-model="endpointForm.description">
       </div>
@@ -130,8 +126,7 @@
 
     <!-- status: combo with DEV, READY-->
     <div v-if="endpointForm.endpoint">
-      <br />
-      <div class="input-group mb-3">
+      <div class="input-group mb-3 compact-input-group">
         <span class="input-group-text" id="basic-addon1">Status</span>
         <select class="form-select" v-model="endpointForm.status">
           <option value="DEV">DEV</option>
@@ -142,21 +137,17 @@
 
     <!-- Simulate endpoint -->
     <div v-if="endpointForm.query">
-      <button type="button" class="btn btn-primary" @click="testEndpoint">Save and Test endpoint</button>
+      <button type="button" class="btn btn-sm btn-primary" @click="testEndpoint">Save and Test endpoint</button>
     </div>
 
-    <br />
     <!-- Cancel button, go to list of endpoints -->
-    <div v-if="endpointForm.query">
-      <button type="button" class="btn btn-danger" @click="activeTab = 'listEndpoints'">Cancel and back to endpoint list</button>
+    <div v-if="endpointForm.query" class="mt-2">
+      <button type="button" class="btn btn-sm btn-danger" @click="activeTab = 'listEndpoints'">Cancel and back to endpoint list</button>
     </div>
-
-    <br />
 
     <!-- Show json response -->
-    <div v-if="endpointForm.query && response">
-      <br />
-      <div class="input-group mb-3">
+    <div v-if="endpointForm.query && response" class="mt-2">
+      <div class="input-group mb-3 compact-input-group">
         <span class="input-group-text" id="basic-addon1">Response</span>
         <textarea class="form-control" aria-label="With textarea" v-model="response" rows="15"></textarea>
       </div>
@@ -470,4 +461,35 @@ async function editEndpoint(selectedEndpoint) {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.compact-api-server {
+  font-size: 13px;
+}
+
+.compact-api-server table td,
+.compact-api-server table th {
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.compact-api-server .btn {
+  font-size: 12px;
+}
+
+.compact-query-list {
+  gap: 6px;
+}
+
+.compact-query-list .list-group-item {
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1.3;
+  border-radius: 8px;
+  border: 1px solid #dbe0ea;
+  background: #f8f9fc;
+}
+
+.compact-query-list .list-group-item:hover {
+  background: #edf1fa;
+}
+</style>

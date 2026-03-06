@@ -1,8 +1,8 @@
 <template>
-  <div class="row">
+  <div class="row compact-panel compact-s3-view">
     <div class="col-md-6">
       <div class="col-md-6">
-        <div class="input-group mb-3">
+        <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
           <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File"
             aria-describedby="basic-addon1" v-model="bucket">
@@ -21,21 +21,19 @@
 
 
         <div v-if=" path == null">
-          <button v-if="bucket" class="btn btn-primary m-1 opcion-style" @click="getContent">
+          <button v-if="bucket" class="btn btn-sm btn-primary m-1" @click="getContent">
             List S3 content
           </button>
         </div>
         <div v-else>
-          <h3>Folder: {{ path ? path : "/" }}</h3>
-          <br />
-          <h3 v-if="path != ''" @click="back()"><i class="bi bi-arrow-left"> Back</i></h3>
-          <br />
+          <h3 class="compact-title">Folder: {{ path ? path : "/" }}</h3>
+          <h3 v-if="path != ''" class="back-link" @click="back()"><i class="bi bi-arrow-left"> Back</i></h3>
           <!-- For every content in content -->
-          <p v-if=" content.length == 1">No content in this folder</p>
+          <p class="compact-muted" v-if=" content.length == 1">No content in this folder</p>
           <div v-for="item in content" :key="item.id">
-            <h4 @click="clickS3Element(item)" v-if="item != path">
-              <i v-if="isFolder(item)" class="bi bi-folder" style="color:blue;"> {{ itemWithoutPath(item) }}</i>
-              <i v-if="!isFolder(item)" class="bi bi-file-earmark-text-fill" style="color:green;"> {{ itemWithoutPath(item) }}</i>
+            <h4 class="s3-item" @click="clickS3Element(item)" v-if="item != path">
+              <i v-if="isFolder(item)" class="bi bi-folder folder-item"> {{ itemWithoutPath(item) }}</i>
+              <i v-if="!isFolder(item)" class="bi bi-file-earmark-text-fill file-item"> {{ itemWithoutPath(item) }}</i>
             </h4>
           </div>
         </div>
@@ -44,16 +42,15 @@
     </div>
     <div class="col-md-6">
       <div v-if="selectedElement != null">
-        <h3>s3://{{ bucket }}/{{ selectedElement }}</h3>
+        <h3 class="compact-title">s3://{{ bucket }}/{{ selectedElement }}</h3>
 
         <div v-if="selectionType === 'file'">
-          <h3>File preview:</h3>
+          <h3 class="compact-title">File preview:</h3>
           <textarea class="form-control" id="exampleFormControlTextarea1" v-model="fileContent"></textarea>
-          <br />
-          <div class="input-group mb-3">
+          <div class="input-group mb-3 compact-input-group mt-2">
             <span class="input-group-text" id="basic-addon1">Load data as table</span>
             <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File" aria-describedby="basic-addon1" v-model="newTableName">
-            <button class="btn btn-primary m-1 opcion-style" @click="loadFile(newTableName, selectedElement)">
+            <button class="btn btn-sm btn-primary" @click="loadFile(newTableName, selectedElement)">
               Load file {{ newTableName }}
             </button>
           </div>
@@ -61,14 +58,12 @@
         </div>
 
         <div v-if="selectionType === 'folder'">
-          <br />
-          <h3>Folder info:</h3>
-          <br />
+          <h3 class="compact-title">Folder info:</h3>
           <div v-if=" ! folderMetadata ">
             <h2>No metadata found</h2>
-            <p>Metadata is convenient to maintain your datalake well documented. Also, if documentation is clear, SQL AI assistant will give you more accurate results</p>
+            <p class="compact-muted">Metadata helps keep your datalake documented and improves SQL AI assistant results.</p>
             <!-- Button create metadata -->
-            <button class="btn btn-primary m-1 opcion-style" @click="createEmptyMetadata">
+            <button class="btn btn-sm btn-primary" @click="createEmptyMetadata">
               Create metadata
             </button>
           </div>
@@ -89,7 +84,7 @@
               <label for="floatingInput">Schema</label>
             </div>
 
-            <button class="btn btn-primary m-1 opcion-style" @click="updateMetadata">
+            <button class="btn btn-sm btn-primary" @click="updateMetadata">
               Update metadata
             </button>
           </div>
@@ -297,4 +292,27 @@ async function loadFile(tableNameInput, fileInput) {
 }
 </script>
 
-<style scoped></style>
+<style scoped>
+.compact-s3-view {
+  font-size: 13px;
+}
+
+.back-link {
+  cursor: pointer;
+  color: #2755a2;
+  font-size: 1rem;
+}
+
+.s3-item {
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.folder-item {
+  color: #2d65c5;
+}
+
+.file-item {
+  color: #1f8a4d;
+}
+</style>
