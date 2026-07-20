@@ -1,0 +1,22 @@
+# Local virtualenvs (host-specific, must never be baked into the image)
+venv*
+.venv
+
+# Python caches
+__pycache__/
+**/__pycache__/
+*.pyc
+.pytest_cache/
+
+# Secrets and local credentials
+secrets.yml
+.pgpass
+
+# Local data / temp
+data/
+temp/
+*.dls
+
+# Misc
+.idea/
+.git/
