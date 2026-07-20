@@ -19,6 +19,10 @@ data/*
 .vscode/
 .idea
 
+# Agent / AI tooling config
+.agents/
+.claude/
+
 # Frontend build artifacts / deps
 client/dist
 client/node_modules
