@@ -5,13 +5,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
 import "bootstrap/dist/css/bootstrap.min.css";
 import Login from './components/Login.vue';
 import DatalakeStudio from './components/DatalakeStudio.vue';
-import { API_HOST, API_PORT } from '../config';
-
-const apiUrl = `${API_HOST}:${API_PORT}`;
+import api from './services/api';
 
 const authEnabled = ref(true);
 const isAuthenticated = ref(false);
@@ -20,7 +17,7 @@ const username = ref('');
 onMounted(async () => {
   // Check if auth is enabled
   try {
-    const resp = await axios.get(`${apiUrl}/auth/auth-enabled`);
+    const resp = await api.get(`/auth/auth-enabled`);
     authEnabled.value = resp.data.enabled;
   } catch {
     authEnabled.value = true; // Default to requiring auth if server unreachable
@@ -36,7 +33,7 @@ onMounted(async () => {
   const storedUsername = localStorage.getItem('username');
   if (token && storedUsername) {
     try {
-      const response = await axios.get(`${apiUrl}/auth/me`, {
+      const response = await api.get(`/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       isAuthenticated.value = true;

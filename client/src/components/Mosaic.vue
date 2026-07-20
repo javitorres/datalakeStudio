@@ -6,11 +6,10 @@
 </template>
 
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { socketConnector, restConnector, wasmConnector } from '@uwdata/mosaic-core';
-import { createAPIContext } from '@uwdata/vgplot';
-import { parseSpec, astToDOM } from '@uwdata/mosaic-spec';
-import yaml from 'yaml';
+import { onMounted, watch } from 'vue';
+import { parseSpec } from '@uwdata/mosaic-spec';
+import { API_URL } from '../../config';
+import { useMosaic } from '../composables/useMosaic';
 
 const props = defineProps({
   table: String,
@@ -18,23 +17,11 @@ const props = defineProps({
   schema: Object,
 });
 
-const selectedConnector = ref('rest');
-const queryLog = ref(false);
-const cacheEnabled = ref(true);
-const consolidateEnabled = ref(true);
-const indexEnabled = ref(true);
-const wasm = ref(null);
-const vg = ref(null);
-const coordinator = ref(null);
-const namedPlots = ref(null);
+const { selectedConnector, vg, loadDOM, setupMosaic } = useMosaic();
 
-onMounted(() => {
-  initializeVgContext();
-  setQueryLog();
-  setCache();
-  setConsolidate();
-  setIndex();
-  setConnector();
+onMounted(async () => {
+  setupMosaic();
+  await reload();
 });
 
 watch(() => props.table, async () => {
@@ -49,69 +36,6 @@ watch(() => props.selectedFields, async () => {
 watch(() => props.schema, async () => {
   await reload();
 }, { deep: true, immediate: true });
-
-function initializeVgContext() {
-  vg.value = createAPIContext();
-  self.vg = vg.value;
-  coordinator.value = vg.value.context.coordinator;
-  namedPlots.value = vg.value.context.namedPlots;
-}
-
-async function setConnector() {
-  await setDatabaseConnector(selectedConnector.value);
-  reload();
-}
-
-function clear() {
-  coordinator.value.clear();
-  namedPlots.value.clear();
-}
-
-async function setDatabaseConnector(type) {
-  let connector;
-  switch (type) {
-    case 'socket':
-      connector = socketConnector();
-      break;
-    case 'rest':
-      connector = restConnector('http://localhost:8000/database/restConnector');
-      break;
-    case 'rest_https':
-      connector = restConnector('https://localhost:8000/database/restConnector');
-      break;
-    case 'wasm':
-      connector = wasm.value || (wasm.value = wasmConnector());
-      break;
-    default:
-      throw new Error(`Unrecognized connector type: ${type}`);
-  }
-  coordinator.value.databaseConnector(connector);
-}
-
-function setQueryLog() {
-  vg.value.coordinator().manager.logQueries(queryLog.value);
-}
-
-function setCache() {
-  vg.value.coordinator().manager.cache(cacheEnabled.value);
-}
-
-function setConsolidate() {
-  vg.value.coordinator().manager.consolidate(consolidateEnabled.value);
-}
-
-function setIndex() {
-  vg.value.coordinator().dataCubeIndexer.enabled(indexEnabled.value);
-}
-
-function logIndexState() {
-  const { indexes } = vg.value.coordinator().dataCubeIndexer || {};
-  if (indexes) {
-    console.warn('Data Cube Index Entries', Array.from(indexes.values()));
-  } else {
-    console.warn('No Active Data Cube Index');
-  }
-}
 
 async function reload() {
   if (!vg.value) return;
@@ -139,11 +63,6 @@ async function load(name) {
       view.appendChild(el);
     }
   }
-}
-
-async function loadDOM(ast, options) {
-  const { element } = await astToDOM(ast, { ...options, api: vg.value });
-  return element;
 }
 
 function getYaml(table, selectedFields, schema) {
@@ -232,10 +151,8 @@ function createColumns(selectedFields, schema, table) {
 }
 
 async function dropCubes() {
-  const url = 'http://localhost:8000/database/dropCubes';
-  const response = await fetch(url);
-  const data = await response.json();
-  console.log('Drop Cubes:', data);
+  const response = await fetch(`${API_URL}/database/dropCubes`);
+  await response.json();
 }
 </script>
 

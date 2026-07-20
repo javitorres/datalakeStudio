@@ -7,6 +7,8 @@ import services.chatGPTService as chatGPTService
 from fastapi import FastAPI, File, UploadFile
 from pydub import AudioSegment
 import io
+import os
+import tempfile
 
 from config import Config
 
@@ -22,10 +24,12 @@ def askGPT(question: str):
             #if (table != "__lastQuery"):
             questionForChatGPT += " " + databaseService.getTableDescriptionForChatGpt(table)
         questionForChatGPT += ". The query I need, for DuckDB is:" + question
+    else:
+        questionForChatGPT = "The query I need, for DuckDB is:" + question
 
-        chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, Config.get_instance().get_secrets.get("openai_api_key"))
-        print("GPT response: " + chatGPTResponse)
-    
+    chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, Config.get_instance().get_secrets.get("openai_api_key"))
+    print("GPT response: " + chatGPTResponse)
+
     return JSONResponse(content=chatGPTResponse, status_code=200)
 
 ####################################################
@@ -48,15 +52,19 @@ async def askGPTWhisper(file: UploadFile = File(...)):
     audio.export(output, format="mp3")
     output.seek(0)
 
-    # Crear fichero mp3 en /tmp/whisper.mp3 con el contenido del audio
-    filename = "/tmp/whisper.mp3"
-    with open(filename, "wb") as f:
-        f.write(output.read())
-    output.seek(0)
+    # Write the audio to a unique temp file so concurrent requests don't clash.
+    fd, filename = tempfile.mkstemp(suffix=".mp3")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(output.read())
+        output.seek(0)
 
-    transcription = chatGPTService.transcribeAudioFile(filename, Config.get_instance().get_secrets.get("openai_api_key")) 
+        transcription = chatGPTService.transcribeAudioFile(filename, Config.get_instance().get_secrets.get("openai_api_key"))
+    finally:
+        if os.path.exists(filename):
+            os.remove(filename)
 
-    
+
     # Remove \n and trailing semicolon if present
     transcription = transcription.replace("\n", "").strip()
     print("Transcription: '" + transcription + "'")
@@ -87,9 +95,20 @@ def genericQuestion(question: str):
 ####################################################
 @router.get("/text2speech")
 def text2speech(text):
-    chatGPTService.text2speech(text, "/tmp/tts.mp3", Config.get_instance().get_secrets.get("openai_api_key"))    
-    f = open("/tmp/tts.mp3", "rb")
-    return StreamingResponse(f, media_type="audio/mpeg")
+    # Use a unique temp file so concurrent requests don't overwrite each other.
+    fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
+    os.close(fd)
+    chatGPTService.text2speech(text, tmp_path, Config.get_instance().get_secrets.get("openai_api_key"))
+
+    def iterfile():
+        try:
+            with open(tmp_path, "rb") as f:
+                yield from f
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    return StreamingResponse(iterfile(), media_type="audio/mpeg")
 
 
     

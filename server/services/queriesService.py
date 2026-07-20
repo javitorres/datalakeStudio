@@ -33,7 +33,7 @@ def searchQuery(query):
     if (df is not None):
         return df
     else:
-        None
+        return None
 ####################################################
 def deleteQuery(id_query):
     print("Deleting query " + str(id_query))
@@ -46,9 +46,9 @@ def getQuery(id_query):
     ensure_queries_metadata()
     df = databaseService.runQuery("SELECT * FROM __queries WHERE id_query = " + str(id_query))
 
-    if (df is not None):
+    if (df is not None and len(df) > 0):
         result = df.to_dict(orient="records")
         return result[0]
     else:
-        None
+        return None
     

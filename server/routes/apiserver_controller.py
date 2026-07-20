@@ -18,6 +18,9 @@ def getServices(id_query: int):
     # Get query as a dictionary
     query = queriesService.getQuery(id_query)
 
+    if (query is None):
+        return JSONResponse(content={"status": "error", "message": "Query not found"}, status_code=404)
+
     limitedQuery = "SELECT * FROM (" + query["query"] + ") LIMIT 10"
 
     print("Query:" + str(limitedQuery))
@@ -40,7 +43,7 @@ def create():
     print("Creating empty endpoint")
     id_endpoint = apiServerService.createEndpoint()
 
-    if (id is not None):
+    if (id_endpoint is not None):
         result = {"id_endpoint" : id_endpoint}
         print("Result:" + str(result))
         return JSONResponse(content=result, status_code=200)

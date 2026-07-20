@@ -90,10 +90,7 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue';
-import axios from 'axios';
-import { API_HOST, API_PORT } from '../../config';
-
-const apiUrl = `${API_HOST}:${API_PORT}`;
+import api from '../services/api';
 
 const username = ref('');
 const password = ref('');
@@ -131,8 +128,8 @@ onMounted(async () => {
   // Load Google client ID and mail config in parallel
   try {
     const [googleResp, mailResp] = await Promise.all([
-      axios.get(`${apiUrl}/auth/google-client-id`).catch(() => null),
-      axios.get(`${apiUrl}/auth/mail-configured`).catch(() => null),
+      api.get(`/auth/google-client-id`).catch(() => null),
+      api.get(`/auth/mail-configured`).catch(() => null),
     ]);
     if (googleResp?.data?.client_id) {
       googleClientId.value = googleResp.data.client_id;
@@ -149,7 +146,7 @@ onMounted(async () => {
 
 async function verifyEmail(token) {
   try {
-    const resp = await axios.get(`${apiUrl}/auth/verify-email`, { params: { token } });
+    const resp = await api.get(`/auth/verify-email`, { params: { token } });
     successMessage.value = `Email verified for ${resp.data.username}. You can now sign in.`;
   } catch (error) {
     errorMessage.value = error.response?.data?.error || 'Verification failed';
@@ -179,7 +176,7 @@ async function handleGoogleResponse(response) {
   loading.value = true;
   mode.value = 'google';
   try {
-    const result = await axios.post(`${apiUrl}/auth/google`, {
+    const result = await api.post(`/auth/google`, {
       credential: response.credential,
     });
     emit('loginSuccess', result.data);
@@ -204,7 +201,7 @@ async function login() {
   loading.value = true;
   mode.value = 'login';
   try {
-    const response = await axios.post(`${apiUrl}/auth/login`, {
+    const response = await api.post(`/auth/login`, {
       username: username.value,
       password: password.value
     });
@@ -230,7 +227,7 @@ async function register() {
   loading.value = true;
   mode.value = 'register';
   try {
-    const response = await axios.post(`${apiUrl}/auth/register`, {
+    const response = await api.post(`/auth/register`, {
       username: username.value,
       password: password.value
     });
@@ -261,7 +258,7 @@ async function forgotPassword() {
   }
   loading.value = true;
   try {
-    await axios.post(`${apiUrl}/auth/forgot-password`, { email: forgotEmail.value });
+    await api.post(`/auth/forgot-password`, { email: forgotEmail.value });
     successMessage.value = 'If that email is registered, a reset link has been sent.';
   } catch {
     errorMessage.value = 'Error sending reset email';
@@ -283,7 +280,7 @@ async function resetPassword() {
   }
   loading.value = true;
   try {
-    await axios.post(`${apiUrl}/auth/reset-password`, {
+    await api.post(`/auth/reset-password`, {
       token: resetToken.value,
       password: newPassword.value
     });

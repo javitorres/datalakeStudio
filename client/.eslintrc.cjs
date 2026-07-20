@@ -12,13 +12,15 @@ module.exports = {
   },
   ignorePatterns: ['dist/**', 'node_modules/**'],
   rules: {
-    'no-unused-vars': 'off',
+    // Unused vars often hide dead code or typos; surface them without failing CI.
+    'no-unused-vars': 'warn',
     'vue/multi-word-component-names': 'off',
-    'vue/require-v-for-key': 'off',
-    'vue/no-parsing-error': 'off',
+    // Correctness rules: these catch real bugs, so they must fail the build.
+    'vue/require-v-for-key': 'error',
+    'vue/no-parsing-error': 'error',
+    'vue/no-use-v-if-with-v-for': 'error',
     'vue/no-textarea-mustache': 'off',
-    'vue/no-reserved-props': 'off',
-    'vue/no-use-v-if-with-v-for': 'off'
+    'vue/no-reserved-props': 'off'
   },
   overrides: [
     {

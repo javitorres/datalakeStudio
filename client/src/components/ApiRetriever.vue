@@ -88,7 +88,7 @@
           <div v-if="methodInfo.method === 'GET'">
 
             <ul>
-              <div v-for="param in methodInfo.parameters">
+              <div v-for="param in methodInfo.parameters" :key="param.name">
                 <li>
                   <p><b>Param:</b> {{ param.name }} ({{ param.schema.type }}). {{ param.required ? "Required" : "Optional"
                   }}
@@ -103,7 +103,7 @@
       </div>
 
       <div v-if="mode === 'write'">
-          <p class="compact-muted">Write the URL with this format http://service/endpoint?param1={param1Value}&param2={param2Value}</p>
+          <p class="compact-muted">Write the URL with this format http://service/endpoint?param1={param1Value}&amp;param2={param2Value}</p>
           <div class="input-group mb-3 compact-input-group">
             <span class="input-group-text" id="basic-addon1">URL</span>
             <input id="methodPath" type="text" class="form-control" placeholder="URL" aria-label="File"
@@ -215,12 +215,10 @@
 import { ref, watch } from 'vue';
 import TableInspector from './TableInspector.vue';
 
+import api from '../services/api';
 import axios from 'axios';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const props = defineProps({
   tables: Object,
@@ -263,7 +261,7 @@ watch(table, (newVal) => {
 
 async function searchService(apiServiceNameInput) {
   methods.value = [];
-  const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getServices`, {
+  const fetchData = async () => await api.get(`/apiRetriever/getServices`, {
     params: {
       serviceName: apiServiceNameInput,
     },
@@ -290,7 +288,7 @@ async function searchService(apiServiceNameInput) {
 async function searchMethod(nextService, nextMethodPath) {
   service.value = nextService;
   selectedFields.value = {};
-  const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getRepositoryMethodList`, {
+  const fetchData = async () => await api.get(`/apiRetriever/getRepositoryMethodList`, {
     params: {
       serviceName: nextService,
       methodPath: nextMethodPath
@@ -318,7 +316,7 @@ async function searchMethod(nextService, nextMethodPath) {
 async function clickMethod(nextService, selectedMethod) {
   method.value = selectedMethod;
   selectedFields.value = {};
-  const fetchData = async () => await axios.get(`${apiUrl}/apiRetriever/getMethodInfo`, {
+  const fetchData = async () => await api.get(`/apiRetriever/getMethodInfo`, {
     params: {
       serviceName: nextService,
       methodPath: selectedMethod.path,
@@ -345,7 +343,7 @@ async function clickMethod(nextService, selectedMethod) {
 }
 
 async function getTableSchema(nextTable) {
-  const fetchData = async () => await axios.get(`${apiUrl}/database/getTableSchema`, {
+  const fetchData = async () => await api.get(`/database/getTableSchema`, {
     params: {
       tableName: nextTable,
     },
@@ -375,7 +373,7 @@ async function getSampleData(nextTable) {
   showProfile.value = false;
   showCrossfilters.value = false;
 
-  await axios.get(`${apiUrl}/database/getSampleData`, {
+  await api.get(`/database/getSampleData`, {
     params: {
       tableName: nextTable,
       type: type.value,
@@ -439,7 +437,7 @@ function deleteAllMappings() {
 }
 
 async function runDataEnrichment() {
-  const fetchData = async () => await axios.post(`${apiUrl}/apiRetriever/runApiEnrichment`, {
+  const fetchData = async () => await api.post(`/apiRetriever/runApiEnrichment`, {
     tableName: table.value,
     parameters: selectedFields.value,
     mappings: mappings.value,

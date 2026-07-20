@@ -135,7 +135,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 
 import Welcome from './Welcome.vue';
 import LoadDataPanel from './LoadDataPanel.vue';
@@ -150,9 +150,6 @@ import ChangeDatabase from './ChangeDatabase.vue';
 
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const props = defineProps({
   username: { type: String, default: '' }
@@ -240,7 +237,7 @@ const currentListeners = computed(() => {
 });
 
 async function getTables() {
-  await axios.get(`${apiUrl}/database/getTables`, {
+  await api.get(`/database/getTables`, {
     params: {},
   }).then((response) => {
     tables.value = response.data;
@@ -250,7 +247,7 @@ async function getTables() {
 }
 
 async function deleteTable(table) {
-  await axios.get(`${apiUrl}/database/deleteTable`, {
+  await api.get(`/database/deleteTable`, {
     params: {
       tableName: table,
     },

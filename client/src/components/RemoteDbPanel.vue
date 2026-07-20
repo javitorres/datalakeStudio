@@ -114,7 +114,7 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
@@ -122,9 +122,6 @@ import { sql } from "@codemirror/lang-sql";
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const emit = defineEmits(['tableCreated']);
 
@@ -153,7 +150,7 @@ function clickTable(nextTable) {
 
 async function searchDatabase() {
   if (databaseInput.value.length > 0) {
-    axios.get(`${apiUrl}/remotedb/getDatabaseList`, {
+    api.get(`/remotedb/getDatabaseList`, {
       params: {
         databaseName: databaseInput.value
       },
@@ -173,7 +170,7 @@ async function searchDatabase() {
 }
 
 async function clickDatabase(database) {
-  axios.get(`${apiUrl}/remotedb/connectDatabase`, {
+  api.get(`/remotedb/connectDatabase`, {
     params: {
       databaseName: database
     },
@@ -203,7 +200,7 @@ async function clickSchema(schema) {
   showSchemas.value = false;
   loading.value = true;
   schemaSelected.value = schema;
-  axios.get(`${apiUrl}/remotedb/getTablesFromRemoteSchema`, {
+  api.get(`/remotedb/getTablesFromRemoteSchema`, {
     params: {
       schema: schema
     },
@@ -228,7 +225,7 @@ async function clickSchema(schema) {
 
 async function runRemoteQuery(nextQuery) {
   loading.value = true;
-  await axios.get(`${apiUrl}/remotedb/runRemoteQuery`, {
+  await api.get(`/remotedb/runRemoteQuery`, {
     params: {
       database: connectedDatabase.value,
       query: nextQuery,
@@ -255,7 +252,7 @@ async function runRemoteQuery(nextQuery) {
 }
 
 async function createTableFromRemoteQuery() {
-  await axios.get(`${apiUrl}/remotedb/createTableFromRemoteQuery`, {
+  await api.get(`/remotedb/createTableFromRemoteQuery`, {
     params: {
       query: query.value,
       tableName: tableFromQuery.value,
@@ -275,7 +272,7 @@ async function createTableFromRemoteQuery() {
 }
 
 async function disconnectDatabase(database) {
-  await axios.get(`${apiUrl}/remotedb/disconnectDatabase`, {
+  await api.get(`/remotedb/disconnectDatabase`, {
     params: {
       databaseName: database,
     },

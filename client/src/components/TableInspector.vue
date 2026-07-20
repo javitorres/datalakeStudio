@@ -144,7 +144,7 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -153,9 +153,6 @@ import GenericCross from './GenericCross.vue';
 import Map from './Map.vue';
 import MapH3 from './MapH3.vue';
 import CrossFilterCharts from './CrossFilterCharts.vue';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const props = defineProps({
   tableName: String,
@@ -264,7 +261,7 @@ function imageSrc(typeInput) {
 }
 
 async function getRowcount() {
-  await axios.get(`${apiUrl}/database/getRowCount`, {
+  await api.get(`/database/getRowCount`, {
     params: {
       tableName: props.tableName,
     },
@@ -282,7 +279,7 @@ async function getRowcount() {
 }
 
 async function getTableSchema(tableName) {
-  await axios.get(`${apiUrl}/database/getTableSchema`, {
+  await api.get(`/database/getTableSchema`, {
     params: {
       tableName: tableName,
     },
@@ -311,7 +308,7 @@ async function getSampleData(tableName) {
   showMap.value = false;
   showMosaic.value = false;
 
-  await axios.get(`${apiUrl}/database/getSampleData`, {
+  await api.get(`/database/getSampleData`, {
     params: {
       tableName: tableName,
       type: type.value,
@@ -353,7 +350,7 @@ async function getTableProfile(tableName) {
   showMap.value = false;
   showMosaic.value = false;
 
-  const fetchData = () => axios.get(`${apiUrl}/database/getTableProfile`, {
+  const fetchData = () => api.get(`/database/getTableProfile`, {
     params: {
       tableName: tableName,
     },
