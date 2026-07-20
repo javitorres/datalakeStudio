@@ -24,7 +24,7 @@
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Latitude</span>
           <select class="form-select" v-model="latitudeField">
-            <option v-for="field in selectedFields" :value="field">{{ field }}</option>
+            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
       </div>
@@ -33,7 +33,7 @@
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Longitude</span>
           <select class="form-select" v-model="longitudeField">
-            <option v-for="field in selectedFields" :value="field">{{ field }}</option>
+            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
       </div>
@@ -42,7 +42,7 @@
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Geom</span>
           <select class="form-select" v-model="geomField">
-            <option v-for="field in selectedFields" :value="field">{{ field }}</option>
+            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
       </div>
@@ -62,7 +62,7 @@
         <div class="input-group">
           <span class="input-group-text">Show field</span>
           <select class="form-select" v-model="selectedFieldForH3" @change="showField('H3')">
-            <option v-for="field in numericFields" :value="field">{{ field }}</option>
+            <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
       </div>
@@ -74,7 +74,7 @@
           <div class="input-group">
             <span class="input-group-text">H3 Level</span>
             <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true)">
-              <option v-for="i in 12" :value="i">{{ i }}</option>
+              <option v-for="i in 12" :key="i" :value="i">{{ i }}</option>
             </select>
           </div>
         </div>
@@ -181,7 +181,7 @@
         <div class="input-group" v-if="showDataPoints">
           <span class="input-group-text">Show field</span>
           <select class="form-select" v-model="selectedFieldForPoints" @change="showField('POINTS')">
-            <option v-for="field in numericFields" :value="field">{{ field }}</option>
+            <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
 
@@ -194,7 +194,7 @@
           <div class="input-group">
             <span class="input-group-text">Point size</span>
             <select class="form-select" v-model="pointSize" @change="reloadMap('POINTS', false)">
-              <option v-for="i in 10" :value="i">{{ i }}</option>
+              <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
             </select>
           </div>
         </div>
@@ -298,7 +298,7 @@
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import qs from 'qs';
 import csv2geojson, { csv } from 'csv2geojson';
@@ -476,7 +476,6 @@ export default {
     },
     ////////////////////////////
     async reloadMap(layer, reloadData = false, reloadLimits = false) {
-      console.log("Reloading map for layer: " + layer);
       if (layer === 'H3') {
         if (reloadData) this.geojson = await this.fetchGeojsonData();
         if (this.geojson && reloadLimits) {
@@ -505,7 +504,7 @@ export default {
       this.loading = true;
 
       try {
-        const response = await axios.get(`http://localhost:8000/maps/geojson`, {
+        const response = await api.get(`/maps/geojson`, {
           params: {
             table: this.table,
             latitudeField: this.latitudeField,
@@ -524,7 +523,7 @@ export default {
         return response.data.geojson;
       } catch (error) {
         toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
-        console.log("Error fetching geojson data:" + error);
+        console.error("Error fetching geojson data:", error);
         return null;
       } finally {
         this.loading = false;
@@ -547,7 +546,7 @@ export default {
       this.loading = true;
 
       try {
-        const response = await axios.get(`http://localhost:8000/maps/csv`, {
+        const response = await api.get(`/maps/csv`, {
           params: {
             table: this.table,
             latitudeField: this.latitudeField,
@@ -573,7 +572,7 @@ export default {
             numericFields: this.numericFields.join(','),
           }, function (err, data) {
             if (err) {
-              console.log("Error:", err);
+              console.error("Error rendering points:", err);
               reject(err);
             } else {
               resolve(data);
@@ -582,13 +581,13 @@ export default {
         });
 
         if (!pointsGeojson || !pointsGeojson.features || pointsGeojson.features.length === 0) {
-          console.log("################ pointsGeojson is null or has no features");
+          console.warn("pointsGeojson is null or has no features");
         } else {
           return pointsGeojson;
         }
       } catch (error) {
         toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
-        console.log("Error fetching points data:" + error);
+        console.error("Error fetching points data:", error);
         return null;
       } finally {
         this.loading = false;
@@ -598,7 +597,7 @@ export default {
     ////////////////////////////
     async getToken() {
       try {
-        const response = await axios.get('http://localhost:8000/maps/mapbox_token');
+        const response = await api.get('/maps/mapbox_token');
         return response.data.token;
       } catch (error) {
         toast.error(`Error retrieving token: ${error.response?.data?.message || error.response?.data || error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
@@ -612,7 +611,6 @@ export default {
 
     ////////////////////////////
     initMap() {
-      console.log("Initializing map");
       mapboxgl.accessToken = this.token;
 
       this.map = new mapboxgl.Map({
@@ -634,7 +632,6 @@ export default {
       this.max = -1;
       this.maxCount = -1;
       if (geojson === null) {
-        console.log("setMinMaxH3: geojson is null");
         return;
       }
       var percentiles = this.getPercentiles(geojson, field);
@@ -725,7 +722,6 @@ export default {
       max = Number(max);
 
       if (field == null) {
-        console.log("generateColorScale: field or layer is None");
         return ['literal', '#FF0000'];
       }
 
@@ -769,7 +765,7 @@ export default {
     ////////////////////////////
     reloadLayers(reloadLayersParam) {
       if (this.map === null) {
-        console.log("Map is null. Cannot reload layers");
+        console.warn("Map is null. Cannot reload layers");
         return;
       }
       // if ALL in reloadLayersParam or H3 in reloadLayersParam
@@ -1009,11 +1005,10 @@ export default {
     ////////////////////////////
     async renderChart() {
       if (this.csvData === null) {
-        console.log("CSV data is null. Cannot render chart");
+        console.warn("CSV data is null. Cannot render chart");
         return;
       }
 
-      console.log(this.csvData.split(/\r\n|\r|\n/).slice(0, 3));
       const jsonData = this.convertCsvToJson(this.csvData);
       const data = vg.from(jsonData); 
       this.chartInstance = vg.plot(

@@ -166,7 +166,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -235,7 +235,7 @@ function rebuildQueryStringTest() {
 }
 
 async function searchQuery() {
-  const fetchData = async () => await axios.get(`${apiUrl}/queries/searchQuery`, {
+  const fetchData = async () => await api.get(`/queries/searchQuery`, {
     params: {
       query: sqlSearchQuery.value,
     },
@@ -270,7 +270,7 @@ async function selectQuery(queryCandidate) {
 }
 
 async function createEmptyEndpoint() {
-  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/create`, {
+  const fetchData = async () => await api.get(`/apiserver/create`, {
     params: {
       endpoint: endpointForm.value.endpoint,
     },
@@ -305,10 +305,11 @@ async function testEndpoint() {
 
   await update();
 
-  const url = apiUrl + "/api/" + endpointForm.value.endpoint + ((endpointForm.value.parameters.length > 0) ? endpointForm.value.queryStringTest : "");
+  const path = "/api/" + endpointForm.value.endpoint + ((endpointForm.value.parameters.length > 0) ? endpointForm.value.queryStringTest : "");
+  const url = apiUrl + path;
 
   toast.info('Info' + `Testing endpoint: ${url}`, { position: toast.POSITION.BOTTOM_RIGHT });
-  const fetchData = async () => await axios.get(url, {});
+  const fetchData = async () => await api.get(path, {});
 
   toast.promise(
     fetchData(),
@@ -332,7 +333,7 @@ async function testEndpoint() {
 }
 
 async function update() {
-  const fetchData = async () => await axios.post(`${apiUrl}/apiserver/update`, {
+  const fetchData = async () => await api.post(`/apiserver/update`, {
     id_query: endpointForm.value.id_query,
     id_endpoint: endpointForm.value.id_endpoint,
     endpoint: endpointForm.value.endpoint,
@@ -364,7 +365,7 @@ async function update() {
 }
 
 async function reloadAvailableEndpoints() {
-  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/listEndpoints`, {});
+  const fetchData = async () => await api.get(`/apiserver/listEndpoints`, {});
 
   toast.promise(
     fetchData(),
@@ -385,7 +386,7 @@ async function reloadAvailableEndpoints() {
 }
 
 async function deleteEndpoint(id_endpoint) {
-  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/deleteEndpoint`, {
+  const fetchData = async () => await api.get(`/apiserver/deleteEndpoint`, {
     params: {
       id_endpoint: id_endpoint
     },
@@ -412,7 +413,7 @@ async function deleteEndpoint(id_endpoint) {
 }
 
 async function editEndpoint(selectedEndpoint) {
-  const fetchData = async () => await axios.get(`${apiUrl}/apiserver/getEndpoint`, {
+  const fetchData = async () => await api.get(`/apiserver/getEndpoint`, {
     params: {
       id_endpoint: selectedEndpoint.id_endpoint,
     },

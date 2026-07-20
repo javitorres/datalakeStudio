@@ -143,18 +143,14 @@ def createEndpoint():
     except:
         createTable()
         r = databaseService.runQuery("INSERT INTO __endpoints (id_endpoint) VALUES (nextval('seq_id_endpoint')) RETURNING (id_endpoint)")
-        return False  
 
     if (r is not None):
-        
         # get id_endpoint
         d = r.to_dict(orient="records")
         id_endpoint = d[0]["id_endpoint"]
-        print("Result:" + str(id))
-        
-        print("id:" + str(id_endpoint))
+        print("Created endpoint with id: " + str(id_endpoint))
         return id_endpoint
-    else: 
+    else:
         return None
 
 ####################################################

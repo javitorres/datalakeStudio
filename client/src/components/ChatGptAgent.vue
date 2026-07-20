@@ -93,12 +93,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 import RecorderWidget from './RecorderWidget.vue';
 import TableInspector from './TableInspector.vue';
@@ -126,7 +123,7 @@ async function processRecording(recordedBlob) {
     }
   };
 
-  const fetchData = async () => await axios.post(`${apiUrl}/gpt/askGPTWhisper`, formData, config);
+  const fetchData = async () => await api.post(`/gpt/askGPTWhisper`, formData, config);
 
   toast.promise(
     fetchData(),
@@ -167,7 +164,7 @@ async function processTextQuestion(nextTextQuestion) {
 }
 
 async function askChatGPT() {
-  const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
+  const fetchData = () => api.get(`/gpt/askGPT`, {
     params: {
       question: chatGPTInput.value,
     },
@@ -198,7 +195,7 @@ async function askChatGPT() {
 async function runQuery() {
   queryError.value = null;
   querySuccesful.value = false;
-  const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
+  const fetchData = () => api.post(`/database/runQuery`, {
     query: query.value,
   });
 
@@ -229,7 +226,7 @@ async function runQuery() {
 }
 
 async function askChatGPTGenericQuestion(questionText) {
-  const fetchData = () => axios.get(`${apiUrl}/gpt/genericQuestion`, {
+  const fetchData = () => api.get(`/gpt/genericQuestion`, {
     params: {
       question: questionText,
     },
@@ -259,7 +256,7 @@ async function askChatGPTGenericQuestion(questionText) {
 }
 
 async function getText2Speech(text) {
-  const fetchData = () => axios.get(`${apiUrl}/gpt/text2speech`, {
+  const fetchData = () => api.get(`/gpt/text2speech`, {
     params: {
       text: text,
     },
