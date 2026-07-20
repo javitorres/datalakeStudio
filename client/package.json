@@ -28,6 +28,7 @@
     "echarts": "^6.0.0",
     "leaflet": "^1.9.4",
     "mapbox-gl": "^3.5.2",
+    "qs": "^6.14.2",
     "tabulator-tables": "^5.5.2",
     "vue": "^3.4.38",
     "vue-codemirror": "^6.1.1",
