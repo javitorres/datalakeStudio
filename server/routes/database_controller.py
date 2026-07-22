@@ -40,6 +40,12 @@ def getTables():
     else:
         return JSONResponse(content=[], status_code=200)
 ####################################################
+@router.get("/getDatabaseSchema")
+def getDatabaseSchema():
+    schema = databaseService.getDatabaseSchema()
+    return JSONResponse(content=schema, status_code=200)
+
+####################################################
 @router.get("/getTableSchema")
 def getTableSchema(tableName: str):
     if (tableName is None):
@@ -56,7 +62,7 @@ def getTableSchema(tableName: str):
         return JSONResponse(content=[], status_code=200)
 ####################################################
 @router.get("/getSampleData", response_class=Response)
-def getTableData(tableName: str, type: str = "First", records: int = 1000):
+def getTableData(tableName: str, type: str = "First", records: int = 1000, filter: str = ""):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
@@ -65,7 +71,10 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
         LIMIT = ""
     else:
         LIMIT = " LIMIT " + str(records)
-    df = databaseService.runQuery("SELECT * FROM " + tableName + LIMIT)
+    WHERE = ""
+    if (filter and filter.strip()):
+        WHERE = " WHERE (" + filter.strip() + ")"
+    df = databaseService.runQuery("SELECT * FROM " + tableName + WHERE + LIMIT)
 
     # If any field name ends with () remove it
     df.columns = df.columns.str.replace(r"\(\)", "", regex=True)

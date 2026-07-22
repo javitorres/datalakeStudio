@@ -1,93 +1,139 @@
 import logging as log
-from fastapi import APIRouter
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from shapely import wkt
 from geojson import Feature, FeatureCollection
-import plotly.express as px
 from services import databaseService
 from services import mapsService
 import time
+import math
 from fastapi.responses import Response
 import pandas as pd
 
 router = APIRouter(prefix="/maps")
 
 
-def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 44.5, lon_min: float = -19.3, lon_max: float = 7.8):
-    # La consulta completa
+def _quote_identifier(identifier: str) -> str:
+    return '"' + identifier.replace('"', '""') + '"'
+
+
+def _filter_clause(filter_expr: str) -> str:
+    # Optional cross-filter predicate appended to the map queries' WHERE clause.
+    filter_expr = (filter_expr or "").strip()
+    return f"\n          AND ({filter_expr})" if filter_expr else ""
+
+
+def _parse_bbox(bbox: str):
+    try:
+        values = [float(value) for value in bbox.split(',')]
+    except (AttributeError, TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="bbox must contain four numbers")
+
+    if len(values) != 4 or not all(math.isfinite(value) for value in values):
+        raise HTTPException(status_code=400, detail="bbox must contain four finite numbers")
+
+    lon_min, lat_min, lon_max, lat_max = values
+    if not (-180 <= lon_min < lon_max <= 180 and -90 <= lat_min < lat_max <= 90):
+        raise HTTPException(status_code=400, detail="bbox is outside valid longitude/latitude bounds")
+    return lat_min, lat_max, lon_min, lon_max
+
+
+def _validated_map_fields(table: str, latitude_field: str = None, longitude_field: str = None,
+                          geom_field: str = None, fields=None):
+    schema = databaseService.getDatabaseSchema()
+    if table not in schema:
+        raise HTTPException(status_code=404, detail=f"Unknown table: {table}")
+
+    requested = [field for field in [latitude_field, longitude_field, geom_field] if field]
+    requested.extend(fields or [])
+    missing = [field for field in requested if field not in schema[table]]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Unknown columns: {', '.join(missing)}")
+
+    numeric_markers = ('INT', 'DECIMAL', 'NUMERIC', 'REAL', 'FLOAT', 'DOUBLE')
+    non_numeric = [field for field in (fields or [])
+                   if not any(marker in schema[table][field].upper() for marker in numeric_markers)]
+    if non_numeric:
+        raise HTTPException(status_code=400, detail=f"Aggregation columns must be numeric: {', '.join(non_numeric)}")
+    return schema[table]
+
+
+def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 44.5,
+            lon_min: float = -19.3, lon_max: float = 7.8, map_filter: str = ""):
+    table_sql = _quote_identifier(table)
+    geom_sql = _quote_identifier(geomField)
     query = f"""
-    SELECT * , geom_4326 as geom FROM (
-    SELECT * EXCLUDE GEOM, ST_AsText(ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326')) as geom_4326
-    FROM {table}
-    WHERE  {geomField} IS NOT NULL
-    AND ST_Within(
-        ST_MakeEnvelope({lon_min}::DOUBLE, {lat_min}::DOUBLE, {lon_max}::DOUBLE, {lat_max}::DOUBLE), 
-        ST_Transform(ST_GeomFromText({geomField}), 'EPSG:32630', 'EPSG:4326'))
-        ) as subq1
+    SELECT *, geom_4326 AS geom FROM (
+        SELECT * EXCLUDE ({geom_sql}),
+               ST_AsText(ST_Transform(ST_GeomFromText({geom_sql}), 'EPSG:32630', 'EPSG:4326')) AS geom_4326
+        FROM {table_sql}
+        WHERE {geom_sql} IS NOT NULL
+          AND ST_Within(
+              ST_MakeEnvelope({lon_min}::DOUBLE, {lat_min}::DOUBLE, {lon_max}::DOUBLE, {lat_max}::DOUBLE),
+              ST_Transform(ST_GeomFromText({geom_sql}), 'EPSG:32630', 'EPSG:4326')){_filter_clause(map_filter)}
+    ) AS source_rows
     LIMIT 1000
     """
+    return databaseService.runQuery(query, True)
 
-    # Ejecutamos la consulta y retornamos el dataframe
-    df = databaseService.runQuery(query, True)
-    return df
 
-def getH3Data(table: str, latitudeField: str, longitudeField: str, aggFields: list, level: int = 5, lat_min: float = 26.5, lat_max: float = 44.5,
-            lon_min: float = -19.3, lon_max: float = 7.8):
-    # Si no se proporcionan campos de agregación, usamos un campo predeterminado
-    if aggFields is None:
-        aggFields = ['anyoConst']
+def getH3Data(table: str, latitudeField: str, longitudeField: str, aggFields: list, level: int = 5,
+              lat_min: float = 26.5, lat_max: float = 44.5, lon_min: float = -19.3, lon_max: float = 7.8,
+              map_filter: str = ""):
+    table_sql = _quote_identifier(table)
+    latitude_sql = _quote_identifier(latitudeField)
+    longitude_sql = _quote_identifier(longitudeField)
+    aggregate_sql = [
+        f"avg({_quote_identifier(field)}) AS {_quote_identifier(field)}"
+        for field in (aggFields or [])
+    ]
+    select_sql = ", ".join([
+        "h3_cell",
+        "h3_cell_to_boundary_wkt(h3_cell) AS geom",
+        "count(*) AS count",
+        *aggregate_sql
+    ])
 
-    # Aplicamos la función de agregación 'avg' a cada campo de aggFields
-    aggFields_sql = ', '.join([f'avg({field}) as avg_{field}' for field in aggFields])
-
-    # La consulta completa
     query = f"""
-    SELECT h3_cell, h3_cell_to_boundary_wkt(h3_cell) geom, count(*) as count, {aggFields_sql} FROM
-    (SELECT *, h3_latlng_to_cell({latitudeField}, {longitudeField}, {level}) as h3_cell FROM {table}
-     WHERE {latitudeField} >= {lat_min} AND {latitudeField} <= {lat_max} AND {longitudeField} >= {lon_min} AND {longitudeField} <= {lon_max}
-     ) as subq1
+    SELECT {select_sql}
+    FROM (
+        SELECT *, h3_latlng_to_cell(
+            TRY_CAST({latitude_sql} AS DOUBLE),
+            TRY_CAST({longitude_sql} AS DOUBLE),
+            {level}
+        ) AS h3_cell
+        FROM {table_sql}
+        WHERE TRY_CAST({latitude_sql} AS DOUBLE) BETWEEN {lat_min} AND {lat_max}
+          AND TRY_CAST({longitude_sql} AS DOUBLE) BETWEEN {lon_min} AND {lon_max}{_filter_clause(map_filter)}
+    ) AS source_rows
     GROUP BY h3_cell
     ORDER BY count DESC
     """
+    return databaseService.runQuery(query, True)
 
-    # Ejecutamos la consulta y retornamos el dataframe
-    df = databaseService.runQuery(query, True)
-    return df
 
-def getRecords(table: str, latitudeField: str, longitudeField: str,  fields: str, lat_min: float = 26.5, lat_max: float = 44.5,
-            lon_min: float = -19.3, lon_max: float = 7.8):
+def getRecords(table: str, latitudeField: str, longitudeField: str, fields: list,
+               lat_min: float = 26.5, lat_max: float = 44.5, lon_min: float = -19.3, lon_max: float = 7.8,
+               map_filter: str = ""):
+    table_sql = _quote_identifier(table)
+    latitude_sql = _quote_identifier(latitudeField)
+    longitude_sql = _quote_identifier(longitudeField)
+    selected_fields = [field for field in (fields or []) if field not in (latitudeField, longitudeField)]
+    extra_sql = [f"{_quote_identifier(field)} AS {_quote_identifier(field)}" for field in selected_fields]
+    select_sql = ", ".join([
+        f"round(TRY_CAST({latitude_sql} AS DOUBLE), 5) AS latitude",
+        f"round(TRY_CAST({longitude_sql} AS DOUBLE), 5) AS longitude",
+        *extra_sql
+    ])
 
-    # Aplicamos la función de agregación 'avg' a cada campo de aggFields
-    if (fields is None or fields == ""):
-        fields = f"""* EXCLUDE ({latitudeField}, {longitudeField})"""
-        #fields_sql = ', '.join([{field} for field in fields])
-    else:
-        # Remove latitude and longitude fields
-        fields = fields.replace(f"{latitudeField}", "")
-        fields = fields.replace(f"{longitudeField}", "")
-        fields = fields.replace(",,", ",")
-        fields = fields.replace(",,", ",")
-        # REmove fisrt or last comma
-        if fields[0] == ",": fields = fields[1:]
-        if fields[-1] == ",": fields = fields[:-1]
-
-    # La consulta completa
     query = f"""
-    SELECT round({latitudeField}, 5) as latitude, round({longitudeField}, 5) as longitude, {fields}
-        FROM {table}
-    WHERE {latitudeField} >= {lat_min} 
-      AND {latitudeField} <= {lat_max} 
-      AND {longitudeField} >= {lon_min} 
-      AND {longitudeField} <= {lon_max}
-      LIMIT 100000
+    SELECT {select_sql}
+    FROM {table_sql}
+    WHERE TRY_CAST({latitude_sql} AS DOUBLE) BETWEEN {lat_min} AND {lat_max}
+      AND TRY_CAST({longitude_sql} AS DOUBLE) BETWEEN {lon_min} AND {lon_max}{_filter_clause(map_filter)}
+    LIMIT 100000
     """
-
-    # Ejecutamos la consulta y retornamos el dataframe
-    df = databaseService.runQuery(query, True)
-    # Show firt 5 records
-    print(df.head())
-    return df
+    return databaseService.runQuery(query, True)
 
 
 def getFeatureCollection(df, fields, addProperties: bool = True):
@@ -116,123 +162,73 @@ def getFeatureCollection(df, fields, addProperties: bool = True):
         features.append(feature)
     return FeatureCollection(features)
 
-@router.get("/csv", response_class=HTMLResponse)
-async def csv(table: str, latitudeField: str,  longitudeField: str, fields: str, bbox: str):
-    bbox = bbox.split(',')
-    lat_min = float(bbox[1])
-    lat_max = float(bbox[3])
-    lon_min = float(bbox[0])
-    lon_max = float(bbox[2])
+@router.get("/csv", response_class=Response)
+async def csv(table: str, latitudeField: str, longitudeField: str, bbox: str, fields: str = "", filter: str = ""):
+    lat_min, lat_max, lon_min, lon_max = _parse_bbox(bbox)
+    field_list = [field for field in fields.split(",") if field]
+    if not latitudeField or not longitudeField:
+        raise HTTPException(status_code=400, detail="Latitude and longitude columns are required")
+    _validated_map_fields(table, latitudeField, longitudeField, fields=field_list)
+
     starttime = time.time()
-    df = getRecords(table, latitudeField, longitudeField, fields, lat_min, lat_max, lon_min, lon_max)
+    df = getRecords(table, latitudeField, longitudeField, field_list, lat_min, lat_max, lon_min, lon_max, filter)
     log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
-    return JSONResponse(content=df.to_csv(index=False), media_type="text/csv")
+    return Response(content=df.to_csv(index=False), media_type="text/csv")
+
 
 @router.get("/geojson")
-async def create_map_geojson(table: str, latitudeField: str,  longitudeField: str, geomField: str, bbox: str, level: int = 5, fields: str = ""):
-    # Convert bbox bbox=-5.734656374770793,38.91107573878938,-0.9550204057964322,41.34695562076499 to lat_min: float = 26.5, lat_max: float = 44.5,
-    #             lon_min: float = -19.3, lon_max: float = 7.8
-    bbox = bbox.split(',')
-    lat_min = float(bbox[1])
-    lat_max = float(bbox[3])
-    lon_min = float(bbox[0])
-    lon_max = float(bbox[2])
-    fields = fields.split(',')
-    if fields[0] == "":
-        fields = []
+async def create_map_geojson(table: str, latitudeField: str = "", longitudeField: str = "",
+                             geomField: str = "", bbox: str = "-19.3,26.5,7.8,44.5",
+                             level: int = 5, fields: str = "", filter: str = ""):
+    if not 0 <= level <= 15:
+        raise HTTPException(status_code=400, detail="H3 level must be between 0 and 15")
+
+    lat_min, lat_max, lon_min, lon_max = _parse_bbox(bbox)
+    field_list = [field for field in fields.split(",") if field]
+    _validated_map_fields(
+        table, latitudeField or None, longitudeField or None, geomField or None, field_list
+    )
+
     starttime = time.time()
-    df = None
-    geojson_obj = None
-    if ((latitudeField == "" or longitudeField == "") and geomField != ""):
-        df = getGeom(table, geomField, lat_min, lat_max, lon_min, lon_max)
-    elif (latitudeField != "" and longitudeField != ""):
-        df = getH3Data(table, latitudeField, longitudeField, fields, level, lat_min, lat_max, lon_min, lon_max)
+    if latitudeField and longitudeField:
+        df = getH3Data(table, latitudeField, longitudeField, field_list, level,
+                       lat_min, lat_max, lon_min, lon_max, filter)
+    elif geomField:
+        df = getGeom(table, geomField, lat_min, lat_max, lon_min, lon_max, filter)
     else:
-        log.error("No latitude-longitude or geom fields provided")
-        return Response(status_code=400)
+        raise HTTPException(
+            status_code=400, detail="Select latitude and longitude columns or a geometry column"
+        )
 
-    with pd.option_context('display.max_columns', None, 'display.width', 1000):
-        log.info("df head:\n" + str(df.head()))
-
-    # Reflace Nans in df with -1
     df = df.fillna(-1)
-    geojson_obj = getFeatureCollection(df, fields)
-    log.info(f"Size {len(df)} records - {df.memory_usage(deep=True).sum() / 1024 ** 2} Mb - {time.time() - starttime} seconds")
-    responseObject = {
-        "metadata":{
+    geojson_obj = getFeatureCollection(df, field_list)
+    elapsed = time.time() - starttime
+    response_object = {
+        "metadata": {
             "records": len(df),
             "dfsize": round(df.memory_usage(deep=True).sum() / 1024 ** 2, 2),
             "objectSize": 0,
-            "time": round(time.time() - starttime, 2)
+            "time": round(elapsed, 2)
         },
         "geojson": geojson_obj
     }
-    #log.info("Geojson: " + str(geojson_obj))
-    responseObject["metadata"]["objectSize"] = round(len(str(responseObject)) / 1024 ** 2, 2)
-    return JSONResponse(content=responseObject)
+    response_object["metadata"]["objectSize"] = round(len(str(response_object)) / 1024 ** 2, 2)
+    log.info(f"Map query returned {len(df)} records in {elapsed:.2f} seconds")
+    return JSONResponse(content=response_object)
 
-@router.get("/html", response_class=HTMLResponse)
+
+@router.get("/html")
 async def create_map(table: str, level: int = 5):
-    try:
-        df = getH3Data(table, level)
-        geojson_obj = getFeatureCollection(df)
-
-        fig = px.choropleth_mapbox(
-            df,
-            geojson=geojson_obj,
-            locations='h3_cell',
-            featureidkey="properties.h3_cell",  # Especificar la clave para el GeoJSON
-            color='aggField',
-            color_continuous_scale="Viridis",
-            range_color=(df['aggField'].min(), df['aggField'].max()),
-            mapbox_style='carto-positron',
-            zoom=5,
-            center={"lat": 40.624032273164794, "lon": -3.993888283105448},
-            opacity=0.7,
-            labels={'count': '# cantidad de registros'}
-        )
-        fig.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
-
-        # Generar el HTML y agregar el JavaScript necesario
-        plot_html = fig.to_html(full_html=False)
-        html_content = f"""
-        <html>
-        <head>
-            <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-        </head>
-        <body>
-            {plot_html}
-            <script>
-                var plotElement = document.getElementsByClassName('plotly-graph-div')[0];
-                plotElement.on('plotly_relayout', function(eventdata) {{
-                    console.log('Zoom or pan detected!', eventdata);
-                    // Aquí puedes enviar los datos al servidor para recalcular
-                    // Por ejemplo, usando fetch para hacer una llamada a la API
-                    fetch('/maps/update', {{
-                        method: 'POST',
-                        headers: {{
-                            'Content-Type': 'application/json'
-                        }},
-                        body: JSON.stringify(eventdata)
-                    }})
-                    .then(response => response.json())
-                    .then(data => {{
-                        // Aquí puedes actualizar el gráfico con los nuevos datos
-                        Plotly.react(plotElement, data);
-                    }});
-                }});
-            </script>
-        </body>
-        </html>
-        """
-        return HTMLResponse(content=html_content)
-    except Exception as e:
-        print("Error: " + str(e))
-        return "Error creating map"
+    raise HTTPException(
+        status_code=410,
+        detail="The legacy HTML map endpoint was retired; use /maps/geojson instead"
+    )
 
 
 @router.get("/mapbox_token")
 def getMapboxToken():
     log.info("Getting Mapbox token")
     token = mapsService.mapbox_access_token
+    if not token:
+        raise HTTPException(status_code=503, detail="Mapbox is not configured")
     return {"token": token}

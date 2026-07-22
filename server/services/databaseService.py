@@ -204,6 +204,27 @@ def getTableList(hideMeta: bool = True):
 
 
 ####################################################
+def getDatabaseSchema():
+    """Return the visible tables and their ordered columns for SQL completion."""
+    db = get_db()
+    rows = db.query(
+        """
+        SELECT table_name, column_name, data_type
+        FROM information_schema.columns
+        WHERE table_schema = 'main'
+          AND NOT starts_with(table_name, '__')
+          AND NOT starts_with(table_name, 'cube_index_')
+        ORDER BY table_name, ordinal_position
+        """
+    ).fetchall()
+
+    schema = {}
+    for table_name, column_name, data_type in rows:
+        schema.setdefault(table_name, {})[column_name] = data_type
+    return schema
+
+
+####################################################
 def getTableDescriptionForChatGpt(tableName):
     db = get_db()
     fields = db.query("DESCRIBE " + tableName).df()

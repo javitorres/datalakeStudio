@@ -4,12 +4,12 @@
     <!-- Menú Lateral -->
     <div class="side-menu custom-padding">
       <!-- Side Menu https://getbootstrap.com/docs/5.0/examples/sidebars/ -->
-      <div class="d-flex flex-column flex-shrink-0 bg-light compact-sidebar">
+      <div class="d-flex flex-column flex-shrink-0 compact-sidebar">
         <a href="/" class="d-block p-3 link-dark text-decoration-none" 
         title="DatalakeStudio" data-bs-toggle="tooltip"
         @click.prevent="activeMenu = 'welcome'"
           data-bs-placement="right">
-            <img src="../assets/logo.svg" alt="Logo" width="45" height="45" class="rounded mx-auto d-block">
+            <img src="../assets/logo.svg" alt="Logo" width="38" height="38" class="rounded mx-auto d-block sidebar-logo">
           
           <span class="visually-hidden">Icon-only</span>
         </a>
@@ -125,6 +125,17 @@
 
     <!-- Contenido Principal -->
     <div class="container-fluid content-shell">
+      <header class="workspace-topbar">
+        <div class="workspace-heading">
+          <span class="workspace-icon"><i :class="activeMenuMeta.icon"></i></span>
+          <div><span class="workspace-kicker">Datalake Studio</span><h1>{{ activeMenuMeta.label }}</h1></div>
+        </div>
+        <div class="workspace-status">
+          <span class="status-dot"></span>
+          <span>{{ tables.length }} {{ tables.length === 1 ? 'table' : 'tables' }}</span>
+          <span v-if="username && username !== 'default'" class="workspace-user">{{ username }}</span>
+        </div>
+      </header>
       <keep-alive>
         <component :is="currentComponent" v-bind="currentProps" v-on="currentListeners"></component>
       </keep-alive>
@@ -159,6 +170,20 @@ const activeMenu = ref('welcome');
 const tables = ref([]);
 const showUserMenu = ref(false);
 const showAbout = ref(false);
+
+const menuMetadata = {
+  welcome: { label: 'Overview', icon: 'bi bi-grid-1x2' },
+  changeDatabase: { label: 'Databases', icon: 'bi bi-database' },
+  loadData: { label: 'Load data', icon: 'bi bi-cloud-arrow-down' },
+  remoteDb: { label: 'Remote database', icon: 'bi bi-database-down' },
+  showTables: { label: 'Table explorer', icon: 'bi bi-table' },
+  queries: { label: 'SQL workspace', icon: 'bi bi-filetype-sql' },
+  apiRetriever: { label: 'API enrichment', icon: 'bi bi-globe2' },
+  apiServer: { label: 'Published APIs', icon: 'bi bi-boxes' },
+  s3: { label: 'S3 explorer', icon: 'bi bi-bucket' },
+  chatgpt: { label: 'AI data assistant', icon: 'bi bi-stars' }
+};
+const activeMenuMeta = computed(() => menuMetadata[activeMenu.value] || menuMetadata.welcome);
 
 function onClickOutside(e) {
   if (showUserMenu.value && !e.target.closest('.user-menu-wrapper')) {
@@ -402,5 +427,43 @@ async function changedDatabase(id) {
   .content-shell {
     padding-left: 0.5rem;
   }
+}
+
+/* 2026 workspace shell */
+.main-container { min-height: calc(100vh - 28px); gap: 14px; }
+.side-menu { width: 64px; }
+.custom-padding { padding-right: 0; }
+.compact-sidebar {
+  --sidebar-icon-size: 1.08rem;
+  position: sticky; top: 14px;
+  width: 64px; min-height: calc(100vh - 28px);
+  border: 0; border-radius: 15px;
+  background: #17211f;
+  box-shadow: 0 16px 40px rgba(18,43,37,.16);
+}
+.compact-sidebar > a { height: 68px; display:grid !important; place-items:center; padding:0 !important; border-bottom:1px solid rgba(255,255,255,.08); }
+.sidebar-logo { filter: brightness(0) invert(1); opacity:.82; }
+.compact-sidebar .nav-link { position:relative; min-height:47px; display:grid; place-items:center; padding:0 !important; color:#80918d; border:0 !important; border-radius:8px; margin:3px 8px; }
+.compact-sidebar .nav-link:hover { color:#d8eee8; background:#22332f; }
+.compact-sidebar .nav-link.active { color:#bde9de; background:#29443e; box-shadow:inset 0 0 0 1px rgba(169,226,212,.08); }
+.compact-sidebar .nav-link.active::before { content:''; position:absolute; left:-8px; width:3px; height:20px; border-radius:0 3px 3px 0; background:#64c3ad; }
+.compact-nav-link h2 { display:flex; }
+.content-shell { flex:1; min-width:0; padding:0; }
+.workspace-topbar { min-height:67px; display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:14px; padding:10px 17px; border:1px solid var(--ds-line); border-radius:13px; background:rgba(255,255,255,.88); box-shadow:0 8px 28px rgba(31,67,58,.045); backdrop-filter:blur(12px); }
+.workspace-heading { display:flex; align-items:center; gap:12px; }
+.workspace-icon { width:38px; height:38px; display:grid; place-items:center; border-radius:10px; background:var(--ds-mint); color:var(--ds-teal); font-size:16px; }
+.workspace-kicker { display:block; color:#86938f; font-size:9px; font-weight:750; letter-spacing:.13em; text-transform:uppercase; }
+.workspace-heading h1 { margin:1px 0 0; color:var(--ds-ink); font-size:1.03rem; font-weight:750; letter-spacing:-.02em; }
+.workspace-status { display:flex; align-items:center; gap:8px; color:#72807c; font-size:11px; }
+.status-dot { width:7px; height:7px; border-radius:50%; background:#1aa382; box-shadow:0 0 0 4px rgba(26,163,130,.11); }
+.workspace-user { margin-left:7px; padding:5px 9px; border-radius:20px; background:#edf3f1; color:#485955; font-weight:650; }
+.user-menu-wrapper { bottom:24px; left:26px; }
+.user-menu-btn { width:35px; height:35px; border-color:#344943; background:#22322f; color:#a9bbb6; box-shadow:none; }
+.user-menu-btn:hover { color:#fff; background:#2d4540; box-shadow:none; }
+.user-menu-popup { bottom:43px; border-color:var(--ds-line); border-radius:10px; box-shadow:var(--ds-shadow); }
+.about-overlay { background:rgba(12,27,23,.48); backdrop-filter:blur(3px); }
+.about-modal { border:1px solid var(--ds-line); border-radius:14px; box-shadow:0 24px 70px rgba(12,31,26,.25); }
+@media(max-width:768px){
+  .main-container{flex-direction:column;gap:9px}.side-menu{width:100%}.compact-sidebar{position:static;width:100%;min-height:54px;flex-direction:row!important}.compact-sidebar>a{display:none!important}.compact-sidebar ul{flex-direction:row!important;overflow-x:auto}.compact-sidebar .nav-link{width:43px;min-height:40px;margin:7px 2px}.compact-sidebar .nav-link.active::before{display:none}.content-shell{padding:0}.workspace-topbar{min-height:58px}.workspace-status>span:not(.status-dot){display:none}.user-menu-wrapper{display:none}
 }
 </style>

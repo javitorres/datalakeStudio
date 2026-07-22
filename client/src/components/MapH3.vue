@@ -1,10 +1,21 @@
 <template>
-
-
-  <div>
-    <!--<button class="btn m-1 opcion-style btn-primary" @click="renderChart()">Render chart</button>-->
-    <div id="chart"></div>
-    <br />
+  <div class="map-h3-shell">
+    <section class="map-setup-card">
+      <div>
+        <span class="map-kicker">Map setup</span>
+        <h4>Choose the location columns</h4>
+        <p>{{ mapStatusText }}</p>
+      </div>
+      <button class="map-refresh" :disabled="!hasLocation || loading || !mapLoaded" @click="refreshVisibleLayers">
+        <i class="bi bi-arrow-clockwise"></i> Refresh visible area
+      </button>
+    </section>
+    <div v-if="mapError" class="map-message map-message-error" role="alert">
+      <i class="bi bi-exclamation-triangle"></i><span>{{ mapError }}</span>
+    </div>
+    <div v-else-if="!hasLocation" class="map-message">
+      <i class="bi bi-geo-alt"></i><span>Select latitude and longitude, or a geometry column, to enable map layers.</span>
+    </div>
     <!-- General controls  -->
     <div class="row">
       <div class="col-2">
@@ -23,7 +34,8 @@
         <!-- Selectors for latitude, longitude and geom fields -->
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Latitude</span>
-          <select class="form-select" v-model="latitudeField">
+          <select class="form-select" v-model="latitudeField" @change="coordinatesChanged">
+            <option :value="null">Select latitude</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -32,7 +44,8 @@
       <div class="col-3">
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Longitude</span>
-          <select class="form-select" v-model="longitudeField">
+          <select class="form-select" v-model="longitudeField" @change="coordinatesChanged">
+            <option :value="null">Select longitude</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -41,7 +54,8 @@
       <div class="col-3">
         <div v-if="selectedFields" class="input-group">
           <span class="input-group-text">Geom</span>
-          <select class="form-select" v-model="geomField">
+          <select class="form-select" v-model="geomField" @change="coordinatesChanged">
+            <option :value="null">No geometry column</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -55,13 +69,14 @@
       <div class="col-5">
         <div class="form-check form-switch">
           <label class="form-check-label">H3 Data / Geom</label>
-          <input class="form-check-input" type="checkbox" v-model="showData" @change="updateVisibility()">
+          <input class="form-check-input" type="checkbox" v-model="showData" :disabled="!canRenderH3 || loading" @change="updateVisibility()">
         </div>
         <br />
         <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group">
           <span class="input-group-text">Show field</span>
           <select class="form-select" v-model="selectedFieldForH3" @change="showField('H3')">
+            <option value="count">Record count</option>
             <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -73,7 +88,7 @@
         <div class="row">
           <div class="input-group">
             <span class="input-group-text">H3 Level</span>
-            <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true)">
+            <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true, true)">
               <option v-for="i in 12" :key="i" :value="i">{{ i }}</option>
             </select>
           </div>
@@ -136,7 +151,7 @@
           <div class="col-12">
             <div class="range-container">
               <div class="range-track"></div>
-              <div class="range-highlight" :style="highlightStyle(minValue, maxValue, max)"></div>
+              <div class="range-highlight" :style="highlightStyle(minValue, maxValue, min, max)"></div>
               <input type="range" class="form-range" v-model="minValue" :min="min" :max="max"
                 @change="changeLimits('H3')">
               <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max"
@@ -173,7 +188,7 @@
       <div class="col-5">
         <div class="form-check form-switch">
           <label class="form-check-label">Points</label>
-          <input class="form-check-input" type="checkbox" v-model="showDataPoints" @change="updateVisibility()">
+          <input class="form-check-input" type="checkbox" v-model="showDataPoints" :disabled="!canRenderPoints || loading" @change="updateVisibility()">
         </div>
         <br />
 
@@ -238,11 +253,11 @@
           <div class="col-12">
             <div class="range-container">
               <div class="range-track"></div>
-              <div class="range-highlight" :style="highlightStyle(minValuePoints, maxValuePoints, maxPoints)"></div>
+              <div class="range-highlight" :style="highlightStyle(minValuePoints, maxValuePoints, minPoints, maxPoints)"></div>
               <input type="range" class="form-range" v-model="minValuePoints" :min="minPoints" :max="maxPoints"
-                @change="changeLimitPoints(geojson)">
+                @change="changeLimits('POINTS')">
               <input type="range" class="form-range" v-model="maxValuePoints" :min="minPoints" :max="maxPoints"
-                @change="changeLimitPoints(geojson)">
+                @change="changeLimits('POINTS')">
             </div>
             <div class="value-display">
               <span>Absolute Min<br />{{ minPoints }}</span>
@@ -267,7 +282,7 @@
 
   <div class="row">
     <div class="col-12">
-      <div id="map" style="height: 800px; width: 100%"></div>
+      <div id="map" style="height: 620px; width: 100%"></div>
     </div>
   </div>
   <br />
@@ -301,9 +316,27 @@ import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import qs from 'qs';
-import csv2geojson, { csv } from 'csv2geojson';
-import * as vg from "@uwdata/vgplot";
+import csv2geojson from 'csv2geojson';
 import DataSelector from './DataSelector.vue';
+
+const rasterStyle = (tiles, attribution) => ({
+  version: 8,
+  sources: {
+    basemap: { type: 'raster', tiles: [tiles], tileSize: 256, attribution }
+  },
+  layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }]
+});
+
+const openMapStyles = {
+  light: rasterStyle(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    '© OpenStreetMap contributors'
+  ),
+  dark: rasterStyle(
+    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+    '© OpenStreetMap contributors © CARTO'
+  )
+};
 
 export default {
   name: 'MapH3',
@@ -312,6 +345,7 @@ export default {
     table: String,
     selectedFields: Array,
     schema: Object,
+    filter: { type: String, default: '' },
   },
   components: {
     DataSelector
@@ -320,12 +354,12 @@ export default {
   data() {
     return {
       map: null,
+      appliedFilter: '',
       numericFields: [],
       latitudeField: null,
       longitudeField: null,
       geomField: null,
       percentilesH3: null,
-      sourceId: 'vector-tiles-source',
       geojson: null,
       token: null,
       h3Opacity: 0.5,
@@ -341,10 +375,7 @@ export default {
       showDataPoints: false,
       popup: null,
       h3Level: 5,
-      mapStyles: {
-        light: 'mapbox://styles/mapbox/light-v10',
-        dark: 'mapbox://styles/mapbox/dark-v10'
-      },
+      mapStyles: openMapStyles,
       selectedStyle: null,
       selectedFieldForH3: null,
       selectedFieldForPoints: null,
@@ -364,12 +395,39 @@ export default {
       csvData: null,
       pointsGeojson: null,
       pointSize: 5,
-      chartInstance: null,
+      mapError: null,
+      mapLoaded: false,
+      activeRequests: 0,
+      h3RequestId: 0,
+      pointsRequestId: 0,
+      popupHandlersBound: false,
 
     };
   },
 
   computed: {
+    hasCoordinates() {
+      return Boolean(this.latitudeField && this.longitudeField);
+    },
+    hasLocation() {
+      return this.hasCoordinates || Boolean(this.geomField);
+    },
+    canRenderH3() {
+      return Boolean(this.mapLoaded && this.hasLocation);
+    },
+    canRenderPoints() {
+      return Boolean(this.mapLoaded && this.hasCoordinates);
+    },
+    mapStatusText() {
+      if (!this.mapLoaded) return 'Loading the base map…';
+      if (this.loading) return 'Loading data for the visible map area…';
+      if (!this.token) return this.hasLocation
+        ? 'Using the open basemap. Enable H3 or points to display data.'
+        : 'Using the open basemap; select location columns to continue.';
+      if (!this.hasLocation) return 'The coordinate columns could not be detected automatically.';
+      if (this.showData || this.showDataPoints) return 'Move the map and refresh to query the current visible area.';
+      return 'Coordinates are ready. Enable H3 or points to display data.';
+    },
 
     h3Radix() {
       const h3RadixValues = [1281.256, 483.056, 182.512, 68.979, 26.071, 9.8540, 3.7245, 1.4064, 0.5314, 0.2007, 0.0758, 0.0286, 0.0108, 0.0040, 0.0015, 0.0005];
@@ -386,28 +444,35 @@ export default {
 
   watch: {
     table: {
-      async handler(newVal, oldVal) {
-        if (oldVal) {
-          this.geojson = await this.fetchGeojsonData();
-          this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-          this.reloadMap('H3');
+      handler(newVal, oldVal) {
+        if (oldVal && newVal !== oldVal) {
+          this.geojson = null;
+          this.pointsGeojson = null;
+          this.geometadata = null;
+          this.guessLatitudeLongitude();
         }
-      },
-      immediate: true
+      }
     },
     selectedFields: {
-      async handler(newVal, oldVal) {
-        await this.reloadMap('H3');
+      handler() {
+        this.setNumericFields();
+        this.guessLatitudeLongitude();
       },
       deep: true,
       immediate: true
     },
     schema: {
-      async handler(newVal, oldVal) {
+      handler() {
         this.setNumericFields();
       },
       deep: true,
       immediate: true
+    },
+    filter() {
+      // Cross-filter changed: drop cached layers and reload with the new predicate.
+      this.geojson = null;
+      this.pointsGeojson = null;
+      this.refreshVisibleLayers();
     },
     minValue(val) {
       if (Number(val) > this.maxValue) this.minValue = this.maxValue;
@@ -426,108 +491,176 @@ export default {
   ////////////////////////////
   async mounted() {
     this.selectedStyle = this.mapStyles.light;
+    this.setNumericFields();
+    this.guessLatitudeLongitude();
     this.token = await this.getToken();
-
     if (this.token) {
-      this.guessLatitudeLongitude();
+      this.mapStyles = {
+        light: 'mapbox://styles/mapbox/light-v10',
+        dark: 'mapbox://styles/mapbox/dark-v10'
+      };
+      this.selectedStyle = this.mapStyles.light;
     }
-
-    this.renderChart();
+    this.initMap();
+  },
+  beforeUnmount() {
+    this.h3RequestId += 1;
+    this.pointsRequestId += 1;
+    if (this.popup) this.popup.remove();
+    if (this.map) this.map.remove();
+    this.map = null;
+  },
+  activated() {
+    // Kept alive across tab switches: the container was display:none while hidden,
+    // so tell Mapbox to recompute its size when the Map tab becomes visible again.
+    this.$nextTick(() => {
+      if (this.map) this.map.resize();
+      // The cross-filter may have changed while the map was hidden (deactivated
+      // components don't reliably run watchers), so reload if it no longer matches.
+      if (this.filter !== this.appliedFilter) {
+        this.geojson = null;
+        this.pointsGeojson = null;
+        this.refreshVisibleLayers();
+      }
+    });
   },
   methods: {
     ////////////////////////////
     setNumericFields() {
-      var n = Object.keys(this.schema).filter(key => this.schema[key].startsWith('int') || this.schema[key].startsWith('float'));
-      // Build list of fields with prefix avg_ and stddev_ for efevry numeric field
-      //n = n.map(field => {
-      //  return ['avg_' + field, 'stddev_' + field];
-      //}).flat();
-      this.numericFields = n;
+      const schema = this.schema || {};
+      const selected = new Set(this.selectedFields || Object.keys(schema));
+      this.numericFields = Object.keys(schema).filter((field) => {
+        const type = String(schema[field] || "");
+        return selected.has(field) && /(int|float|double|decimal|numeric|real)/i.test(type);
+      });
+
+      if (!this.selectedFieldForH3 ||
+          (this.selectedFieldForH3 !== "count" && !this.numericFields.includes(this.selectedFieldForH3))) {
+        this.selectedFieldForH3 = this.numericFields[0] || "count";
+      }
+      if (!this.numericFields.includes(this.selectedFieldForPoints)) {
+        this.selectedFieldForPoints = this.numericFields[0] || null;
+      }
     },
     ////////////////////////////
     guessLatitudeLongitude() {
-      if (this.selectedFields) {
-        const latFields = this.selectedFields.filter(field => field.toLowerCase().includes('lat'));
-        const lonFields = this.selectedFields.filter(field => field.toLowerCase().includes('lon'));
-        const geomFields = this.selectedFields.filter(field => field.toLowerCase().includes('geom'));
+      const fields = this.selectedFields || [];
+      const normalized = (field) => field.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const findField = (exactNames, suffixes = []) => fields.find((field) => {
+        const name = normalized(field);
+        return exactNames.includes(name) ||
+          exactNames.some((prefix) => prefix.length > 1 && name.startsWith(prefix)) ||
+          suffixes.some((suffix) => name.endsWith(suffix));
+      });
 
-        if (latFields && latFields.length > 0) {
-          this.latitudeField = latFields[0];
-        }
-
-        if (lonFields && lonFields.length > 0) {
-          this.longitudeField = lonFields[0];
-        }
-
-        if (geomFields && geomFields.length > 0) {
-          this.geomField = geomFields[0];
-        }
+      if (!fields.includes(this.latitudeField)) {
+        this.latitudeField = findField(["lat", "latitude", "y"], ["latitude", "lat"]) || null;
+      }
+      if (!fields.includes(this.longitudeField)) {
+        this.longitudeField = findField(["lon", "lng", "long", "longitude", "x"],
+          ["longitude", "lon", "lng"]) || null;
+      }
+      if (!fields.includes(this.geomField)) {
+        this.geomField = findField(["geom", "geometry", "wkt"], ["geometry", "geom"]) || null;
       }
     },
     ////////////////////////////
-    highlightStyle(minValue, maxValue, max) {
-      const minPercent = (Number(minValue) / max) * 100;
-      const maxPercent = (Number(maxValue) / max) * 100;
-      var result = {
-        left: minPercent + '%',
-        width: (maxPercent - minPercent) + '%'
-      }
-      return result;
+    highlightStyle(minValue, maxValue, min, max) {
+      const range = Number(max) - Number(min);
+      if (!Number.isFinite(range) || range <= 0) return { left: "0%", width: "100%" };
+      const minPercent = Math.max(0, Math.min(100, ((Number(minValue) - Number(min)) / range) * 100));
+      const maxPercent = Math.max(minPercent, Math.min(100, ((Number(maxValue) - Number(min)) / range) * 100));
+      return { left: minPercent + "%", width: (maxPercent - minPercent) + "%" };
+    },
+    beginRequest() {
+      this.activeRequests += 1;
+      this.loading = true;
+    },
+    endRequest() {
+      this.activeRequests = Math.max(0, this.activeRequests - 1);
+      this.loading = this.activeRequests > 0;
+    },
+    async coordinatesChanged() {
+      this.h3RequestId += 1;
+      this.pointsRequestId += 1;
+      this.geojson = null;
+      this.pointsGeojson = null;
+      this.geometadata = null;
+      this.percentilesH3 = null;
+      this.mapError = null;
+      if (!this.hasCoordinates) this.showDataPoints = false;
+      await this.refreshVisibleLayers();
+    },
+    async refreshVisibleLayers() {
+      if (!this.hasLocation || !this.mapLoaded) return;
+      this.appliedFilter = this.filter;
+      const tasks = [];
+      if (this.showData) tasks.push(this.reloadMap("H3", true, true));
+      if (this.showDataPoints && this.hasCoordinates) tasks.push(this.reloadMap("POINTS", true, true));
+      await Promise.all(tasks);
     },
     ////////////////////////////
     async reloadMap(layer, reloadData = false, reloadLimits = false) {
-      if (layer === 'H3') {
-        if (reloadData) this.geojson = await this.fetchGeojsonData();
-        if (this.geojson && reloadLimits) {
+      if (layer === "H3") {
+        if (!this.canRenderH3) return;
+        if (reloadData || !this.geojson) this.geojson = await this.fetchGeojsonData();
+        if (!this.geojson) return;
+        if (reloadLimits || !this.percentilesH3) {
           this.limitsSetedManually = false;
           this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
         }
-      } else if (layer === 'POINTS') {
-        if (reloadData) this.pointsGeojson = await this.fetchPointsData();
-        if (this.pointsGeojson && reloadLimits) {
+      } else if (layer === "POINTS") {
+        if (!this.canRenderPoints) return;
+        if (reloadData || !this.pointsGeojson) this.pointsGeojson = await this.fetchPointsData();
+        if (!this.pointsGeojson) return;
+        if (reloadLimits) {
           this.limitsPointsSetedManually = false;
           this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
         }
-
-        this.reloadLayers(layer);
-        this.updateVisibility();
       }
+
+      this.reloadLayers(layer);
+      this.applyLayerVisibility();
     },
     ////////////////////////////
     async fetchGeojsonData() {
-      var bbox = "-19.3,26.5,7.8,44.5";
-      if (this.map) {
-        const bounds = this.map.getBounds();
-        bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
-      }
-
-      this.loading = true;
+      const requestId = ++this.h3RequestId;
+      const bbox = this.currentBbox();
+      this.beginRequest();
+      this.mapError = null;
 
       try {
-        const response = await api.get(`/maps/geojson`, {
+        const response = await api.get("/maps/geojson", {
           params: {
             table: this.table,
-            latitudeField: this.latitudeField,
-            longitudeField: this.longitudeField,
-            geomField: this.geomField,
+            latitudeField: this.latitudeField || "",
+            longitudeField: this.longitudeField || "",
+            geomField: this.geomField || "",
             fields: this.numericFields,
-            level: this.h3Level,
-            bbox: bbox,
+            level: Number(this.h3Level),
+            bbox,
+            filter: this.filter || ""
           },
-          paramsSerializer: params => {
-            return qs.stringify(params, { arrayFormat: 'comma' });
-          },
+          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
         });
+        if (requestId !== this.h3RequestId) return null;
         this.geometadata = response.data.metadata;
-
-        return response.data.geojson;
+        const result = response.data.geojson;
+        if (!result?.features?.length) this.mapError = "No spatial records were found in the visible area.";
+        return result;
       } catch (error) {
-        toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
-        console.error("Error fetching geojson data:", error);
+        if (requestId !== this.h3RequestId) return null;
+        this.mapError = error.response?.data?.detail || "The H3 layer could not be loaded.";
+        toast.error(this.mapError);
         return null;
       } finally {
-        this.loading = false;
+        this.endRequest();
       }
+    },
+    currentBbox() {
+      if (!this.map) return "-19.3,26.5,7.8,44.5";
+      const bounds = this.map.getBounds();
+      return [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(",");
     },
     //////////////////////
     async changeLimits(layer) {
@@ -537,60 +670,44 @@ export default {
     },
     ////////////////////////////
     async fetchPointsData() {
-      var bbox = "-19.3,26.5,7.8,44.5";
-      if (this.map) {
-        const bounds = this.map.getBounds();
-        bbox = [bounds.getWest(), bounds.getSouth(), bounds.getEast(), bounds.getNorth()].join(',');
-      }
-
-      this.loading = true;
+      const requestId = ++this.pointsRequestId;
+      this.beginRequest();
+      this.mapError = null;
 
       try {
-        const response = await api.get(`/maps/csv`, {
+        const response = await api.get("/maps/csv", {
           params: {
             table: this.table,
             latitudeField: this.latitudeField,
             longitudeField: this.longitudeField,
             fields: this.numericFields,
-            bbox: bbox,
+            bbox: this.currentBbox(),
+            filter: this.filter || ""
           },
-          paramsSerializer: params => {
-            return qs.stringify(params, { arrayFormat: 'comma' });
-          },
+          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
         });
+        if (requestId !== this.pointsRequestId) return null;
 
         this.csvData = response.data;
         const pointsGeojson = await new Promise((resolve, reject) => {
-          // Get number of records in the response
-          this.totalPoints = response.data.split(/\r\n|\r|\n/).length - 2;
-
           csv2geojson.csv2geojson(response.data, {
-            latfield: 'latitude',
-            lonfield: 'longitude',
-            delimiter: ',',
-            // comma separated list of fields in this.numericFields to include in properties
-            numericFields: this.numericFields.join(','),
-          }, function (err, data) {
-            if (err) {
-              console.error("Error rendering points:", err);
-              reject(err);
-            } else {
-              resolve(data);
-            }
-          });
+            latfield: "latitude",
+            lonfield: "longitude",
+            delimiter: ",",
+            numericFields: this.numericFields.join(",")
+          }, (error, data) => error ? reject(error) : resolve(data));
         });
-
-        if (!pointsGeojson || !pointsGeojson.features || pointsGeojson.features.length === 0) {
-          console.warn("pointsGeojson is null or has no features");
-        } else {
-          return pointsGeojson;
-        }
+        if (requestId !== this.pointsRequestId) return null;
+        this.totalPoints = pointsGeojson?.features?.length || 0;
+        if (!this.totalPoints) this.mapError = "No points were found in the visible area.";
+        return pointsGeojson;
       } catch (error) {
-        toast.error(`Error: HTTP ${error.response ? error.response.status : error.message}`);
-        console.error("Error fetching points data:", error);
+        if (requestId !== this.pointsRequestId) return null;
+        this.mapError = error.response?.data?.detail || "The point layer could not be loaded.";
+        toast.error(this.mapError);
         return null;
       } finally {
-        this.loading = false;
+        this.endRequest();
       }
     },
 
@@ -600,7 +717,9 @@ export default {
         const response = await api.get('/maps/mapbox_token');
         return response.data.token;
       } catch (error) {
-        toast.error(`Error retrieving token: ${error.response?.data?.message || error.response?.data || error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+        if (error.response?.status !== 503) {
+          this.mapError = error.response?.data?.detail || "Map configuration could not be loaded.";
+        }
         return null;
       }
     },
@@ -611,7 +730,7 @@ export default {
 
     ////////////////////////////
     initMap() {
-      mapboxgl.accessToken = this.token;
+      mapboxgl.accessToken = this.token || '';
 
       this.map = new mapboxgl.Map({
         container: 'map',
@@ -620,110 +739,105 @@ export default {
         zoom: 5
       });
 
-      this.map.on('load', () => {
+      this.map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      this.map.on("load", () => {
+        this.mapLoaded = true;
+        this.mapError = null;
         this.reloadLayers();
         this.addPopup();
-        //this.updateVisibility();
+        this.applyLayerVisibility();
+      });
+      this.map.on("error", (event) => {
+        this.mapError = event?.error?.message || "The base map could not be loaded.";
       });
     },
     ////////////////////////////
     setMinMaxH3(geojson, field) {
-      this.min = 1;
-      this.max = -1;
-      this.maxCount = -1;
-      if (geojson === null) {
+      const percentiles = this.getPercentiles(geojson, field);
+      if (!percentiles) {
+        this.percentilesH3 = null;
+        this.min = 0;
+        this.max = 1;
+        this.minValue = 0;
+        this.maxValue = 1;
+        this.maxCount = 1;
         return;
       }
-      var percentiles = this.getPercentiles(geojson, field);
-      this.min = Math.round(percentiles.p0, 2);
-      this.max = Math.round(percentiles.p100, 2);
-      this.minValue = Math.round(percentiles.p25, 2);
-      this.maxValue = Math.round(percentiles.p75, 2);
-      this.maxCount = this.getMaxCount(geojson, field);
+      this.min = this.roundValue(percentiles.p0);
+      this.max = this.roundValue(percentiles.p100);
+      this.minValue = this.roundValue(percentiles.p25);
+      this.maxValue = this.roundValue(percentiles.p75);
+      this.maxCount = this.getMaxCount(geojson);
       this.percentilesH3 = percentiles;
-
-      this.changeLimits('H3');
     },
     ////////////////////////////
     setMinMaxPoints(geojson, field) {
-      this.minPoints = 1;
-      this.maxPoints = -1;
-
-      var percentiles = this.getPercentiles(geojson, field);
-      this.minPoints = Math.round(percentiles.p0, 2);
-      this.maxPoints = Math.round(percentiles.p100, 2);
-      this.minValuePoints = Math.round(percentiles.p25, 2);
-      this.maxValuePoints = Math.round(percentiles.p75, 2);
-
-      this.changeLimits('POINTS');
+      const percentiles = this.getPercentiles(geojson, field);
+      if (!percentiles) {
+        this.minPoints = 0;
+        this.maxPoints = 1;
+        this.minValuePoints = 0;
+        this.maxValuePoints = 1;
+        return;
+      }
+      this.minPoints = this.roundValue(percentiles.p0);
+      this.maxPoints = this.roundValue(percentiles.p100);
+      this.minValuePoints = this.roundValue(percentiles.p25);
+      this.maxValuePoints = this.roundValue(percentiles.p75);
+    },
+    roundValue(value) {
+      return Math.round(Number(value) * 100) / 100;
     },
     //////////////////////
     getPercentiles(geojson, field) {
-      let values = [];
+      if (!geojson?.features?.length || !field) return null;
+      const values = geojson.features
+        .map((feature) => feature.properties?.[field])
+        .filter((value) => value !== null && value !== "")
+        .map(Number)
+        .filter(Number.isFinite)
+        .sort((a, b) => a - b);
+      if (!values.length) return null;
 
-      geojson.features.forEach(feature => {
-        const value = feature.properties[field];
-        if (!isNaN(value)) {
-          values.push(value);
-        }
-      });
-
-      values.sort((a, b) => a - b);
-
-      const getPercentile = (arr, p) => {
-        const index = (p / 100) * (arr.length - 1);
+      const percentile = (p) => {
+        const index = (p / 100) * (values.length - 1);
         const lower = Math.floor(index);
         const upper = Math.ceil(index);
-        const weight = index - lower;
-        return arr[lower] * (1 - weight) + arr[upper] * weight;
+        return values[lower] + (values[upper] - values[lower]) * (index - lower);
       };
 
-      // Build histogram, where each position has the number of elements in the range
-      let histogram = new Array(100).fill(0);
-
-      values.forEach(value => {
-        const percentile = getPercentile(values, value);
-        const index = Math.floor((percentile / getPercentile(values, 100)) * 100);
+      const low = values[0];
+      const high = values[values.length - 1];
+      const span = high - low;
+      const histogram = new Array(100).fill(0);
+      values.forEach((value) => {
+        const index = span === 0 ? 0 : Math.min(99, Math.floor(((value - low) / span) * 100));
         histogram[index] += 1;
       });
-      // Save percentiles 0 to 99 in an array
-      var allPercentiles = [];
-      for (let i = 0; i < 100; i++) {
-        allPercentiles.push(getPercentile(values, i));
-      }
 
-      let percentiles = {
-        p0: getPercentile(values, 0),
-        p25: getPercentile(values, 25),
-        p50: getPercentile(values, 50),
-        p75: getPercentile(values, 75),
-        p100: getPercentile(values, 100),
-        percentiles: allPercentiles,
-        histogram: histogram
+      return {
+        p0: percentile(0),
+        p25: percentile(25),
+        p50: percentile(50),
+        p75: percentile(75),
+        p100: percentile(100),
+        percentiles: Array.from({ length: 100 }, (_, index) => percentile(index)),
+        histogram
       };
-
-      return percentiles;
     },
     ////////////////////////////
-    getMaxCount(geojson, field) {
-      var maxCount = -1;
-      geojson.features.forEach(feature => {
-        const value = feature.properties[field];
-        if (feature.properties.count > maxCount) {
-          maxCount = feature.properties.count;
-        }
-      });
-
-      return maxCount;
+    getMaxCount(geojson) {
+      return Math.max(1, ...geojson.features.map((feature) => Number(feature.properties?.count) || 0));
     },
     ////////////////////////////
     generateColorScale(min, max, field, layer) {
       min = Number(min);
       max = Number(max);
 
-      if (field == null) {
+      if (field == null || !Number.isFinite(min) || !Number.isFinite(max)) {
         return ['literal', '#FF0000'];
       }
+      if (min === max) return ['literal', this.interpolateColor(0.5, layer)];
 
       const steps = 25;
       const colorScale = ['interpolate', ['linear'], ['get', field]];
@@ -764,10 +878,7 @@ export default {
     },
     ////////////////////////////
     reloadLayers(reloadLayersParam) {
-      if (this.map === null) {
-        console.warn("Map is null. Cannot reload layers");
-        return;
-      }
+      if (!this.map || !this.mapLoaded || !this.map.isStyleLoaded()) return;
       // if ALL in reloadLayersParam or H3 in reloadLayersParam
       if (this.geojson && (!reloadLayersParam || reloadLayersParam === 'H3')) {
         // H3 Layers
@@ -797,7 +908,7 @@ export default {
             'paint': {
               'fill-extrusion-color': colorScaleH3,
               'fill-extrusion-height': heightScaleH3,
-              'fill-extrusion-opacity': 0.5
+              'fill-extrusion-opacity': Number(this.h3Opacity)
             }
           });
         } else {
@@ -822,7 +933,7 @@ export default {
           },
           'paint': {
             'line-color': '#000',
-            'line-width': Number(this.pointsOpacity)
+            'line-width': 1
           }
         });
       }
@@ -850,61 +961,61 @@ export default {
           'paint': {
             'circle-color': colorScalePoints,
             'circle-radius': this.pointSize,
-            'circle-opacity': 0.5
+            'circle-opacity': Number(this.pointsOpacity)
           }
         });
       }
     },
     ////////////////////////////
+    escapeHtml(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll("\"", "&quot;")
+        .replaceAll("'", "&#039;");
+    },
+    popupContent(title, properties) {
+      const rows = Object.entries(properties || {})
+        .map(([key, value]) => this.escapeHtml(key) + ": " + this.escapeHtml(value))
+        .join("<br>");
+      return "<strong>" + this.escapeHtml(title) + "</strong><br>" + rows;
+    },
     addPopup() {
-      // Initialize the popup
-      this.popup = new mapboxgl.Popup({
-        closeButton: false,
-        closeOnClick: false
-      });
+      if (this.popupHandlersBound) return;
+      this.popupHandlersBound = true;
+      this.popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
-      this.map.on('mousemove', 'h3', (e) => {
-        this.map.getCanvas().style.cursor = 'pointer';
-        const coordinates = e.lngLat;
-        const properties = e.features[0].properties;
-
+      const showPopup = (title) => (event) => {
+        const feature = event.features?.[0];
+        if (!feature) return;
+        this.map.getCanvas().style.cursor = "pointer";
         this.popup
-          .setLngLat(coordinates)
-          .setHTML(`<strong>H3 Properties:</strong><br>${Object.keys(properties).map(key => `${key}: ${properties[key]}`).join('<br>')}`)
+          .setLngLat(event.lngLat)
+          .setHTML(this.popupContent(title, feature.properties))
           .addTo(this.map);
-      });
+      };
+      this.map.on("mousemove", "h3", showPopup("H3 properties"));
+      this.map.on("mousemove", "points", showPopup("Point properties"));
 
-      // Pop up of points layer
-      this.map.on('mousemove', 'points', (e) => {
-        this.map.getCanvas().style.cursor = 'pointer';
-        const coordinates = e.lngLat;
-        const properties = e.features[0].properties;
-
-        this.popup
-          .setLngLat(coordinates)
-          .setHTML(`<strong>Point Properties:</strong><br>${Object.keys(properties).map(key => `${key}: ${properties[key]}`).join('<br>')}`)
-          .addTo(this.map);
-      });
-
-      this.map.on('mouseleave', 'h3', () => {
-        this.map.getCanvas().style.cursor = '';
+      const hidePopup = () => {
+        this.map.getCanvas().style.cursor = "";
         this.popup.remove();
-      });
-      this.map.on('mouseleave', 'points', () => {
-        this.map.getCanvas().style.cursor = '';
-        this.popup.remove();
-      });
+      };
+      this.map.on("mouseleave", "h3", hidePopup);
+      this.map.on("mouseleave", "points", hidePopup);
     },
     ////////////////////////////
     changeTile(style) {
       const styleUrl = style === 'dark' ? this.mapStyles.dark : this.mapStyles.light;
       this.selectedStyle = styleUrl;
       if (this.map) {
+        this.mapLoaded = false;
         this.map.setStyle(styleUrl);
-        this.map.once('styledata', () => {
-          this.reloadLayers();  // Vuelve a cargar todas las capas personalizadas
-          this.addPopup();  // Vuelve a agregar los popups
-          this.updateVisibility();  // Actualiza la visibilidad de las capas
+        this.map.once("style.load", () => {
+          this.mapLoaded = true;
+          this.reloadLayers();
+          this.applyLayerVisibility();
         });
       }
     },
@@ -924,104 +1035,39 @@ export default {
     },
     ////////////////////////////
     async updateVisibility() {
+      if (!this.mapLoaded) return;
       if (this.showData && !this.geojson) {
-        this.geojson = await this.fetchGeojsonData();
-        //this.selectedFieldForH3 = this.numericFields[0];
+        await this.reloadMap("H3", true, true);
       }
-
-      if (this.showDataPoints && !this.pointsGeojson) {
-        this.pointsGeojson = await this.fetchPointsData();
-        //this.selectedFieldForPoints = this.numericFields[0];
+      if (this.showDataPoints && !this.pointsGeojson && this.hasCoordinates) {
+        await this.reloadMap("POINTS", true, true);
       }
-
-      if (!this.map) {
-        await this.initMap();
+      this.applyLayerVisibility();
+    },
+    applyLayerVisibility() {
+      if (!this.map || !this.mapLoaded || !this.map.isStyleLoaded()) return;
+      if (this.map.getLayer("h3")) {
+        this.map.setLayoutProperty("h3", "visibility", this.showData ? "visible" : "none");
       }
-
-      if (this.map.getLayer('outline')) {
-        if (!this.geojson) {
-          this.geojson = await this.fetchGeojsonData();
-          this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-          this.reloadLayers('H3');
-        }
-        if (this.outline) {
-          this.map.setLayoutProperty('outline', 'visibility', 'visible');
-        } else {
-          this.map.setLayoutProperty('outline', 'visibility', 'none');
-        }
+      if (this.map.getLayer("outline")) {
+        this.map.setLayoutProperty("outline", "visibility", this.showData && this.outline ? "visible" : "none");
       }
-
-
-      if (this.map.getLayer('h3')) {
-        if (this.showData) {
-          if (!this.geojson) {
-            this.geojson = await this.fetchGeojsonData();
-            this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
-            this.reloadLayers('H3');
-          }
-          this.map.setLayoutProperty('h3', 'visibility', 'visible');
-        } else {
-          this.map.setLayoutProperty('h3', 'visibility', 'none');
-        }
-      }
-
-      if (this.map.getLayer('points')) {
-        if (this.showDataPoints) {
-          if (!this.pointsGeojson) {
-            //this.reloadMapPoints(true);
-            this.pointsGeojson = await this.fetchPointsData();
-            this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
-            this.reloadLayers('POINTS');
-          }
-          this.map.setLayoutProperty('points', 'visibility', 'visible');
-        } else {
-          this.map.setLayoutProperty('points', 'visibility', 'none');
-        }
+      if (this.map.getLayer("points")) {
+        this.map.setLayoutProperty("points", "visibility", this.showDataPoints ? "visible" : "none");
       }
     },
     ////////////////////////////
     changeH3Opacity() {
-      this.map.setPaintProperty('h3', 'fill-extrusion-opacity', Number(this.h3Opacity));
+      if (!this.map?.getLayer("h3")) return;
+      const property = this.show3D ? "fill-extrusion-opacity" : "fill-opacity";
+      this.map.setPaintProperty("h3", property, Number(this.h3Opacity));
     },
     ////////////////////////////
     changePointsOpacity() {
-      this.map.setPaintProperty('points', 'circle-opacity', Number(this.pointsOpacity));
+      if (!this.map?.getLayer("points")) return;
+      this.map.setPaintProperty("points", "circle-opacity", Number(this.pointsOpacity));
     },
     ////////////////////////////
-    convertCsvToJson(csvString) {
-      const lines = csvString.split('\n');
-      const headers = lines[0].split(',');
-
-      return lines.slice(1).map(line => {
-        const values = line.split(',');
-        const obj = {};
-        headers.forEach((header, index) => {
-          obj[header] = values[index];
-        });
-        return obj;
-      });
-    },
-
-    ////////////////////////////
-    async renderChart() {
-      if (this.csvData === null) {
-        console.warn("CSV data is null. Cannot render chart");
-        return;
-      }
-
-      const jsonData = this.convertCsvToJson(this.csvData);
-      const data = vg.from(jsonData); 
-      this.chartInstance = vg.plot(
-        vg.lineY(
-          vg.from("aapl"),
-          { x: "longitud", y: "AskingPriceVenta" }
-        ),
-        vg.width(680),
-        vg.height(200)
-      );
-
-      document.getElementById("chart").appendChild(this.chartInstance);
-    },
   }
 };
 </script>
@@ -1033,7 +1079,7 @@ export default {
 }
 
 .loading-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   right: 0;
@@ -1102,7 +1148,13 @@ input[type="range"] {
   margin-top: 10px;
 }
 
-#chart {
-  margin-top: 20px;
-}
+
+.map-h3-shell{position:relative;padding:0 14px 14px;background:#fff}
+.map-setup-card{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 10px;padding:13px 14px;border:1px solid var(--ds-line);border-radius:11px;background:linear-gradient(120deg,#f8fbfa,#edf7f4)}.map-kicker{color:#81908b;font-size:7px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.map-setup-card h4{margin:2px 0;font-size:.86rem;font-weight:760}.map-setup-card p{margin:0;color:#788681;font-size:8px}.map-refresh{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #9bcbbc;border-radius:7px;background:#fff;color:var(--ds-teal-dark);font-size:8px;font-weight:750}.map-refresh:disabled{cursor:not-allowed;opacity:.45}.map-message{display:flex;align-items:center;gap:7px;margin:8px 0;padding:8px 10px;border:1px solid #d9e5e1;border-radius:8px;background:#f6faf8;color:#64746f;font-size:8px}.map-message-error{border-color:#efc9cd;background:#fff4f5;color:#a9404d}
+.map-h3-shell>div>.row,.map-h3-shell>.row{margin:10px 0;padding:13px;border:1px solid var(--ds-line);border-radius:11px;background:#f8faf9}
+.map-h3-shell hr{margin:14px 0;border-color:var(--ds-line);opacity:1}.map-h3-shell .input-group-text{font-size:9px}.map-h3-shell .form-select,.map-h3-shell .form-control{font-size:10px}.map-h3-shell .form-check-label,.map-h3-shell .form-label{color:#53635f;font-size:9px;font-weight:700}
+.map-h3-shell #map{overflow:hidden;border:1px solid var(--ds-line);border-radius:12px;box-shadow:0 8px 25px rgba(28,62,53,.08)}
+.loading-overlay{background:rgba(244,249,247,.82);backdrop-filter:blur(4px)}.spinner{width:58px;height:58px;border:6px solid #dce9e5;border-top-color:var(--ds-teal);animation:spin .8s linear infinite}
+.range-track{background:#d5e1dd}.range-highlight{background:var(--ds-teal)}.value-display{color:#778581;font-size:8px}
+@media(max-width:900px){.map-h3-shell .row>[class*=col-]{width:100%;margin-bottom:10px}}
 </style>
