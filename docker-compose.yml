@@ -5,7 +5,13 @@ services:
       context: ./server
       dockerfile: Dockerfile
     volumes:
+      - ./server/data:/app/data
       - ~/.aws:/root/.aws:ro
+      # Secrets and config are mounted at runtime (not baked into the image).
+      - ./server/secrets.yml:/app/secrets.yml:ro
+      - ./server/config.yml:/app/config.yml:ro
+      # Uncomment if you use remote PostgreSQL databases (match pgpass_file in secrets.yml):
+      # - ./server/.pgpass:/app/.pgpass:ro
     ports:
       - "8000:8000"
 
