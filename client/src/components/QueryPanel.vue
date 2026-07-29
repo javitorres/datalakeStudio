@@ -233,16 +233,13 @@ import { ref } from 'vue';
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import GenericCross from './GenericCross.vue';
 import TableInspector from './TableInspector.vue';
 import CodeEditor from './CodeEditor.vue';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 defineProps({
   tables: Object,
@@ -292,7 +289,7 @@ async function runQuery() {
   } else if (activeQueryTab.value === 'aux5') {
     queryToRun = auxQuery5.value;
   }
-  const fetchData = () => axios.post(`${apiUrl}/database/runQuery`, {
+  const fetchData = () => api.post(`/database/runQuery`, {
     query: queryToRun,
   });
 
@@ -317,7 +314,7 @@ async function runQuery() {
 }
 
 async function createTable() {
-  const fetchData = () => axios.get(`${apiUrl}/database/createTableFromQuery`, {
+  const fetchData = () => api.get(`/database/createTableFromQuery`, {
     params: {
       query: query.value,
       tableName: tableFromQuery.value,
@@ -344,7 +341,7 @@ async function createTable() {
 }
 
 async function askChatGPT() {
-  const fetchData = () => axios.get(`${apiUrl}/gpt/askGPT`, {
+  const fetchData = () => api.get(`/gpt/askGPT`, {
     params: {
       question: chatGPTInput.value,
     },
@@ -375,7 +372,7 @@ async function useChatGPTAnswer() {
 }
 
 async function saveSqlQuery() {
-  const fetchData = () => axios.post(`${apiUrl}/queries/saveSqlQuery`, {
+  const fetchData = () => api.post(`/queries/saveSqlQuery`, {
     query: query.value,
     sqlQueryName: sqlQueryName.value,
     description: sqlQueryDescription.value
@@ -399,7 +396,7 @@ async function saveSqlQuery() {
 }
 
 async function searchQuery() {
-  const fetchData = () => axios.get(`${apiUrl}/queries/searchQuery`, {
+  const fetchData = () => api.get(`/queries/searchQuery`, {
     params: {
       query: sqlSearchQuery.value,
     },
@@ -431,7 +428,7 @@ async function selectQuery(queryCandidate) {
 }
 
 async function deleteQuery(queryCandidate) {
-  const fetchData = () => axios.get(`${apiUrl}/queries/deleteQuery`, {
+  const fetchData = () => api.get(`/queries/deleteQuery`, {
     params: {
       id_query: queryCandidate.id_query,
     },

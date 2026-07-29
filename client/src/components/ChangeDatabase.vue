@@ -38,14 +38,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-
-import { API_HOST, API_PORT } from '../../config';
-
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const databases = ref(null);
 const activeDatabase = ref(null);
@@ -59,7 +54,7 @@ const emit = defineEmits(['changedDatabase']);
 
 const getDatabaseList = async () => {
   try {
-    const response = await axios.get(`${apiUrl}/database/getDatabaseList`);
+    const response = await api.get(`/database/getDatabaseList`);
     databases.value = response.data;
     // Preferred source: explicit header from backend.
     activeDatabase.value = response.headers['x-current-database'] || null;
@@ -78,7 +73,7 @@ function isActiveDatabase(db) {
 
 const changeDatabase = async (databaseName) => {
   try {
-    await axios.get(`${apiUrl}/database/changeDatabase`, {
+    await api.get(`/database/changeDatabase`, {
       params: {
         databaseName: databaseName
       }
@@ -99,7 +94,7 @@ const createDatabase = async () => {
     return;
   }
   try {
-    await axios.get(`${apiUrl}/database/createDatabase`, {
+    await api.get(`/database/createDatabase`, {
       params: {
         databaseName: newDatabaseName.value
       }

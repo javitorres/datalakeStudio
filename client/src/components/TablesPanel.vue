@@ -86,12 +86,9 @@
 <script setup>
 import { ref } from 'vue';
 import TableInspector from './TableInspector.vue';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 defineProps({
   tables: Object,
@@ -117,7 +114,7 @@ function confirmDownload() {
 }
 
 function download(format) {
-  const fetchData = async () => await axios.get(`${apiUrl}/database/exportData`, {
+  const fetchData = async () => await api.get(`/database/exportData`, {
     params: {
       format: format,
       tableName: selectedTable.value,

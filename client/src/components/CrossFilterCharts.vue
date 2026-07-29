@@ -42,8 +42,7 @@ import {
   LegendComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import axios from 'axios';
-import { API_HOST, API_PORT } from '../../config';
+import api from '../services/api';
 
 use([
   BarChart,
@@ -57,8 +56,6 @@ use([
   LegendComponent,
   CanvasRenderer,
 ]);
-
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const props = defineProps({
   table: String,
@@ -110,7 +107,7 @@ async function fetchInitialRange(field) {
       approx_quantile("${field}", 0.98) AS mx
     FROM "${props.table}"
   `;
-  const res = await axios.post(`${apiUrl}/database/restConnector`, { type: 'json', sql });
+  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
   const row = res.data[0];
   const mn = Number(row.mn);
   const mx = Number(row.mx);
@@ -141,7 +138,7 @@ async function fetchHistogram(field, excludeField) {
     GROUP BY b.bin_start, b.bin_end
     ORDER BY b.bin_start
   `;
-  const res = await axios.post(`${apiUrl}/database/restConnector`, { type: 'json', sql });
+  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
   return res.data;
 }
 
@@ -154,7 +151,7 @@ async function fetchCategoryCounts(field, excludeField) {
     ORDER BY cnt DESC
     LIMIT 50
   `;
-  const res = await axios.post(`${apiUrl}/database/restConnector`, { type: 'json', sql });
+  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
   return res.data;
 }
 

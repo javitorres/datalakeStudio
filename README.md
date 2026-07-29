@@ -3,234 +3,260 @@
 <br/>
 <img src="https://github.com/javitorres/datalakeStudio/assets/4235424/3306a67f-91d3-4427-8214-96f8a1f02eb1" width=60% height=auto>
 <br/><br/>
-    
 </div>
 
 <p align="center">
-    <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Latest Release">
-    <img src="https://img.shields.io/badge/Vue-3.4.38-blue" alt="Vue3">
-    <img src="https://img.shields.io/badge/DuckDB-1.4.4-yellow" alt="DuckDB">
-    <img src="https://img.shields.io/badge/OpenAI-1.6.1-green" alt="OpenAI">
+    <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Version">
+    <img src="https://img.shields.io/badge/Vue-3.4-blue" alt="Vue 3">
+    <img src="https://img.shields.io/badge/FastAPI-0.108-009688" alt="FastAPI">
+    <img src="https://img.shields.io/badge/DuckDB-1.5.4-yellow" alt="DuckDB">
+    <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License: GPL v3">
 </p>
 
 # Datalake Studio
 
-Datalake Studio is an enhanced Data Exploration and Management tool
+**From raw data to ready-to-use APIs.** Datalake Studio is an open-source data
+workspace: load data from anywhere, explore millions of rows with DuckDB, query
+with SQL or an AI assistant, visualise it on charts and maps, and publish any
+query as a live REST API — all from a single tool that runs on your machine.
 
-## Key Features of Datalake Studio:
+Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-<b>Quick for big data:</b> Datalake Studio is built on top of DuckDB, a high-performance, embedded SQL OLAP database management system. DuckDB is designed to handle large datasets, making it ideal for data exploration and analysis.
+![Datalake Studio overview](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
 
-<b>See your data:</b> Plot automatically your data or see data over a map: Points, H3 aggregations, etc
+## Table of contents
 
-<b>Versatile Data Loading Options:</b> Users can effortlessly upload data from a several sources: directly from local computer, via a URL, or from an Amazon S3 bucket. Additionally, it supports direct data downloads from PostgreSQL databases, enhancing its utility for database administrators and data analysts.
+- [Key features](#key-features)
+- [Quick start (Docker)](#quick-start-docker)
+- [Running without Docker](#running-without-docker)
+- [Configuration](#configuration)
+- [Tests](#tests)
+- [Usage](#usage)
+- [License](#license)
 
-<b>Several data formats:</b> Wide range of data formats, Datalake Studio is compatible with CSV, TSV, Parquet and Shapefile formats. Load data without tedious conversions.
+## Key features
 
-<b>ChatGPT Integration with SQL Assistants:</b> Users with ChatGPT credentials can use the power of SQL assistants. These assistants provide contextual understanding about your tables and fields, making data manipulation and query formulation more intuitive and efficient.
+- **Fast on big data** — Built on top of [DuckDB](https://duckdb.org/), a
+  high-performance embedded OLAP engine designed to handle large datasets, ideal
+  for exploration and analysis.
+- **Load from anywhere** — Upload from your computer, pull from a URL, browse an
+  Amazon S3 bucket, or import directly from PostgreSQL databases.
+- **Many formats** — CSV, TSV, Parquet, JSON and Shapefile, with no tedious
+  conversions.
+- **Visualise your data** — Automatic charts, interactive cross-filters, and
+  geospatial maps with point and H3 hexagon aggregations.
+- **AI SQL assistant** — With OpenAI credentials, describe what you need in plain
+  language and get DuckDB SQL that already knows your tables and fields.
+- **Enrich from remote APIs** — Augment your datasets by calling external APIs.
+- **Publish as an API** — Turn any saved query into a parameterised REST endpoint
+  and share live data with other applications.
+- **Multi-user** — Optional login with username/password or "Sign in with
+  Google", each user with their own workspace.
 
-<b>Enhancement through Remote APIs:</b> Users have the ability to enrich their data by integrating information from remote APIs.
+## Quick start (Docker)
 
-<b>API Exposure for Data Sharing:</b> After completing data transformation processes, users can expose their data through APIs. This feature allows for easy sharing and collaboration, making Datalake Studio not just a tool for data exploration, but also a platform for data distribution.
+The fastest way to run the whole stack (frontend + backend).
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
+**Prerequisites:** Docker and Docker Compose. Ports **8080** and **8000** must be
+free on your machine.
 
-
-# Project build with Docker
-
-```
+```bash
 docker-compose up --build
 ```
 
-Open http://localhost:8080/ in your browser.
+Then open **http://localhost:8080/** in your browser. The backend API runs on
+**http://localhost:8000/**.
 
-## If you dont want to use compose
+Datalake Studio works out of the box for local files and URLs. To enable S3,
+PostgreSQL, the AI assistant or maps, add a `server/secrets.yml` file (see
+[Configuration](#configuration)). Docker Compose also mounts your `~/.aws`
+credentials into the backend for AWS access.
 
-docker build -t datalakestudioserver .
-docker run --name datalakestudioserver -p 8000:8000 datalakestudioserver
+### Without Compose
 
-docker build -t datalakestudiofront .
-docker run --name datalakestudiofront -p 8080:8080 datalakestudiofront
+Build and run each image separately:
 
-# Project build without Docker
+```bash
+# Backend
+docker build -t datalakestudio-backend ./server
+docker run --name datalakestudio-backend -p 8000:8000 datalakestudio-backend
 
-## Server
-
-Inside server folder run:
+# Frontend
+docker build -t datalakestudio-frontend ./client
+docker run --name datalakestudio-frontend -p 8080:8080 datalakestudio-frontend
 ```
-pip3 install -r requirements.txt
-python3 server.py
-```
 
-If you want to use venv:
-```
+## Running without Docker
+
+### Server
+
+From the `server/` folder:
+
+```bash
 python3 -m venv venv
-source venv/bin/activate
+source venv/bin/activate          # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python server.py
 ```
 
-Exit venv:
-```
-deactivate
-```
+Requires **Python 3.10+** (DuckDB 1.5+ needs it). Exit the virtualenv with
+`deactivate`.
 
-Tests:
-```
-pip install pytest
-python -m pytest -q
-```
+### Client
 
+From the `client/` folder:
 
-
-
-
-## Client
-
-Inside the client folder of the project, run these commands to build the Vue UI project:
-
-```
+```bash
 npm install
 npm run dev -- --port 8080
 ```
 
-Open http://localhost:8080/ in your browser.
+Then open **http://localhost:8080/**.
 
+By default the client talks to the backend at `http://localhost:8000`. To point
+it elsewhere, create a `client/.env` file:
 
-Tests:
+```bash
+VITE_API_URL=https://your-backend-host      # e.g. behind a reverse proxy
+# or, individually:
+# VITE_API_HOST=http://localhost
+# VITE_API_PORT=8000
+# VITE_GOOGLE_CLIENT_ID=your-google-client-id
 ```
-npm run test:run
-```
 
-# Configuration files
+## Configuration
 
-## Server
+### `server/config.yml`
 
-Inside server folder create a file named config.yml. Example:
+Server behaviour. Example:
 
-```
+```yaml
 port: 8000
-database: "data/datalakeStudio.db"
+databasesFolder: "data"          # where per-user databases are stored
+defaultDatabase: "datalakeStudio.db"
+downloadFolder: "temp"           # temp folder for uploads and exports
+authEnabled: false               # true = require login; false = anonymous "default" user
+allowedOrigins:                  # CORS origins for app endpoints (not /api/*)
+  - "http://localhost:8080"
 ```
 
-And another file named secrets.yml with properties:
+### `server/secrets.yml`
 
-```
-# Optional for DuckDB to work with S3, if not defined, user aws credentials will be loaded through the AWS Default Credentials Provider Chain
-s3_access_key_id: "YOUR_S3_ACCESS_KEY_ID"
-s3_secret_access_key: "YOUR_S3_SECRET_ACCESS_KEY"
+Credentials and optional integrations. Copy the template and fill in what you
+need — everything is optional depending on the features you use:
 
-# For OpenAI
-openai_organization: "YOUR_OPENAI_ORGANIZATION"
-openai_api_key: "YOUR_OPENAI_API_KEY"
-
-# For API search
-api_domain: "YOUR_API_DOMAIN"
-api_context: "YOUR_API_CONTEXT"
-
-# Database connections
-pgpass_file: "YOUR_PG_PASS_FILE"
-
-# Mapbox
-mapbox_access_token: "YOUR_MAPBOX_ACCESS_TOKEN"
-
+```bash
+cp server/secrets.yml.template server/secrets.yml
 ```
 
-Also, docker-compose will get the credentials in .aws for AWS access.
+It covers S3 access, OpenAI (AI assistant), the API search domain, the PostgreSQL
+`pgpass` file, a Mapbox token (maps), Google OAuth and SMTP (email verification /
+password recovery). If you enable `authEnabled`, also set a strong `jwt_secret`.
 
-If you want to use remote database, copy your pgpass file to the server folder. pgpass is a file with the following format:
+> **Never commit `secrets.yml` or `.pgpass`.** They are already in `.gitignore`,
+> and a pre-commit hook in `.githooks/` blocks accidental secret commits — enable
+> it with `git config core.hooksPath .githooks`.
 
+### Remote databases (`.pgpass`)
+
+To use remote PostgreSQL databases, point `pgpass_file` at a file with one line
+per connection:
 
 ```
 hostname:port:database:username:password
 ```
 
-# Usage
+## Tests
 
-## Load data
+```bash
+# Backend (from server/, with the virtualenv active)
+python -m pytest -q
 
-You can load data from local filesystem, from any URL or from S3. 
-Try to load this example: https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv
+# Frontend (from client/)
+npm run test:run
+```
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/6954818b-94f6-4438-b7b7-012f42edeb63)
+## Usage
 
-## Table explorer
+### Load data
 
-Inspect loaded data. Export data to CSV or Parquet
+Load from your local filesystem, any URL, or S3. Try this example dataset:
+`https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv`
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/5625c1e9-a399-4089-acd1-73381174089c)
+![Load data](https://github.com/javitorres/datalakeStudio/assets/4235424/6954818b-94f6-4438-b7b7-012f42edeb63)
 
-Get data profile
+### Table explorer
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/959a1fae-2740-488e-b9ac-5e3c8079e8dd)
+Inspect loaded data and export it to CSV or Parquet.
 
-or use crossfilter to play with your data
+![Table explorer](https://github.com/javitorres/datalakeStudio/assets/4235424/5625c1e9-a399-4089-acd1-73381174089c)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/392f50f8-6d8d-4a4f-a1fa-9e70c7fc652b)
+Get a data profile:
 
-If your data has spatial info you can see in a map:
+![Data profile](https://github.com/javitorres/datalakeStudio/assets/4235424/959a1fae-2740-488e-b9ac-5e3c8079e8dd)
 
-![Captura desde 2024-08-19 18-09-32](https://github.com/user-attachments/assets/cc91394c-1f4a-4b3b-9065-983b6efd3764)
+Or use cross-filters to explore interactively:
 
-<img width="1239" alt="image" src="https://github.com/user-attachments/assets/5be35c2f-72ba-4678-a36f-4c2cab45046b">
+![Cross-filter](https://github.com/javitorres/datalakeStudio/assets/4235424/392f50f8-6d8d-4a4f-a1fa-9e70c7fc652b)
 
-<img width="1251" alt="image" src="https://github.com/user-attachments/assets/641c757a-c228-4f1d-9ad0-5c1d72554a99">
+If your data has spatial information, view it on a map:
 
+![Map view](https://github.com/user-attachments/assets/cc91394c-1f4a-4b3b-9065-983b6efd3764)
 
+<img width="1239" alt="Map points" src="https://github.com/user-attachments/assets/5be35c2f-72ba-4678-a36f-4c2cab45046b">
 
+<img width="1251" alt="H3 aggregation" src="https://github.com/user-attachments/assets/641c757a-c228-4f1d-9ad0-5c1d72554a99">
 
+### Query panel
 
-## Query panel
+Query your data and generate new tables. Save and load queries, or ask the AI
+assistant to write SQL for you.
 
-Query your data and generate new tables. Save or load your queries. Use ChatGPT to create new queries
+![Query panel](https://github.com/javitorres/datalakeStudio/assets/4235424/13de8f41-e002-4f2a-811b-a64a3fdeca19)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/13de8f41-e002-4f2a-811b-a64a3fdeca19)
+### Enrich from APIs
 
-# Load data from APIs
+Enrich your datasets by calling external APIs:
 
-Enrich your datasets calling external APIs
+![API enrichment](https://github.com/javitorres/datalakeStudio/assets/4235424/8a81495b-0e40-4829-af9e-f1081f871bb9)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/8a81495b-0e40-4829-af9e-f1081f871bb9)
+Resulting table:
 
-New table:
+![Enriched table](https://github.com/javitorres/datalakeStudio/assets/4235424/d367ddfa-089d-4670-8277-0693899b50cd)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/d367ddfa-089d-4670-8277-0693899b50cd)
+### Load from remote databases
 
+Explore external databases and load data into Datalake Studio for local analysis:
 
-# Load data from remote databases
+![Remote databases](https://github.com/javitorres/datalakeStudio/assets/4235424/948a0165-a908-43ce-b195-cdd17839f45e)
 
-Explore your external databases and load data into Datalake Studio for local analysis
+### Expose your data via API
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/948a0165-a908-43ce-b195-cdd17839f45e)
+Publish endpoints that serve your data with parameterised queries:
 
+![Publish API](https://github.com/javitorres/datalakeStudio/assets/4235424/34537cf8-c59c-4167-940c-3c07a71e2cc5)
 
-# Expose your data via API
+Keep control of the endpoints you publish:
 
-Publish endpoints serving your data with parametrized queries:
+![Manage endpoints](https://github.com/javitorres/datalakeStudio/assets/4235424/32ee7182-228c-4130-8ce7-482e464c3c0d)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/34537cf8-c59c-4167-940c-3c07a71e2cc5)
+### Explore your S3 buckets
 
-Keep control of endpoints published:
+Navigate your S3 buckets and add descriptions:
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/32ee7182-228c-4130-8ce7-482e464c3c0d)
+![S3 explorer](https://github.com/javitorres/datalakeStudio/assets/4235424/cd63c467-7cee-4fdc-8c9d-705372e8387e)
 
-# Explore your S3 buckets
+Preview files or load them into Datalake Studio:
 
-Move in your S3 buckets and write descriptions
+![S3 preview](https://github.com/javitorres/datalakeStudio/assets/4235424/16c1f44a-52a0-4593-9c42-4f687fe315b1)
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/cd63c467-7cee-4fdc-8c9d-705372e8387e)
+### Talk to ChatGPT
 
-Preview files or load them into DatalaleStudio
+Explore your data conversationally (experimental):
 
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/16c1f44a-52a0-4593-9c42-4f687fe315b1)
+![ChatGPT](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
 
+## License
 
-# Talk to ChatGPT 
-Talk to explore your data (experimental)
-
-![image](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
-
-
-
-
-
-
-
+Distributed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE)
+for details.

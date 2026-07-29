@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+#
+# Pre-commit hook: block accidental commits of secrets.
+#
+# Enable it once per clone with:
+#   git config core.hooksPath .githooks
+#
+# It refuses the commit if a known secret file is staged or if staged content
+# matches common credential patterns (AWS keys, OpenAI keys, private keys, etc.).
+
+set -euo pipefail
+
+staged=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$staged" ] && exit 0
+
+fail=0
+
+# 1) Block obvious secret files by name, even if .gitignore is bypassed.
+while IFS= read -r file; do
+  case "$file" in
+    *secrets.yml|*.pgpass|*.pem|*.key|.env|.env.*)
+      echo "BLOCKED: '$file' looks like a secret file and must not be committed."
+      fail=1
+      ;;
+  esac
+done <<< "$staged"
+
+# 2) Scan staged content for credential-looking strings.
+patterns='AKIA[0-9A-Z]{16}|sk-proj-[A-Za-z0-9_-]{20,}|sk-[A-Za-z0-9]{32,}|re_[A-Za-z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----'
+while IFS= read -r file; do
+  # Only scan text files that still exist in the worktree.
+  [ -f "$file" ] || continue
+  if git show ":$file" 2>/dev/null | grep -Eq "$patterns"; then
+    echo "BLOCKED: '$file' contains something that looks like a secret/credential."
+    fail=1
+  fi
+done <<< "$staged"
+
+if [ "$fail" -ne 0 ]; then
+  echo ""
+  echo "Commit aborted. Remove the secret(s) or, if this is a false positive,"
+  echo "commit with:  git commit --no-verify"
+  exit 1
+fi
+
+exit 0

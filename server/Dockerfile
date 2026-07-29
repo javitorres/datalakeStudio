@@ -1,5 +1,6 @@
 # Elegir una versión específica de Python
-FROM python:3.9
+# Python >= 3.10 es necesario para duckdb >= 1.5 (y coincide con el venv local).
+FROM python:3.12
 
 # Establecer el directorio de trabajo
 WORKDIR /app

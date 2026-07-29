@@ -1,6 +1,8 @@
 import psycopg2
 import pandas as pd
 
+from config import Config
+
 
 
 
@@ -123,7 +125,8 @@ def runRemoteQuery(connection, query):
 ######################################################### PROBADAS
 
 def getPassword(host, port, db, user):
-    with open(st.secrets["pgpass_file"], 'r') as f:
+    pgpassfile = Config.get_instance().get_secrets.get("pgpass_file")
+    with open(pgpassfile, 'r') as f:
         lines = f.readlines()
 
     for line in lines:
@@ -153,7 +156,7 @@ def getConnection(selectedDatabase):
         password=password
     )
     if (connection is None):
-        print("Error connecting to database with config:"+ str(databaseConfig))
+        print("Error connecting to database with config:"+ str(selectedDatabase))
     return connection
 
 #########################################################

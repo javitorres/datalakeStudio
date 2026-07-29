@@ -177,12 +177,9 @@
 
 <script setup>
 import { ref } from 'vue';
-import axios from 'axios';
+import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
-
-import { API_HOST, API_PORT } from '../../config';
-const apiUrl = `${API_HOST}:${API_PORT}`;
 
 const emit = defineEmits(['tableCreated']);
 
@@ -208,7 +205,7 @@ function uploadFile() {
   formData.append('file', file);
   formData.append('tableName', tableNameInputUpload.value);
 
-  const fetchData = () => axios.post(`${apiUrl}/database/uploadFile`, formData, {
+  const fetchData = () => api.post(`/database/uploadFile`, formData, {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
@@ -255,7 +252,7 @@ async function findFileInS3() {
 
   S3Files.value = [];
 
-  const fetchData = () => axios.get(`${apiUrl}/s3/s3Search`, {
+  const fetchData = () => api.get(`/s3/s3Search`, {
     params: {
       bucket: bucket.value,
       fileName: fileInputS3.value,
@@ -287,7 +284,7 @@ function clickS3File(S3File) {
 }
 
 async function loadFile(tableNameInput, fileInput) {
-  const fetchData = () => axios.get(`${apiUrl}/database/loadFile`, {
+  const fetchData = () => api.get(`/database/loadFile`, {
     params: {
       tableName: tableNameInput,
       fileName: fileInput,

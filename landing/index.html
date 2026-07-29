@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Datalake Studio is an open-source data workspace: load from anywhere, explore millions of rows with DuckDB, ask an AI SQL assistant, map it, and publish any query as a live REST API.">
+<meta property="og:title" content="Datalake Studio — From raw data to ready-to-use APIs">
+<meta property="og:description" content="Load, explore and transform data in one workspace. Query with SQL or AI, visualise on maps, and publish the result as a live API.">
+<meta property="og:type" content="website">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<title>Datalake Studio — Data to API in seconds</title>
+<style>
+/* ---------- tokens & base ---------- */
+:root{
+  --ink:#17211f; --ink-soft:#687370; --line:#dfe8e5;
+  --bg:#fbfdfc; --panel:#ffffff;
+  --brand:#0d846f; --brand-2:#16a085; --brand-ink:#08735f;
+  --mint:#dff2ec; --mint-soft:#eef8f5;
+  --code-bg:#0f1c1a; --code-line:#243b37; --code-ink:#c9ded8;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--ink);background:var(--bg);font:15px/1.6 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
+a{text-decoration:none;color:inherit}
+button{font:inherit}
+h1,h2,h3{font-weight:680}
+
+/* ---------- nav ---------- */
+.nav{height:74px;display:flex;align-items:center;justify-content:space-between;padding:0 clamp(24px,6vw,90px);border-bottom:1px solid var(--line);background:#fbfdfce8;backdrop-filter:blur(12px);position:fixed;inset:0 0 auto;z-index:9}
+.brand{display:flex;align-items:center;gap:10px;font-size:12px;font-weight:800;letter-spacing:.13em}
+.logo{width:32px;height:32px;color:var(--brand)}
+.logo circle{fill:currentColor}
+.logo path{fill:none;stroke:currentColor;stroke-width:2}
+.links{display:flex;align-items:center;gap:30px;font-size:12px;font-weight:650}
+.links a:hover:not(.nav-cta){color:var(--brand)}
+.nav-cta{padding:10px 15px;border-radius:8px;background:var(--ink);color:#fff}
+
+/* ---------- hero ---------- */
+.hero{min-height:760px;display:grid;grid-template-columns:.85fr 1.15fr;align-items:center;gap:clamp(40px,6vw,90px);padding:130px clamp(30px,6vw,92px) 90px;position:relative;background:radial-gradient(circle at 88% 18%,#a4ded050,transparent 28%),linear-gradient(135deg,#fbfdfc,#f1f8f5)}
+.hero:before{content:"";position:absolute;inset:0;opacity:.28;background-image:linear-gradient(#dce8e4 1px,transparent 1px),linear-gradient(90deg,#dce8e4 1px,transparent 1px);background-size:48px 48px;mask-image:linear-gradient(to right,transparent 38%,#000 75%,transparent)}
+.copy,.preview{position:relative;z-index:1}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;padding:7px 12px;border:1px solid #d7e5e1;border-radius:30px;background:#ffffffc0;color:#47615c;font-size:10px;font-weight:750;letter-spacing:.14em}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:var(--brand-2);box-shadow:0 0 0 4px #16a08520}
+.hero h1{max-width:680px;margin:20px 0 0;font-size:clamp(3.2rem,5.6vw,6.1rem);line-height:.96;letter-spacing:-.065em}
+.hero h1 em{color:var(--brand);font:inherit}
+.lead{max-width:610px;margin:28px 0;color:var(--ink-soft);font-size:clamp(1rem,1.35vw,1.2rem);line-height:1.75}
+.actions{display:flex;flex-wrap:wrap;gap:11px}
+.button{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:14px 20px;border-radius:9px;font-weight:700;transition:.2s}
+.button:hover{transform:translateY(-2px)}
+.primary{background:var(--ink);color:#fff;box-shadow:0 10px 25px #17211f2b}
+.secondary{border:1px solid #d8e3df;background:#fff}
+.proof{display:flex;flex-wrap:wrap;gap:18px;margin-top:25px;color:#75807e;font-size:10px;letter-spacing:.04em}
+.proof span:before{content:"●";color:var(--brand);margin-right:6px}
+
+/* ---------- app mockup ---------- */
+.window{overflow:hidden;border:1px solid #b8ccc6;border-radius:15px;background:#fff;box-shadow:0 35px 80px #2649412e}
+.bar{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 15px;border-bottom:1px solid #e8edeb;background:#fbfcfc;font-size:10px;font-weight:700}
+.dots{display:flex;gap:5px}
+.dots i{width:6px;height:6px;border-radius:50%;background:#cfd8d5}
+.workspace{display:flex;height:410px}
+.side{width:50px;display:flex;flex-direction:column;gap:10px;padding:15px 9px;background:#15211f}
+.side span{height:30px;display:grid;place-items:center;border-radius:7px;color:#83928f;font-size:13px}
+.side .active{background:#2b4540;color:#a7e0d2}
+.dash{flex:1;min-width:0;padding:19px;background:#f8faf9;display:flex;flex-direction:column}
+.dash-head{display:flex;justify-content:space-between;align-items:flex-start}
+.dash-head div{display:grid}
+.dash small,.float small,.src small{color:#8a9693;font-size:7px;letter-spacing:.12em;font-weight:700}
+.dash-head b{font-size:14px}
+.live{padding:4px 8px;border:1px solid #d9e6e2;border-radius:20px;background:#fff;color:#11826b;font-size:8px;white-space:nowrap}
+.sqlbar{display:flex;align-items:center;gap:8px;margin-top:13px;padding:9px 11px;border:1px solid #dbe7e3;border-radius:8px;background:var(--code-bg);font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:8.5px;color:var(--code-ink);overflow:hidden}
+.sqlbar .kw{color:#5fd0b5}
+.sqlbar .run{margin-left:auto;padding:3px 8px;border-radius:5px;background:var(--brand);color:#fff;font-family:Inter,sans-serif;font-size:8px;font-weight:700;white-space:nowrap}
+.metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.metrics article{display:grid;padding:11px;border:1px solid #e7eceb;border-radius:8px;background:#fff}
+.metrics b{font-size:16px}
+.metrics em{color:var(--brand);font-size:8px;font-style:normal}
+.panels{display:grid;grid-template-columns:1.6fr 1fr;gap:8px;margin-top:8px}
+.chart,.sources{padding:12px;border:1px solid #e7eceb;border-radius:8px;background:#fff;overflow:hidden}
+.chart{display:flex;flex-direction:column}
+.chart>div{display:flex;justify-content:space-between;font-size:9px}
+.chart svg{width:100%;flex:1;min-height:0}
+.area{fill:url(#area)}
+.line{fill:none;stroke:var(--brand);stroke-width:2.5}
+.sources>b{font-size:9px}
+.src{display:flex;align-items:center;gap:7px;margin:0;padding:11px 0;border-bottom:1px solid #edf1f0}
+.src:last-child{border-bottom:0}
+.src i{width:25px;height:25px;display:grid;place-items:center;border-radius:6px;background:var(--mint-soft);color:var(--brand);font-size:7px;font-style:normal;font-weight:800}
+.src span{flex:1;display:grid;font-size:8px}
+.src em{font-size:8px;font-style:normal;color:#8a9693}
+.float{position:absolute;min-width:195px;display:flex;align-items:center;gap:9px;padding:10px;border:1px solid #dce6e3;border-radius:10px;background:#fffffff4;box-shadow:0 14px 35px #24433c29}
+.float>i{width:30px;height:30px;display:grid;place-items:center;border-radius:8px;background:var(--mint);color:var(--brand);font-style:normal}
+.float span{flex:1;display:grid}
+.float b{font-size:9px}
+.float em{padding:3px 5px;border-radius:5px;background:var(--mint-soft);color:var(--brand-ink);font-size:8px;font-style:normal}
+.float.ai{top:-26px;right:-20px}
+.float.api{left:-28px;bottom:-25px}
+
+/* ---------- tech strip ---------- */
+.tech{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:clamp(20px,5vw,70px);padding:25px 30px;border-bottom:1px solid #e3ebe8;background:#f8fbfa;color:#75827e}
+.tech span{font-size:11px;font-weight:800;letter-spacing:.1em}
+.tech b{color:var(--brand)}
+
+/* ---------- workflow ---------- */
+.workflow{padding:52px clamp(30px,6vw,92px);border-bottom:1px solid #e3ebe8;background:#fff}
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;max-width:1050px;margin:auto}
+.step small{color:var(--brand);font-size:11px;font-weight:800;letter-spacing:.12em}
+.step b{display:block;margin:6px 0 4px;color:#24312e;font-size:16px}
+.step p{margin:0;color:var(--ink-soft);font-size:12px;line-height:1.5}
+
+/* ---------- signature: SQL -> API ---------- */
+.signature{padding:clamp(70px,8vw,110px) clamp(30px,6vw,92px);background:linear-gradient(180deg,#f4faf8,#fff)}
+.sig-head{max-width:720px;margin:0 auto 44px;text-align:center}
+.sig-head span{color:var(--brand);font-size:10px;font-weight:800;letter-spacing:.17em}
+.sig-head h2{margin:12px 0 10px;font-size:clamp(2.2rem,3.6vw,3.6rem);line-height:1.05;letter-spacing:-.05em}
+.sig-head p{margin:0;color:var(--ink-soft)}
+.sig-grid{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:clamp(16px,3vw,34px);max-width:1080px;margin:auto}
+.card-code{border-radius:14px;overflow:hidden;border:1px solid var(--code-line);background:var(--code-bg);box-shadow:0 24px 60px #12312a2e}
+.card-code header{display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid var(--code-line);color:#8fb3ab;font-size:10px;font-weight:700;letter-spacing:.06em}
+.card-code header .tag{margin-left:auto;padding:2px 8px;border-radius:20px;background:#17322d;color:#6fd6bc;font-size:9px}
+.card-code pre{margin:0;padding:18px 16px;font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:12.5px;line-height:1.7;color:var(--code-ink);overflow-x:auto}
+.card-code .kw{color:#5fd0b5}
+.card-code .fn{color:#7cc7ff}
+.card-code .str{color:#e6c07b}
+.card-code .par{color:#ff8fb0}
+.card-code .cm{color:#5f7a74}
+.card-code .mut{color:#8fb3ab}
+.sig-arrow{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;background:var(--brand);color:#fff;font-size:20px;box-shadow:0 10px 24px #0d846f4d}
+.resp{margin-top:8px;padding:12px 16px;border-top:1px solid var(--code-line);font-family:ui-monospace,Menlo,monospace;font-size:11.5px;color:#9fd8c9}
+.resp .k{color:#7cc7ff}
+.sig-note{max-width:1080px;margin:26px auto 0;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;color:#5f716d;font-size:11px}
+.sig-note b{color:var(--brand-ink)}
+.sig-note span{padding:6px 12px;border:1px solid #d7e5e1;border-radius:20px;background:#fff}
+
+/* ---------- features ---------- */
+.features{padding:clamp(70px,8vw,110px) clamp(30px,6vw,92px);background:#fff}
+.section-head{display:grid;grid-template-columns:1.2fr .8fr;align-items:end;gap:45px;margin-bottom:46px}
+.section-head span{color:var(--brand);font-size:10px;font-weight:800;letter-spacing:.17em}
+.section-head h2{margin:12px 0 0;font-size:clamp(2.3rem,3.6vw,3.8rem);line-height:1.05;letter-spacing:-.05em}
+.section-head p{max-width:430px;margin:0;color:var(--ink-soft)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}
+.grid article{min-height:250px;display:flex;flex-direction:column;position:relative;padding:clamp(24px,2.4vw,34px);border:1px solid #dfe7e4;border-radius:13px;background:#fbfcfc;transition:.2s}
+.grid article:hover{transform:translateY(-3px);box-shadow:0 18px 40px #223c3617}
+.grid article>small{position:absolute;right:22px;top:18px;color:#aab5b2;font-weight:700}
+.feature-icon{width:43px;height:43px;display:grid;place-items:center;margin-bottom:24px;border-radius:10px;background:var(--mint);color:var(--brand);font-size:18px;font-style:normal}
+.grid h3{margin:0 0 9px;font-size:19px}
+.grid p{color:var(--ink-soft);font-size:13px;margin:0}
+.grid .mint{background:var(--mint-soft)}
+.grid .dark{border-color:var(--ink);background:var(--ink);color:#fff}
+.grid .dark .feature-icon{background:#29423d;color:#a7e0d2}
+.grid .dark p{color:#aebbb8}
+
+/* ---------- open source band ---------- */
+.oss{display:grid;grid-template-columns:repeat(4,1fr);gap:20px;max-width:1050px;margin:0 auto;padding:0 clamp(30px,6vw,92px) clamp(60px,7vw,90px)}
+.oss article{text-align:center}
+.oss b{display:block;font-size:clamp(1.8rem,3vw,2.6rem);color:var(--brand);letter-spacing:-.04em}
+.oss small{color:var(--ink-soft);font-size:12px}
+
+/* ---------- closing + footer ---------- */
+.closing{padding:clamp(75px,9vw,120px) 30px;text-align:center;color:#fff;background:var(--brand)}
+.closing small{font-weight:800;letter-spacing:.15em}
+.closing h2{margin:18px auto 5px;font-size:clamp(2.3rem,4vw,4.2rem);letter-spacing:-.055em}
+.closing p{margin:0 0 28px;color:#c5e7df}
+.light{background:#fff;color:var(--brand-ink)}
+footer{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:30px clamp(24px,6vw,90px);background:#111c1a;color:#aeb9b6;font-size:11px}
+footer .brand{color:#fff}
+footer a:hover{color:#fff}
+
+/* ---------- motion ---------- */
+.reveal{opacity:0;transform:translateY(18px);transition:opacity .7s ease,transform .7s ease}
+.reveal.visible{opacity:1;transform:none}
+.preview.reveal{transition-delay:.12s}
+.window{transition:transform .45s ease,box-shadow .45s ease}
+.preview:hover .window{transform:translateY(-5px)}
+.float{animation:float 4s ease-in-out infinite}
+.float.api{animation-delay:-2s}
+.live{animation:pulse 2s ease-in-out infinite}
+.nav-cta,.primary{position:relative;overflow:hidden}
+.nav-cta:after,.primary:after{content:"";position:absolute;inset:0;transform:translateX(-120%) skewX(-20deg);background:linear-gradient(90deg,transparent,#ffffff25,transparent);transition:transform .6s}
+.nav-cta:hover:after,.primary:hover:after{transform:translateX(120%) skewX(-20deg)}
+@keyframes float{50%{transform:translateY(-5px)}}
+@keyframes pulse{50%{box-shadow:0 0 0 4px #0d846f12}}
+
+/* ---------- responsive ---------- */
+@media(max-width:1050px){
+  .hero{grid-template-columns:1fr}
+  .preview{width:min(760px,94%);margin:30px auto 0}
+  .flow{grid-template-columns:repeat(2,1fr)}
+  .grid{grid-template-columns:repeat(2,1fr)}
+  .oss{grid-template-columns:repeat(2,1fr);gap:28px}
+}
+@media(max-width:760px){
+  .sig-grid{grid-template-columns:1fr}
+  .sig-arrow{transform:rotate(90deg);margin:2px auto}
+}
+@media(max-width:700px){
+  .links a:not(.nav-cta){display:none}
+  .hero{padding:120px 22px 75px}
+  .hero h1{font-size:clamp(2.8rem,14vw,4.4rem)}
+  .actions .button{width:100%}
+  .proof{flex-direction:column;gap:7px}
+  .workspace{height:330px}
+  .side{display:none}
+  .dash{padding:12px}
+  .panels{grid-template-columns:1fr}
+  .sources{display:none}
+  .float{transform:scale(.83)}
+  .float.ai{right:-9px;transform-origin:right}
+  .float.api{left:-9px;transform-origin:left}
+  .flow{grid-template-columns:1fr}
+  .section-head,.grid{grid-template-columns:1fr}
+  .section-head{gap:18px}
+  footer{flex-direction:column;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .reveal{opacity:1;transform:none}
+  .float,.live{animation:none}
+}
+</style>
+</head>
+<body>
+<header class="nav">
+  <a class="brand" href="#top"><svg class="logo" viewBox="0 0 48 48"><circle cx="24" cy="24" r="7"/><circle cx="24" cy="5" r="3"/><circle cx="42" cy="15" r="3"/><circle cx="39" cy="36" r="3"/><circle cx="9" cy="36" r="3"/><circle cx="6" cy="15" r="3"/><path d="M24 8v9M39 16l-9 5M36 34l-7-6M12 34l7-6M9 16l9 5"/></svg><span>DATALAKE STUDIO</span></a>
+  <nav class="links">
+    <a href="#workflow">Workflow</a>
+    <a href="#sql-api">SQL → API</a>
+    <a href="#features">Features</a>
+    <a class="nav-cta" href="https://github.com/javitorres/datalakeStudio">View on GitHub ↗</a>
+  </nav>
+</header>
+
+<main id="top">
+<section class="hero">
+  <div class="copy reveal">
+    <p class="eyebrow"><i></i> OPEN-SOURCE DATA WORKSPACE</p>
+    <h1>From raw data to <em>ready-to-use APIs.</em></h1>
+    <p class="lead">Load data from files, S3, PostgreSQL or a URL. Explore millions of rows with DuckDB, write SQL or just ask the AI assistant, map it, and publish any query as a live REST API — all in one workspace.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/javitorres/datalakeStudio">Get Datalake Studio →</a>
+      <a class="button secondary" href="#sql-api">See it in action ↓</a>
+    </div>
+    <div class="proof"><span>Runs locally</span><span>Powered by DuckDB</span><span>No vendor lock-in</span></div>
+  </div>
+
+  <div class="preview reveal">
+    <div class="window">
+      <div class="bar"><span>◉ Datalake Studio</span><span class="dots"><i></i><i></i><i></i></span></div>
+      <div class="workspace">
+        <aside class="side"><span class="active">⌘</span><span>▤</span><span>⌁</span><span>◔</span><span>{ }</span></aside>
+        <div class="dash">
+          <div class="dash-head">
+            <div><small>WORKSPACE / IRIS</small><b>Query results</b></div>
+            <span class="live">● 18&nbsp;ms · DuckDB</span>
+          </div>
+          <div class="sqlbar"><span class="kw">SELECT</span>&nbsp;species,&nbsp;<span class="kw">avg</span>(sepal_length)&nbsp;<span class="kw">FROM</span>&nbsp;iris&nbsp;<span class="kw">GROUP BY</span>&nbsp;species<span class="run">▸ Run</span></div>
+          <div class="metrics">
+            <article><small>ROWS SCANNED</small><b>2.4M</b><em>full table</em></article>
+            <article><small>QUERY TIME</small><b>18 ms</b><em>DuckDB</em></article>
+            <article><small>TABLES</small><b>12</b><em>in workspace</em></article>
+          </div>
+          <div class="panels">
+            <article class="chart">
+              <div><b>Distribution</b><small>avg sepal length</small></div>
+              <svg viewBox="0 0 360 130" preserveAspectRatio="none">
+                <defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#0d846f" stop-opacity=".3"/><stop offset="1" stop-color="#0d846f" stop-opacity="0"/></linearGradient></defs>
+                <path class="area" d="M0 110C40 105 48 70 85 82s48 18 80-18 52-30 82-10 55 15 78-18 27-15 35-12v106H0Z"/>
+                <path class="line" d="M0 110C40 105 48 70 85 82s48 18 80-18 52-30 82-10 55 15 78-18 27-15 35-12"/>
+              </svg>
+            </article>
+            <article class="sources">
+              <b>Sources</b>
+              <p class="src"><i>CSV</i><span>iris.csv<small>150 rows</small></span><em>local</em></p>
+              <p class="src"><i>DB</i><span>PostgreSQL<small>catalog</small></span><em>live</em></p>
+              <p class="src"><i>S3</i><span>parquet/*<small>2.4M rows</small></span><em>bucket</em></p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="float ai"><i>✦</i><span><small>AI SQL ASSISTANT</small><b>Query generated</b></span><em>✓</em></div>
+    <div class="float api"><i>{ }</i><span><small>ENDPOINT READY</small><b>/api/carsByBrand</b></span><em>200</em></div>
+  </div>
+</section>
+
+<section class="tech reveal">
+  <span><b>CSV</b> · PARQUET · JSON</span>
+  <span>DUCKDB</span>
+  <span>POSTGRESQL</span>
+  <span>AMAZON S3</span>
+  <span>SHAPEFILE · H3</span>
+  <span>REST API</span>
+</section>
+
+<section id="workflow" class="workflow">
+  <div class="flow">
+    <div class="step reveal"><small>01 · CONNECT</small><b>Bring your data</b><p>Upload files, connect Postgres, browse an S3 bucket or pull from a URL.</p></div>
+    <div class="step reveal"><small>02 · EXPLORE</small><b>Query &amp; profile</b><p>Run SQL on DuckDB or ask the AI assistant. Profile millions of rows in milliseconds.</p></div>
+    <div class="step reveal"><small>03 · VISUALISE</small><b>See patterns</b><p>Charts, cross-filters and geospatial maps with H3 aggregations.</p></div>
+    <div class="step reveal"><small>04 · PUBLISH</small><b>Ship an API</b><p>Turn any saved query into a parameterised REST endpoint.</p></div>
+  </div>
+</section>
+
+<section id="sql-api" class="signature">
+  <div class="sig-head reveal">
+    <span>THE PART THAT SAVES YOUR TEAM WEEKS</span>
+    <h2>A saved query <em style="color:var(--brand);font-style:normal">is</em> your API.</h2>
+    <p>No exports, no glue services, no scheduled dumps. Add a parameter with <code>{braces}</code>, hit publish, and Datalake Studio serves live data over REST.</p>
+  </div>
+  <div class="sig-grid">
+    <div class="card-code reveal">
+      <header>SAVED SQL QUERY <span class="tag">carsByBrand</span></header>
+<pre><span class="kw">SELECT</span> brand, model, price
+<span class="kw">FROM</span>   cars
+<span class="kw">WHERE</span>  brand = <span class="par">{brand}</span>
+<span class="kw">ORDER BY</span> price <span class="kw">DESC</span></pre>
+    </div>
+    <div class="sig-arrow reveal">→</div>
+    <div class="card-code reveal">
+      <header>LIVE REST ENDPOINT <span class="tag">GET</span></header>
+<pre><span class="mut">$</span> <span class="fn">curl</span> <span class="str">".../api/carsByBrand?brand=FORD"</span></pre>
+      <div class="resp">[ { <span class="k">"brand"</span>: "FORD", <span class="k">"model"</span>: "Focus", <span class="k">"price"</span>: 18400 }, … ]</div>
+    </div>
+  </div>
+  <div class="sig-note reveal">
+    <span><b>Parameterised</b> query strings</span>
+    <span><b>Auto-generated</b> OpenAPI</span>
+    <span><b>DEV / PROD</b> status per endpoint</span>
+    <span><b>Shareable</b> with any app</span>
+  </div>
+</section>
+
+<section id="features" class="features">
+  <div class="section-head reveal">
+    <div><span>ONE CONNECTED WORKFLOW</span><h2>Everything your data needs.<br>Nothing it doesn't.</h2></div>
+    <p>Move from source to insight to API without jumping between tools or waiting on infrastructure.</p>
+  </div>
+  <div class="grid">
+    <article class="mint reveal"><small>01</small><i class="feature-icon">⇩</i><h3>Load from anywhere</h3><p>Files, PostgreSQL, S3 or a URL. CSV, TSV, Parquet, JSON and Shapefile — no tedious conversions.</p></article>
+    <article class="reveal"><small>02</small><i class="feature-icon">⌘</i><h3>DuckDB speed</h3><p>An embedded OLAP engine built for scale. Scan and aggregate millions of rows in milliseconds, right on your machine.</p></article>
+    <article class="reveal"><small>03</small><i class="feature-icon">✦</i><h3>AI SQL assistant</h3><p>Describe what you need in plain language. The assistant knows your tables and fields and writes the DuckDB SQL for you.</p></article>
+    <article class="reveal"><small>04</small><i class="feature-icon">⌁</i><h3>Charts &amp; cross-filters</h3><p>Turn any table into interactive charts and linked cross-filters to slice your data as fast as you can think.</p></article>
+    <article class="reveal"><small>05</small><i class="feature-icon">◔</i><h3>Geospatial &amp; H3 maps</h3><p>Plot points and H3 hexagon aggregations on the map. Make location part of the analysis, not an afterthought.</p></article>
+    <article class="dark reveal"><small>06</small><i class="feature-icon">{ }</i><h3>Publish &amp; enrich</h3><p>Expose any query as a REST API, and enrich your own data by pulling from remote APIs. Ship data, not exports.</p></article>
+  </div>
+</section>
+
+<section class="oss">
+  <article class="reveal"><b>100%</b><small>Open source</small></article>
+  <article class="reveal"><b>Local</b><small>Your data stays yours</small></article>
+  <article class="reveal"><b>1 min</b><small>Up with Docker Compose</small></article>
+  <article class="reveal"><b>0</b><small>Vendor lock-in</small></article>
+</section>
+
+<section class="closing">
+  <small>◉ DATALAKE STUDIO</small>
+  <h2>Your data is already telling a story.</h2>
+  <p>Open a source and start listening.</p>
+  <a class="button light" href="https://github.com/javitorres/datalakeStudio">Explore the project →</a>
+</section>
+</main>
+
+<footer>
+  <a class="brand" href="#top">◉ DATALAKE STUDIO</a>
+  <p>Open-source data exploration and API publishing · Vue 3 · FastAPI · DuckDB</p>
+  <span>© 2026</span>
+</footer>
+
+<script>
+const seen=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add("visible");seen.unobserve(e.target)}}),{threshold:.12});
+document.querySelectorAll(".reveal").forEach(e=>seen.observe(e));
+</script>
+</body>
+</html>
