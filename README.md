@@ -22,7 +22,7 @@ query as a live REST API — all from a single tool that runs on your machine.
 
 Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-![Datalake Studio overview](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
 
 ## Table of contents
 
