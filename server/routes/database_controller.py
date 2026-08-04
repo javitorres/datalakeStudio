@@ -5,6 +5,7 @@ from fastapi import Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
 import os
+import re
 import logging as log
 import time
 
@@ -157,6 +158,26 @@ def deleteTable(tableName: str):
         return JSONResponse(content=response, status_code=400)
     log.info(f"Deleting table {tableName}")
     databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
+    return {"status": "ok"}
+####################################################
+@router.get("/renameTable")
+def renameTable(tableName: str, newName: str):
+    if (not tableName or not newName):
+        response = {"status": "error", "message": "tableName and newName are required"}
+        return JSONResponse(content=response, status_code=400)
+    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", newName):
+        response = {"status": "error",
+                    "message": "Invalid name. Use letters, numbers and underscores, and don't start with a number."}
+        return JSONResponse(content=response, status_code=400)
+    log.info(f"Renaming table {tableName} to {newName}")
+    old_sql = '"' + tableName.replace('"', '""') + '"'
+    new_sql = '"' + newName + '"'
+    try:
+        databaseService.runQuery("ALTER TABLE " + old_sql + " RENAME TO " + new_sql)
+    except Exception as e:
+        log.error(f"Error renaming table: {e}")
+        response = {"status": "error", "message": "Error renaming table: " + str(e)}
+        return JSONResponse(content=response, status_code=400)
     return {"status": "ok"}
 ####################################################
 @router.get("/exportData")

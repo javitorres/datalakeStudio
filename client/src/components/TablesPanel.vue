@@ -36,6 +36,10 @@
     </div>
 
     <div v-if="selectedTable" class="action-toolbar">
+      <button class="btn btn-sm btn-primary toolbar-button" @click="openRename">
+        <i class="bi bi-pencil-square"></i>
+        Rename table
+      </button>
       <button class="btn btn-sm btn-danger toolbar-button" @click="confirmDelete">
         <i class="bi bi-x-octagon"></i>
         Delete table
@@ -92,7 +96,27 @@
       </div>
     </div>
   </div>
-  <div v-if="showDialog" class="modal-backdrop fade show"></div>
+  <div v-if="showRenameDialog" class="modal fade show" style="display: block" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Rename table</h5>
+          <button type="button" class="btn-close" @click="showRenameDialog = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Rename <b>{{ selectedTable }}</b> to:</p>
+          <input v-model="newTableName" type="text" class="form-control" placeholder="New table name" @keyup.enter="confirmRename">
+          <small v-if="newTableName.trim() && !renameValid" class="rename-hint">Use letters, numbers and underscores; don't start with a number, and pick a different name.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showRenameDialog = false">Cancel</button>
+          <button type="button" class="btn btn-primary" :disabled="!renameValid" @click="confirmRename">Rename</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showDialog || showDownloadDialog || showRenameDialog" class="modal-backdrop fade show"></div>
 </template>
 
 <script setup>
@@ -106,13 +130,19 @@ const props = defineProps({
   tables: Object,
 });
 
-const emit = defineEmits(['deleteTable']);
+const emit = defineEmits(['deleteTable', 'renameTable']);
 
 const showDialog = ref(false);
 const showDownloadDialog = ref(false);
+const showRenameDialog = ref(false);
+const newTableName = ref('');
 const showOptions = ref(true);
 const selectedTable = ref(null);
 const tableFilter = ref('');
+const renameValid = computed(() => {
+  const name = newTableName.value.trim();
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) && name !== selectedTable.value;
+});
 const filteredTables = computed(() => {
   const query = tableFilter.value.trim().toLowerCase();
   return query ? props.tables.filter((table) => table.toLowerCase().includes(query)) : props.tables;
@@ -128,6 +158,25 @@ function confirmDelete() {
 
 function confirmDownload() {
   showDownloadDialog.value = true;
+}
+
+function openRename() {
+  newTableName.value = selectedTable.value;
+  showRenameDialog.value = true;
+}
+
+function confirmRename() {
+  if (!renameValid.value) return;
+  const from = selectedTable.value;
+  const to = newTableName.value.trim();
+  emit('renameTable', {
+    from,
+    to,
+    onResult: (renamed) => {
+      if (renamed) selectedTable.value = to;
+    },
+  });
+  showRenameDialog.value = false;
 }
 
 function download(format) {
@@ -187,6 +236,7 @@ async function deleteTable() {
 .toolbar-button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px}
 .inspector-container{padding:12px;border:1px solid var(--ds-line);border-radius:11px;background:#fbfcfc}
 .empty-state{min-height:300px;display:grid;place-items:center;border:1px dashed #c8d7d2;border-radius:13px;background:#f8fbfa;color:#7b8884;text-align:center}.empty-state h2{font-size:1rem;font-weight:650}
+.rename-hint{display:block;margin-top:6px;color:#b93748;font-size:11px}
 .modal{display:block;position:fixed;z-index:1050;inset:0;width:100%;height:100%;background:rgba(12,27,23,.48);backdrop-filter:blur(3px)}.modal-backdrop{z-index:1040}.modal-content{margin:12% auto;padding:16px;width:80%;border:1px solid var(--ds-line);border-radius:14px;background:#fff}
 @media(max-width:768px){.action-toolbar{flex-wrap:wrap}.tables-panel{padding:12px}}
 .explorer-intro{display:grid}.explorer-kicker{color:#899692;font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.explorer-intro p{margin:3px 0 0;color:var(--ds-muted);font-size:9px}.selector-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}.selector-toolbar>span{color:#84918e;font-size:9px}.table-search{width:min(300px,100%);display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid #dce6e3;border-radius:8px;background:#f8faf9;color:#87938f}.table-search:focus-within{border-color:#79bdaa;box-shadow:0 0 0 3px rgba(13,132,111,.08)}.table-search input{width:100%;padding:0;border:0;outline:0;background:transparent;color:var(--ds-ink);font-size:10px}.table-selector{max-height:112px;overflow:auto;padding:2px}</style>

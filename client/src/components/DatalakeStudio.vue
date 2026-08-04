@@ -247,7 +247,7 @@ const currentListeners = computed(() => {
     case 'remoteDb':
       return { tableCreated };
     case 'showTables':
-      return { deleteTable };
+      return { deleteTable, renameTable };
     case 'queries':
       return { tableCreated };
     case 'apiRetriever':
@@ -286,6 +286,24 @@ async function deleteTable(table) {
   }).catch((error) => {
     toast.error(`Error: HTTP ${error.message}`);
   });
+}
+
+async function renameTable({ from, to, onResult }) {
+  try {
+    await api.get(`/database/renameTable`, {
+      params: {
+        tableName: from,
+        newName: to,
+      },
+    });
+    toast.success(`Table renamed to ${to}`);
+    onResult?.(true);
+    getTables();
+  } catch (error) {
+    const detail = error.response?.data?.message || error.message;
+    toast.error(`Error renaming table: ${detail}`);
+    onResult?.(false);
+  }
 }
 
 async function tableCreated() {
