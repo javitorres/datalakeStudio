@@ -92,7 +92,7 @@ def createTableFromRemoteQuery(query: str, tableName: str):
     print("Creating table " + tableName + " from query " + query)
     dfRemoteDb = remoteDbService.runRemoteQuery(connection, query)
     if (dfRemoteDb is not None):
-        databaseService.createTableFromDataFrame("dfRemoteDb", tableName)
+        databaseService.createTableFromDataFrame(dfRemoteDb, tableName)
         return {"status": "ok"}
     else:
         return {"status": "error"}

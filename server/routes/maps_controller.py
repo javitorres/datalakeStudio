@@ -62,15 +62,18 @@ def getGeom(table: str, geomField: str, lat_min: float = 26.5, lat_max: float = 
             lon_min: float = -19.3, lon_max: float = 7.8, map_filter: str = ""):
     table_sql = _quote_identifier(table)
     geom_sql = _quote_identifier(geomField)
+    # always_xy keeps lon/lat order: without it DuckDB 2.0 refuses ST_Transform to EPSG:4326
+    # (and 1.x returned lat/lon, which never fell inside the lon/lat envelope).
+    geom_4326_sql = f"ST_Transform(ST_GeomFromText({geom_sql}), 'EPSG:32630', 'EPSG:4326', always_xy := true)"
     query = f"""
     SELECT *, geom_4326 AS geom FROM (
         SELECT * EXCLUDE ({geom_sql}),
-               ST_AsText(ST_Transform(ST_GeomFromText({geom_sql}), 'EPSG:32630', 'EPSG:4326')) AS geom_4326
+               ST_AsText({geom_4326_sql}) AS geom_4326
         FROM {table_sql}
         WHERE {geom_sql} IS NOT NULL
-          AND ST_Within(
-              ST_MakeEnvelope({lon_min}::DOUBLE, {lat_min}::DOUBLE, {lon_max}::DOUBLE, {lat_max}::DOUBLE),
-              ST_Transform(ST_GeomFromText({geom_sql}), 'EPSG:32630', 'EPSG:4326')){_filter_clause(map_filter)}
+          AND ST_Intersects(
+              {geom_4326_sql},
+              ST_MakeEnvelope({lon_min}::DOUBLE, {lat_min}::DOUBLE, {lon_max}::DOUBLE, {lat_max}::DOUBLE)){_filter_clause(map_filter)}
     ) AS source_rows
     LIMIT 1000
     """

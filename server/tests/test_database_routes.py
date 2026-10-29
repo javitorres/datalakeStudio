@@ -1,9 +1,12 @@
 import asyncio
 import json
+import threading
 import unittest
 from unittest.mock import patch
 
 import duckdb
+import pandas as pd
+import pyarrow as pa
 from fastapi import HTTPException
 
 from model.QueryRequestDTO import QueryRequest
@@ -117,6 +120,41 @@ class DatabaseRoutesTest(unittest.TestCase):
         self.assertNotIn("count(*) AS count, FROM", " ".join(sql.split()))
         self.assertIn('FROM "iris"', sql)
 
+    def test_geometry_query_keeps_lon_lat_order_and_intersects_bbox(self):
+        with patch.object(databaseService, "runQuery", return_value="result") as run_query:
+            maps_controller.getGeom("parcels", "geom")
+
+        sql = run_query.call_args.args[0]
+        self.assertEqual(sql.count("always_xy := true"), 2)
+        self.assertIn("ST_Intersects(", sql)
+        self.assertNotIn("ST_Within(", sql)
+
+    def test_geometry_layer_returns_features_inside_bbox(self):
+        try:
+            databaseService.runQuery("INSTALL spatial; LOAD spatial;", False)
+        except Exception:
+            self.skipTest("spatial extension not available")
+        databaseService.runQuery("CREATE TABLE parcels AS SELECT 'POINT (440291 4474254)' AS geom, 'Madrid' AS name")
+
+        df = maps_controller.getGeom("parcels", "geom", lat_min=40, lat_max=41, lon_min=-4, lon_max=-3)
+        self.assertEqual(df["name"].to_list(), ["Madrid"])
+        self.assertTrue(df["geom"][0].startswith("POINT (-3.70"))
+
+    def test_s3_credentials_are_stored_as_a_secret(self):
+        previous_secrets = databaseService._secrets
+        databaseService._secrets = {"s3_access_key_id": "AKIAEXAMPLE", "s3_secret_access_key": "dummy"}
+        db = duckdb.connect(':memory:')
+        try:
+            databaseService._load_extensions_for_db(db)
+            secrets = db.query("SELECT name FROM duckdb_secrets()").fetchall()
+            if ("datalake_s3",) not in secrets:
+                self.skipTest("httpfs extension not available")
+            used = db.query("SELECT name FROM which_secret('s3://bucket/data.parquet', 's3')").fetchall()
+            self.assertEqual(used, [("datalake_s3",)])
+        finally:
+            databaseService._secrets = previous_secrets
+            db.close()
+
     def test_mapbox_token_reports_missing_configuration(self):
         previous_token = mapsService.mapbox_access_token
         mapsService.mapbox_access_token = None
@@ -170,6 +208,43 @@ class DatabaseRoutesTest(unittest.TestCase):
         tables_resp = database_controller.getTables()
         tables = tables_resp.body.decode('utf-8')
         self.assertNotIn('iris_copy', tables)
+
+    def test_concurrent_requests_share_the_user_connection(self):
+        databaseService.runQuery("CREATE TABLE big AS SELECT range AS i FROM range(3000000)")
+        errors = []
+
+        def request_thread():
+            databaseService.set_current_user(TEST_USER)
+            try:
+                for _ in range(5):
+                    databaseService.runQuery("SELECT sum(i) AS s FROM big", False)
+            except Exception as e:
+                errors.append(e)
+
+        threads = [threading.Thread(target=request_thread) for _ in range(8)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        self.assertEqual(errors, [])
+
+    def test_rest_connector_arrow_returns_ipc_stream(self):
+        class ArrowRequest:
+            async def json(self):
+                return {"type": "arrow", "sql": "SELECT id, species FROM iris ORDER BY id"}
+
+        resp = asyncio.run(database_controller.handle_query(ArrowRequest()))
+        table = pa.ipc.open_stream(resp.body).read_all()
+        self.assertEqual(table.column_names, ["id", "species"])
+        self.assertEqual(table.num_rows, 3)
+
+    def test_create_table_from_dataframe(self):
+        df = pd.DataFrame({"id": [1, 2], "city": ["Madrid", "Sevilla"]})
+        databaseService.createTableFromDataFrame(df, "imported")
+
+        rows = databaseService.runQuery("SELECT * FROM imported ORDER BY id")
+        self.assertEqual(rows["city"].to_list(), ["Madrid", "Sevilla"])
+        self.assertNotIn("__dataframe_import", databaseService.getTableList(hideMeta=False))
 
 
 if __name__ == '__main__':

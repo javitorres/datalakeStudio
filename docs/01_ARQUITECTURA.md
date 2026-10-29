@@ -50,7 +50,7 @@ Datalake Studio es una aplicación web de exploración y gestión de datos const
 | Python 3.12 | - | Lenguaje del servidor |
 | FastAPI | 0.108.0 | Framework REST API |
 | Uvicorn | 0.30.1 | Servidor ASGI |
-| DuckDB | 1.4.4 | Motor OLAP embebido |
+| DuckDB | 2.0.0 | Motor OLAP embebido |
 | Pandas | 2.2.2 | Manipulación de DataFrames |
 | PyArrow | 17.0 | Serialización Arrow para transferencia eficiente |
 | OpenAI SDK | 1.6.1 | Integración GPT-4, Whisper, TTS |
@@ -124,7 +124,7 @@ Los controladores se registran como **FastAPI Routers** con prefijos de URL y se
 
 - **Config (Singleton)**: Carga `config.yml` (puerto, ruta BD) y `secrets.yml` (API keys, credenciales S3/Mapbox/OpenAI).
 - **ServerStatus (Singleton)**: Inicializa DuckDB al arrancar, mantiene el estado de la base de datos activa.
-- **Conexión DuckDB**: Variable global en `databaseService.py`. Una única conexión compartida.
+- **Conexión DuckDB**: Una por usuario y base de datos activa en `databaseService.py`. Las peticiones de un mismo usuario la usan por turnos (lock por usuario), porque una conexión DuckDB no admite uso simultáneo desde varios hilos.
 - **Conexión PostgreSQL remota**: Variable global en `remoteDb_controller.py`. Se establece bajo demanda.
 
 ### 3.4 Motor de Base de Datos (DuckDB)

@@ -90,7 +90,7 @@ class RemoteDbControllerTest(unittest.TestCase):
 
         resp = remoteDb_controller.createTableFromRemoteQuery('select 1 as id', 'new_table')
         self.assertEqual(resp, {'status': 'ok'})
-        mock_create.assert_called_once_with('dfRemoteDb', 'new_table')
+        mock_create.assert_called_once_with(mock_run.return_value, 'new_table')
 
 
 if __name__ == '__main__':

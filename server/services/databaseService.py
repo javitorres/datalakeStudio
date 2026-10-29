@@ -2,6 +2,8 @@ import duckdb
 import os
 import logging as log
 import contextvars
+import threading
+from contextlib import contextmanager
 from zipfile import ZipFile
 from pathlib import Path
 from hashlib import sha256
@@ -17,6 +19,9 @@ _current_user = contextvars.ContextVar('current_user', default=None)
 _connections = {}
 # Per-user active database name: {username: "datalakeStudio.db"}
 _active_db = {}
+# Per-user lock. A DuckDB connection can't be used by two threads at once (DuckDB 2.0 raises
+# ResourceInUseException), so the request threads of a user take turns on its connection.
+_user_locks = {}
 
 _config = None
 _secrets = None
@@ -85,29 +90,38 @@ def _ensure_user_db(username=None):
     return _connections[username][active_db_name]
 
 
-def get_db():
-    return _ensure_user_db()
+def _user_lock(username):
+    return _user_locks.setdefault(username, threading.RLock())
+
+
+@contextmanager
+def _db_session():
+    # Results must be fully read inside the block: DuckDB 2.0 reads them lazily on fetch.
+    username = _current_user.get()
+    with _user_lock(username):
+        yield _ensure_user_db(username)
 
 
 def _load_extensions_for_db(db):
     try:
         db.query("INSTALL httpfs;LOAD httpfs;SET s3_region='eu-west-1';")
         db.query("INSTALL spatial;LOAD spatial;")
+        db.query("INSTALL aws;LOAD aws;")
+    except Exception as e:
+        log.warning(f"Could not load httpfs/spatial/aws extensions: {e}")
+    # S3 credentials go into a secret: load_aws_credentials() was removed in DuckDB 2.0, and an
+    # explicit secret takes precedence over the default credential chain the aws extension registers.
+    try:
         if _secrets and _secrets.get("s3_access_key_id"):
-            db.query("SET s3_access_key_id='" + _secrets["s3_access_key_id"] + "';SET s3_secret_access_key='" + _secrets["s3_secret_access_key"] + "'")
+            key_id = _secrets["s3_access_key_id"].replace("'", "''")
+            secret = _secrets["s3_secret_access_key"].replace("'", "''")
+            db.query("CREATE OR REPLACE SECRET datalake_s3 (TYPE s3, KEY_ID '" + key_id + "', SECRET '" + secret + "', REGION 'eu-west-1')")
             log.info("Loaded S3 credentials")
         else:
-            db.query("INSTALL aws;LOAD aws")
-            db.query("CALL load_aws_credentials();")
+            db.query("CREATE OR REPLACE SECRET datalake_s3 (TYPE s3, PROVIDER credential_chain, REGION 'eu-west-1')")
+            log.info("Loaded S3 credentials from the AWS credential chain")
     except Exception as e:
-        log.warning(f"Could not load S3/httpfs extensions: {e}")
-        try:
-            db.query("INSTALL httpfs;LOAD httpfs")
-            db.query("INSTALL spatial;LOAD spatial;")
-            db.query("INSTALL aws;LOAD aws")
-            db.query("CALL load_aws_credentials();")
-        except Exception as e2:
-            log.warning(f"Could not load extensions (fallback): {e2}")
+        log.warning(f"Could not configure S3 credentials: {e}")
     try:
         db.query("INSTALL h3 FROM community;LOAD h3;")
         log.info("Loaded H3 extension")
@@ -117,12 +131,11 @@ def _load_extensions_for_db(db):
 
 ####################################################
 def loadTable(tableName, fileName):
-    db = get_db()
     data_dir = get_user_temp_folder()
 
     format_list = ['csv', 'tsv', 'parquet', 'gz', 'json', 'geojson', 'gpkg', 'kml', 'shp']
     log.info(f"Loading table {tableName} from {fileName}")
-    db.query("DROP TABLE IF EXISTS " + tableName)
+    runQuery("DROP TABLE IF EXISTS " + tableName)
 
     extracted_files = []
     if fileName.endswith('.zip'):
@@ -140,15 +153,15 @@ def loadTable(tableName, fileName):
     log.info(f"File to be integrated: {fileName}")
     if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
         try:
-            db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
+            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
         except Exception as e:
             log.error(f"Error reading CSV file: {e}")
     elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
-        db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
+        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
     elif fileName.lower().endswith(".json"):
-        db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
     elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
-        db.query("INSTALL spatial;LOAD spatial;CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
+        runQuery("INSTALL spatial;LOAD spatial;CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
     if (not fileName.lower().startswith("s3") and not fileName.lower().startswith("http")):
         log.info(f"Removing file {fileName}")
@@ -162,27 +175,26 @@ def loadTable(tableName, fileName):
             except Exception:
                 pass
 
-    r = db.query('SHOW TABLES')
-    if tableName in r.df()["name"].to_list():
-        r.show()
+    tables = runQuery('SHOW TABLES')["name"].to_list()
+    if tableName in tables:
         return True
     else:
-        log.warning(f"Table {tableName} not loaded: {r}")
+        log.warning(f"Table {tableName} not loaded: {tables}")
         return False
 
 
 ####################################################
 def runQuery(query, logQuery=True, format="df"):
-    db = get_db()
     try:
         if logQuery:
             log.info(f"Executing query: {query}")
-        r = db.query(query)
-        if r is not None:
-            if format == "arrow":
-                return r.arrow()
-            else:
-                return r.df()
+        with _db_session() as db:
+            r = db.query(query)
+            if r is not None:
+                if format == "arrow":
+                    return r.to_arrow_table()
+                else:
+                    return r.df()
     except Exception as e:
         if logQuery:
             log.error(f"Error running query: {e}")
@@ -206,17 +218,17 @@ def getTableList(hideMeta: bool = True):
 ####################################################
 def getDatabaseSchema():
     """Return the visible tables and their ordered columns for SQL completion."""
-    db = get_db()
-    rows = db.query(
-        """
-        SELECT table_name, column_name, data_type
-        FROM information_schema.columns
-        WHERE table_schema = 'main'
-          AND NOT starts_with(table_name, '__')
-          AND NOT starts_with(table_name, 'cube_index_')
-        ORDER BY table_name, ordinal_position
-        """
-    ).fetchall()
+    with _db_session() as db:
+        rows = db.query(
+            """
+            SELECT table_name, column_name, data_type
+            FROM information_schema.columns
+            WHERE table_schema = 'main'
+              AND NOT starts_with(table_name, '__')
+              AND NOT starts_with(table_name, 'cube_index_')
+            ORDER BY table_name, ordinal_position
+            """
+        ).fetchall()
 
     schema = {}
     for table_name, column_name, data_type in rows:
@@ -226,8 +238,7 @@ def getDatabaseSchema():
 
 ####################################################
 def getTableDescriptionForChatGpt(tableName):
-    db = get_db()
-    fields = db.query("DESCRIBE " + tableName).df()
+    fields = runQuery("DESCRIBE " + tableName)
     tableDescription = ""
     for field in fields.iterrows():
         tableDescription += "," + field[1]["column_name"] + " (" + field[1]["column_type"] + ")"
@@ -237,10 +248,16 @@ def getTableDescriptionForChatGpt(tableName):
 
 ####################################################
 def createTableFromDataFrame(df, tableName):
-    db = get_db()
     log.info(f"Creating table {tableName}")
-    db.query("DROP TABLE IF EXISTS " + tableName)
-    db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM " + df + ")")
+    with _db_session() as db:
+        # Since DuckDB 1.1 a DataFrame is no longer found by its variable name in the caller's
+        # frame, so it is registered explicitly.
+        db.register("__dataframe_import", df)
+        try:
+            db.query("DROP TABLE IF EXISTS " + tableName)
+            db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM __dataframe_import)")
+        finally:
+            db.unregister("__dataframe_import")
 
 
 ####################################################
@@ -258,9 +275,8 @@ def exportData(tableName, format, fileName):
 
 ####################################################
 def getProfile(tableName):
-    db = get_db()
     query = "SELECT 'count' AS statistic"
-    fields = db.query("DESCRIBE " + tableName).df()
+    fields = runQuery("DESCRIBE " + tableName)
     log.info(f"fields: {fields}")
 
     for field in fields.iterrows():
@@ -335,17 +351,19 @@ def changeDatabase(databaseName):
     username = _current_user.get()
     log.info(f"Changing database to {databaseName} for user {username}")
 
-    # Close current connection if exists
-    if username in _connections and _active_db.get(username) in _connections[username]:
-        old_db_name = _active_db[username]
-        _connections[username][old_db_name].close()
-        del _connections[username][old_db_name]
+    # Wait for the user's running queries before closing their connection
+    with _user_lock(username):
+        # Close current connection if exists
+        if username in _connections and _active_db.get(username) in _connections[username]:
+            old_db_name = _active_db[username]
+            _connections[username][old_db_name].close()
+            del _connections[username][old_db_name]
 
-    db_name = databaseName + ".db" if not databaseName.endswith(".db") else databaseName
-    _active_db[username] = db_name
+        db_name = databaseName + ".db" if not databaseName.endswith(".db") else databaseName
+        _active_db[username] = db_name
 
-    # This will open the new connection
-    _ensure_user_db(username)
+        # This will open the new connection
+        _ensure_user_db(username)
     return True
 
 
