@@ -85,7 +85,16 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000, filte
     WHERE = ""
     if (filter and filter.strip()):
         WHERE = " WHERE (" + filter.strip() + ")"
-    df = databaseService.runQuery("SELECT * FROM " + tableName + WHERE + LIMIT)
+    query = "SELECT * FROM " + tableName + WHERE
+    if records and type == "Shuffle":
+        # Sample the filtered rows: USING SAMPLE on the table itself samples before the WHERE
+        query = "SELECT * FROM (" + query + ") USING SAMPLE " + str(records) + " ROWS"
+    elif records and type == "Last":
+        # The last rows in their original order (views have no rowid to sort by)
+        query += " OFFSET (SELECT greatest(count(*) - " + str(records) + ", 0) FROM " + tableName + WHERE + ")"
+    else:
+        query += LIMIT
+    df = databaseService.runQuery(query)
 
     # If any field name ends with () remove it
     df.columns = df.columns.str.replace(r"\(\)", "", regex=True)

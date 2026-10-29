@@ -183,6 +183,17 @@ class DatabaseRoutesTest(unittest.TestCase):
         self.assertEqual(len(lines), 3)
         self.assertEqual(lines[0], 'id,species,sepal_length')
 
+    def test_sample_first_last_and_random_rows(self):
+        def ids(**kwargs):
+            resp = database_controller.getTableData('iris', **kwargs)
+            return [line.split(',')[0] for line in self._csv_lines(resp.body)[1:]]
+
+        self.assertEqual(ids(type='First', records=2), ['1', '2'])
+        self.assertEqual(ids(type='Last', records=2), ['2', '3'])
+        self.assertEqual(ids(type='Last', records=1, filter='id < 3'), ['2'])
+        # Random rows are drawn from the filtered ones
+        self.assertEqual(sorted(ids(type='Shuffle', records=2, filter='id > 1')), ['2', '3'])
+
     def test_run_query_success_and_invalid_query(self):
         ok = database_controller.runQuery(QueryRequest(query='SELECT id, species FROM iris ORDER BY id', rows=2))
         self.assertEqual(ok.status_code, 200)
