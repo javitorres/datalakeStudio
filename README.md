@@ -72,6 +72,11 @@ PostgreSQL, the AI assistant or maps, add a `server/secrets.yml` file (see
 [Configuration](#configuration)). Docker Compose also mounts your `~/.aws`
 credentials into the backend for AWS access.
 
+The backend image already includes the DuckDB extensions it uses, so it starts
+without downloading anything. It runs as a non-root user with uid 1000, which
+should own `server/data`; if your uid is different, build with
+`HOST_UID=$(id -u) docker-compose up --build`.
+
 ### Without Compose
 
 Build and run each image separately:

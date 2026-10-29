@@ -56,10 +56,9 @@ Datalake Studio es una aplicación web de exploración y gestión de datos const
 | OpenAI SDK | 1.6.1 | Integración GPT-4, Whisper, TTS |
 | boto3 | 1.26.133 | AWS S3 |
 | psycopg2 | 2.9.9 | Conexión PostgreSQL remoto |
-| GeoPandas | 0.14.4 | Datos geoespaciales |
-| h3 | 3.7.7 | Indexación hexagonal H3 |
-| Plotly | 5.22.0 | Visualizaciones HTML de mapas |
-| pydantic | 2.5.3 | Validación de DTOs |
+| Shapely | 2.2.0 | Geometrías WKT del GeoJSON de los mapas |
+| Extensiones DuckDB | - | spatial y h3 (indexación hexagonal H3), incluidas en la imagen Docker |
+| pydantic | 2.14.1 | Validación de DTOs |
 
 ### Infraestructura
 | Tecnología | Propósito |
