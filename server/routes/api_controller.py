@@ -15,8 +15,8 @@ async def catch_all(request: Request, path: str):
     print("Path: " + path)
     print("Method: " + request.method)
 
-    # if path ends with /
-    if (path.endswith("/")):
+    # /api/ itself (empty path) or any path ending with /: the OpenAPI definition
+    if (path == "" or path.endswith("/")):
         openapi_dict = apiServerService.getApiDefinition(path)
         # openapi_dict to json
         # openapi_json = json.dumps(openapi_dict)

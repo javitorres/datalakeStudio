@@ -80,10 +80,10 @@ class ApiServerRoutesTest(unittest.TestCase):
         self.assertIn('brand', body['parameters'])
 
     @staticmethod
-    def _publish(endpoint, query):
+    def _publish(endpoint, query, query_string=""):
         databaseService.runQuery(
-            "INSERT INTO __endpoints VALUES (nextval('seq_id_endpoint'), 1, ?, '[]', '', ?, '', 'DEV')",
-            params=[endpoint, query])
+            "INSERT INTO __endpoints VALUES (nextval('seq_id_endpoint'), 1, ?, '[]', '', ?, ?, 'DEV')",
+            params=[endpoint, query, query_string])
 
     def test_endpoint_parameters_are_bound_not_pasted(self):
         databaseService.runQuery(
@@ -144,6 +144,22 @@ class ApiServerRoutesTest(unittest.TestCase):
         # Also for a user who never published an endpoint
         databaseService.runQuery("DROP TABLE __endpoints")
         self.assertEqual(self._get_api("/api/nope").status_code, 404)
+
+    def test_api_definition_lists_endpoints_with_examples(self):
+        databaseService.runQuery("CREATE TABLE cars AS SELECT * FROM (VALUES (1, 'FORD'), (2, 'SEAT')) t(id, brand)")
+        self._publish("carById", "SELECT brand FROM cars WHERE id = {id}", "?id=2")
+        self._publish("allCars", "SELECT * FROM cars")
+        self._publish("broken", "SELECT * FROM missing_table")
+        apiServerService.createEndpoint()  # created in the UI, never saved
+
+        response = self._get_api("/api/")
+        self.assertEqual(response.status_code, 200)
+        paths = response.json()["paths"]
+        self.assertEqual(sorted(paths), ["/allCars", "/broken", "/carById"])
+        car_by_id = paths["/carById"]["get"]
+        self.assertEqual([p["name"] for p in car_by_id["parameters"]], ["id"])
+        self.assertEqual(car_by_id["responses"]["200"]["content"]["application/json"]["example"], [{"brand": "SEAT"}])
+        self.assertEqual(paths["/allCars"]["get"]["parameters"], [])
 
     def test_json_responses_handle_nulls_and_dates(self):
         query = "SELECT 1 AS id, NULL::DOUBLE AS price, TIMESTAMP '2026-01-01 10:00:00' AS ts"

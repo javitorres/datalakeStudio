@@ -3,6 +3,7 @@ from model.PublishEndpointRequestDTO import PublishEndpointRequestDTO
 from services import queriesService
 import json
 import re
+from urllib.parse import parse_qsl
 from fastapi.responses import JSONResponse
 import base64
 import requests
@@ -269,25 +270,19 @@ def getApiDefinition(path):
     
     '''
     endpointsDefinition = []
-    #print("endpoints: ", endpoints)
     for endpoint in endpoints:
-        endpointDict = {}
-        endpointDict["path"] = endpoint["endpoint"]
-        query = endpoint["queryStringTest"]
-        # Remove first ? from query string
-        endpointDict["query"] = endpoint["queryStringTest"][1:]
-        response = {}
-        res = getAndRunEndpoint(endpoint["endpoint"], query, None) 
-        #urlTest = "http://localhost:8000/api/" + endpoint["endpoint"]  + endpoint["queryStringTest"]
-        #print("urlTest: ", urlTest)
-        #response = requests.get(urlTest)
-        print("response: ", res)
-
-        endpointDict["response"] = res.to_dict(orient="records")
-        endpointsDefinition.append(endpointDict)
-        
-
-
+        if not endpoint["endpoint"]:
+            continue  # created in the UI but never saved
+        # The test query string (?a=1&b=2) gives the parameters and their example values
+        examples = dict(parse_qsl((endpoint["queryStringTest"] or "").lstrip("?")))
+        try:
+            # A few rows are enough as an example of the response
+            response = databaseService.to_json_records(getAndRunEndpoint(endpoint["endpoint"], examples, None).head(5))
+        except Exception as e:
+            # A broken endpoint must not take down the whole definition
+            print("Error running endpoint " + endpoint["endpoint"] + " for its example: " + str(e))
+            response = []
+        endpointsDefinition.append({"path": endpoint["endpoint"], "parameters": list(examples), "response": response})
 
     openapi_dict = {
         "openapi": "3.0.0",
@@ -295,17 +290,16 @@ def getApiDefinition(path):
             "title": "Mi API",
             "version": "1.0.0"
         },
+        "servers": [{"url": "/api"}],
         "paths": {}
     }
 
     for endpoint in endpointsDefinition:
         path = endpoint["path"]
-        query_params = endpoint["query"].split('&')
         response = endpoint["response"]
 
         parameters = []
-        for param in query_params:
-            name, _ = param.split('=')
+        for name in endpoint["parameters"]:
             parameters.append({
                 "name": name,
                 "in": "query",
@@ -313,7 +307,7 @@ def getApiDefinition(path):
                 "schema": {"type": "string"}
             })
 
-        openapi_dict["paths"][path] = {
+        openapi_dict["paths"]["/" + path] = {
             "get": {
                 "parameters": parameters,
                 "responses": {
