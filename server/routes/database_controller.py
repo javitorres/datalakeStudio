@@ -148,12 +148,8 @@ def createTableFromQuery(query: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
     log.info(f"Creating table {tableName} from query {query}")
     try:
-        databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
-    except Exception as e:
-        log.error(f"Error dropping table: {e}")
-
-    try:
-        databaseService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+        # Replaces the table only once the query has worked (and the query may read that same table)
+        databaseService.runQuery("CREATE OR REPLACE TABLE "+ tableName +" as ("+ query +")")
     except Exception as e:
         log.error(f"Error creating table: {e}")
         response = {"status": "error", "message": "Error creating table: " + str(e)}

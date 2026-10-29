@@ -209,6 +209,16 @@ class DatabaseRoutesTest(unittest.TestCase):
         tables = tables_resp.body.decode('utf-8')
         self.assertNotIn('iris_copy', tables)
 
+    def test_failed_create_table_from_query_keeps_the_table(self):
+        resp = database_controller.createTableFromQuery('SELECT * FROM does_not_exist', 'iris')
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(int(databaseService.runQuery("SELECT count(*) AS n FROM iris")["n"][0]), 3)
+
+        # The query can read the table it replaces
+        out = database_controller.createTableFromQuery("SELECT * FROM iris WHERE species <> 'setosa'", 'iris')
+        self.assertEqual(out["status"], "ok")
+        self.assertEqual(int(databaseService.runQuery("SELECT count(*) AS n FROM iris")["n"][0]), 2)
+
     def test_concurrent_requests_share_the_user_connection(self):
         databaseService.runQuery("CREATE TABLE big AS SELECT range AS i FROM range(3000000)")
         errors = []

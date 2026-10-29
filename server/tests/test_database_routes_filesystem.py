@@ -163,6 +163,14 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             self.assertIn(reason, self._json(resp)["message"].lower())
             self.assertFalse(os.path.exists(os.path.join(self.download_folder, TEST_USER, name)))
 
+    def test_failed_load_keeps_the_existing_table(self):
+        databaseService.runQuery("CREATE TABLE people AS SELECT 1 AS id")
+        upload = UploadFile(filename="people.parquet", file=io.BytesIO(b"not parquet"))
+
+        resp = database_controller.uploadFile(file=upload, tableName="people")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(int(databaseService.runQuery("SELECT count(*) AS c FROM people")["c"][0]), 1)
+
     @staticmethod
     def _bytes(size):
         amount, unit = size.split()

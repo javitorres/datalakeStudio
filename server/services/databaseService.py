@@ -271,7 +271,6 @@ def loadTable(tableName, fileName):
     is_url = re.match(r"[a-z][a-z0-9+.-]*://", fileName, re.IGNORECASE) is not None
     if not is_url and _sandbox_enabled() and not _is_inside(fileName, data_dir):
         raise ValueError("Local files can only be loaded from your upload folder: " + fileName)
-    runQuery("DROP TABLE IF EXISTS " + tableName)
 
     extracted_files = []
     if fileName.endswith('.zip'):
@@ -288,17 +287,18 @@ def loadTable(tableName, fileName):
             fileName = os.path.join(data_dir, extracted_data_file)
 
     log.info(f"File to be integrated: {fileName}")
-    # Errors reach the caller, so the user sees why a file didn't load
+    # Errors reach the caller, so the user sees why a file didn't load. CREATE OR REPLACE keeps the
+    # previous table if the new file fails.
     try:
         if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
-            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
+            runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
         elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
-            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
+            runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
         elif fileName.lower().endswith(".json"):
-            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+            runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
         elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
             # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
-            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
+            runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
         else:
             raise ValueError("Unsupported file type: " + os.path.basename(fileName))
     finally:
@@ -394,8 +394,7 @@ def createTableFromDataFrame(df, tableName):
         # frame, so it is registered explicitly.
         db.register("__dataframe_import", df)
         try:
-            db.query("DROP TABLE IF EXISTS " + tableName)
-            db.query("CREATE TABLE " + tableName + " AS (SELECT * FROM __dataframe_import)")
+            db.query("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM __dataframe_import)")
         finally:
             db.unregister("__dataframe_import")
 
