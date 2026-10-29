@@ -248,6 +248,14 @@ class DatabaseRoutesTest(unittest.TestCase):
         self.assertEqual(table.column_names, ["id", "species"])
         self.assertEqual(table.num_rows, 3)
 
+    def test_rest_connector_json_handles_nulls_and_dates(self):
+        class JsonRequest:
+            async def json(self):
+                return {"type": "json", "sql": "SELECT NULL::DOUBLE AS price, DATE '2026-01-02' AS d"}
+
+        resp = asyncio.run(database_controller.handle_query(JsonRequest()))
+        self.assertEqual(json.loads(resp.body), [{"price": None, "d": "2026-01-02T00:00:00.000"}])
+
     def test_create_table_from_dataframe(self):
         df = pd.DataFrame({"id": [1, 2], "city": ["Madrid", "Sevilla"]})
         databaseService.createTableFromDataFrame(df, "imported")

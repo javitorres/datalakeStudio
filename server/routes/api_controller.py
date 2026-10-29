@@ -64,7 +64,7 @@ async def catch_all(request: Request, path: str):
                 csv_data = df_result.to_csv(index=False)
                 return Response(content=csv_data, media_type="text/csv", status_code=200)
             else:
-                result = df_result.to_dict(orient="records")
+                result = databaseService.to_json_records(df_result)
                 #print("Result:" + str(result))
                 return JSONResponse(content=result, status_code=200)
         else:

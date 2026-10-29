@@ -551,9 +551,15 @@ def get_arrow_bytes(sql):
     return arrow_to_bytes(get_arrow(sql))
 
 
+def to_json_records(df):
+    # NULL and infinite values become null and dates ISO strings: pandas' NaN and Timestamps are not
+    # valid in a JSON response
+    return ujson.loads(df.to_json(orient="records", date_format="iso", default_handler=str, double_precision=15))
+
+
 def retrieve_json(query):
     sql = query.get("sql")
     df = runQuery(sql)
     if df is not None:
-        return df.to_dict(orient="records")
+        return to_json_records(df)
     return []

@@ -7,8 +7,9 @@ import duckdb
 import httpx
 from fastapi import FastAPI
 
+from model.SaveQueryRequestDTO import SaveQueryRequestDTO
 from routes import api_controller, apiserver_controller
-from services import apiServerService, databaseService
+from services import apiServerService, databaseService, queriesService
 
 TEST_USER = "test_user"
 
@@ -127,18 +128,35 @@ class ApiServerRoutesTest(unittest.TestCase):
         self.assertIsNone(apiServerService.getEndpointConfiguration("x' OR '1'='1"))
         self.assertIsNotNone(apiServerService.getEndpointConfiguration("real"))
 
-    def test_unknown_endpoint_returns_404(self):
+    @staticmethod
+    def _get_api(path):
         app = FastAPI()
         app.include_router(api_controller.router)
 
         async def call():
             async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-                return await client.get("/api/nope")
+                return await client.get(path)
 
-        self.assertEqual(asyncio.run(call()).status_code, 404)
+        return asyncio.run(call())
+
+    def test_unknown_endpoint_returns_404(self):
+        self.assertEqual(self._get_api("/api/nope").status_code, 404)
         # Also for a user who never published an endpoint
         databaseService.runQuery("DROP TABLE __endpoints")
-        self.assertEqual(asyncio.run(call()).status_code, 404)
+        self.assertEqual(self._get_api("/api/nope").status_code, 404)
+
+    def test_json_responses_handle_nulls_and_dates(self):
+        query = "SELECT 1 AS id, NULL::DOUBLE AS price, TIMESTAMP '2026-01-01 10:00:00' AS ts"
+        expected = [{"id": 1, "price": None, "ts": "2026-01-01T10:00:00.000"}]
+
+        self._publish("types", query)
+        response = self._get_api("/api/types")
+        self.assertEqual((response.status_code, response.json()), (200, expected))
+
+        # The preview of a saved query (/apiserver/runQuery) as well
+        queriesService.saveSqlQuery(SaveQueryRequestDTO(query=query, sqlQueryName="types", description=""))
+        id_query = int(databaseService.runQuery("SELECT max(id_query) AS id FROM __queries")["id"][0])
+        self.assertEqual(self._json(apiserver_controller.getServices(id_query)), expected)
 
     def test_failed_update_is_not_reported_as_saved(self):
         endpoint_id = self._json(apiserver_controller.create())['id_endpoint']
