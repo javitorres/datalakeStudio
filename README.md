@@ -8,7 +8,7 @@
 <p align="center">
     <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Version">
     <img src="https://img.shields.io/badge/Vue-3.4-blue" alt="Vue 3">
-    <img src="https://img.shields.io/badge/FastAPI-0.108-009688" alt="FastAPI">
+    <img src="https://img.shields.io/badge/FastAPI-0.162-009688" alt="FastAPI">
     <img src="https://img.shields.io/badge/DuckDB-2.0.0-yellow" alt="DuckDB">
     <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License: GPL v3">
 </p>

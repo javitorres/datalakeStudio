@@ -48,8 +48,8 @@ Datalake Studio es una aplicación web de exploración y gestión de datos const
 | Tecnología | Versión | Propósito |
 |---|---|---|
 | Python 3.12 | - | Lenguaje del servidor |
-| FastAPI | 0.108.0 | Framework REST API |
-| Uvicorn | 0.30.1 | Servidor ASGI |
+| FastAPI | 0.162.0 | Framework REST API (sobre Starlette 1.10) |
+| Uvicorn | 0.54.0 | Servidor ASGI |
 | DuckDB | 2.0.0 | Motor OLAP embebido |
 | Pandas | 2.2.2 | Manipulación de DataFrames |
 | PyArrow | 17.0 | Serialización Arrow para transferencia eficiente |
