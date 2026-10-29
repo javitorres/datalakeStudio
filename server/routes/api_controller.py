@@ -49,6 +49,8 @@ async def catch_all(request: Request, path: str):
         
         try:
             df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
+        except apiServerService.EndpointNotFound as e:
+            return JSONResponse(content={"error": str(e)}, status_code=404)
         except Exception as e:
             print("Error running endpoint:" + str(e))
             return JSONResponse(content={"error": str(e)}, status_code=400)

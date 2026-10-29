@@ -11,6 +11,9 @@ import requests
 _SQL_TOKENS = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|--[^\n]*|/\*.*?\*/|\{(\w+)\}", re.S)
 _PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
+class EndpointNotFound(Exception):
+    pass
+
 def _escape_sql_string(value):
     if value is None:
         return ""
@@ -81,8 +84,9 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
         print("updateQuery: " + updateQuery)
         databaseService.runQuery(updateQuery)
     except Exception as e:
+        # Let the error reach the client: the controller used to answer "ok" anyway
         print("Error updating endpoint:" + str(e))
-        return False        
+        raise
 
     return True
 
@@ -90,7 +94,9 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
 
 def getEndpointConfiguration(path):
     print("Getting endpoint " + path)
-    
+    # A user who never published an endpoint has no __endpoints table yet
+    createTable()
+
     # Search query into __queries table lower case
     df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = ?", params=[path])
 
@@ -127,7 +133,7 @@ def getAndRunEndpoint(path, query_params, body):
             return None
     
     else:
-        raise Exception("Endpoint not found: " + path)
+        raise EndpointNotFound("Endpoint not found: " + path)
 
 ####################################################
 def listEndpoints():

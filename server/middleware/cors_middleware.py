@@ -1,6 +1,8 @@
+import logging as log
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
-from starlette.responses import Response
+from starlette.responses import JSONResponse, Response
 
 
 class DualCORSMiddleware(BaseHTTPMiddleware):
@@ -49,8 +51,11 @@ class DualCORSMiddleware(BaseHTTPMiddleware):
 
         try:
             response = await call_next(request)
-        except Exception:
-            response = Response(status_code=500)
+        except Exception as e:
+            # Unhandled errors end here: log them and send the message, with the CORS headers below
+            # so the frontend can read it
+            log.exception(f"Unhandled error in {request.method} {request.url.path}")
+            response = JSONResponse(content={"status": "error", "message": str(e)}, status_code=500)
 
         for key, value in cors_headers.items():
             response.headers[key] = value

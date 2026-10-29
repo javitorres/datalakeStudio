@@ -12,6 +12,20 @@ import time
 router = APIRouter(prefix="/database")
 SLOW_QUERY_THRESHOLD = 5000
 
+
+def _load_table_response(tableName, fileName):
+    try:
+        loaded = databaseService.loadTable(tableName, fileName)
+    except Exception as e:
+        log.error(f"Error loading {fileName}: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
+    if not loaded:
+        response = {"status": "error", "message": f"Table {tableName} was not created from {fileName}"}
+        return JSONResponse(content=response, status_code=400)
+    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    return {"status": "ok", "rows": df.to_json()}
+
+
 # Load file into duckdb endpoint (get)
 @router.get("/loadFile")
 def loadFile(fileName: str, tableName: str):
@@ -20,11 +34,7 @@ def loadFile(fileName: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
 
     log.info(f"Loading file '{fileName}' into table '{tableName}'")
-    if databaseService.loadTable(tableName, fileName):
-        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-        return {"status": "ok", "rows": df.to_json()}
-    else:
-        return {"status": "error", "rows": 0}
+    return _load_table_response(tableName, fileName)
 
 ####################################################
 @router.get("/getTables")
@@ -234,11 +244,7 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
 
     if (tableName is None):
         tableName = file_name.split(".")[0]
-    if databaseService.loadTable(tableName, dest_file):
-        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-        return {"status": "ok", "rows": df.to_json()}
-    else:
-        return {"status": "error", "rows": 0}
+    return _load_table_response(tableName, dest_file)
 ####################################################
 @router.get("/getDatabaseList")
 def getDatabaseList():

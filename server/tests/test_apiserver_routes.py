@@ -1,10 +1,13 @@
+import asyncio
 import base64
 import json
 import unittest
 
 import duckdb
+import httpx
+from fastapi import FastAPI
 
-from routes import apiserver_controller
+from routes import api_controller, apiserver_controller
 from services import apiServerService, databaseService
 
 TEST_USER = "test_user"
@@ -123,6 +126,28 @@ class ApiServerRoutesTest(unittest.TestCase):
 
         self.assertIsNone(apiServerService.getEndpointConfiguration("x' OR '1'='1"))
         self.assertIsNotNone(apiServerService.getEndpointConfiguration("real"))
+
+    def test_unknown_endpoint_returns_404(self):
+        app = FastAPI()
+        app.include_router(api_controller.router)
+
+        async def call():
+            async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
+                return await client.get("/api/nope")
+
+        self.assertEqual(asyncio.run(call()).status_code, 404)
+        # Also for a user who never published an endpoint
+        databaseService.runQuery("DROP TABLE __endpoints")
+        self.assertEqual(asyncio.run(call()).status_code, 404)
+
+    def test_failed_update_is_not_reported_as_saved(self):
+        endpoint_id = self._json(apiserver_controller.create())['id_endpoint']
+        dto = apiserver_controller.PublishEndpointRequestDTO(
+            id_query=2**40, id_endpoint=endpoint_id, endpoint='e', parameters=[], description='',
+            query=base64.b64encode(b'SELECT 1').decode(), queryStringTest='', status='DEV')
+
+        with self.assertRaises(Exception):
+            apiserver_controller.publish(dto)
 
 
 if __name__ == '__main__':

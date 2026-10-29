@@ -190,8 +190,7 @@ def loadTable(tableName, fileName):
     log.info(f"Loading table {tableName} from {fileName}")
     is_url = re.match(r"[a-z][a-z0-9+.-]*://", fileName, re.IGNORECASE) is not None
     if not is_url and _sandbox_enabled() and not _is_inside(fileName, data_dir):
-        log.warning(f"Refusing to load local file outside the user's temp folder: {fileName}")
-        return False
+        raise ValueError("Local files can only be loaded from your upload folder: " + fileName)
     runQuery("DROP TABLE IF EXISTS " + tableName)
 
     extracted_files = []
@@ -209,31 +208,32 @@ def loadTable(tableName, fileName):
             fileName = os.path.join(data_dir, extracted_data_file)
 
     log.info(f"File to be integrated: {fileName}")
-    if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
-        try:
+    # Errors reach the caller, so the user sees why a file didn't load
+    try:
+        if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
             runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-        except Exception as e:
-            log.error(f"Error reading CSV file: {e}")
-    elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
-        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
-    elif fileName.lower().endswith(".json"):
-        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-    elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
-        # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
-        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
-
-    # Only uploads and extracted files are temporary: never delete a file outside the user's temp folder
-    if _is_inside(fileName, data_dir):
-        log.info(f"Removing file {fileName}")
-        try:
-            os.remove(fileName)
-        except Exception:
-            pass
-        for f in extracted_files:
+        elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
+            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
+        elif fileName.lower().endswith(".json"):
+            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
+        elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
+            # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
+            runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
+        else:
+            raise ValueError("Unsupported file type: " + os.path.basename(fileName))
+    finally:
+        # Only uploads and extracted files are temporary: never delete a file outside the user's temp folder
+        if _is_inside(fileName, data_dir):
+            log.info(f"Removing file {fileName}")
             try:
-                os.remove(f)
+                os.remove(fileName)
             except Exception:
                 pass
+            for f in extracted_files:
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
 
     tables = runQuery('SHOW TABLES')["name"].to_list()
     if tableName in tables:

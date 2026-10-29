@@ -122,7 +122,8 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             f.write("id\n1\n")
 
         # Sandbox on: refused and left untouched
-        self.assertFalse(databaseService.loadTable("blocked", source))
+        with self.assertRaises(ValueError):
+            databaseService.loadTable("blocked", source)
         self.assertTrue(os.path.exists(source))
 
         # Sandbox off (single user): loaded, and still never deleted
@@ -160,6 +161,16 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
 
         count = databaseService.runQuery("SELECT COUNT(*) AS c FROM people")
         self.assertEqual(int(count["c"].iloc[0]), 2)
+
+    def test_load_errors_are_reported_with_their_reason(self):
+        for name, content, reason in [("notes.txt", b"hello", "unsupported file type: notes.txt"),
+                                      ("broken.parquet", b"not parquet", "parquet")]:
+            upload = UploadFile(filename=name, file=io.BytesIO(content))
+
+            resp = database_controller.uploadFile(file=upload, tableName="t")
+            self.assertEqual(resp.status_code, 400, name)
+            self.assertIn(reason, self._json(resp)["message"].lower())
+            self.assertFalse(os.path.exists(os.path.join(self.download_folder, TEST_USER, name)))
 
 
 if __name__ == '__main__':
