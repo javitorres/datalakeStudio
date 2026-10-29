@@ -40,7 +40,8 @@ def _parse_bbox(bbox: str):
 
 def _validated_map_fields(table: str, latitude_field: str = None, longitude_field: str = None,
                           geom_field: str = None, fields=None):
-    schema = databaseService.getDatabaseSchema()
+    # Hidden tables included: the map of a SQL result reads __lastQuery
+    schema = databaseService.getDatabaseSchema(include_hidden=True)
     if table not in schema:
         raise HTTPException(status_code=404, detail=f"Unknown table: {table}")
 

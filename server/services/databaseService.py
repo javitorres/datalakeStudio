@@ -26,6 +26,8 @@ _active_db = {}
 _user_locks = {}
 # Last use of each open database, to close the idle ones: {(username, db_name): time.monotonic()}
 _last_used = {}
+# SQL of the last query of each user and database, to recreate __lastQuery when it is reopened
+_last_query = {}
 # Units in DuckDB's memory sizes ("3.1 GiB")
 _SIZE_UNITS = {"bytes": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12,
                "KiB": 2**10, "MiB": 2**20, "GiB": 2**30, "TiB": 2**40}
@@ -178,6 +180,12 @@ def _ensure_user_db(username=None):
                 # Never hand out a connection without its sandbox
                 db.close()
                 raise
+        if (username, active_db_name) in _last_query:
+            try:
+                # The last result was a temporary table, gone with the previous connection
+                db.query("CREATE OR REPLACE TEMP VIEW __lastQuery AS " + _last_query[(username, active_db_name)])
+            except Exception as e:
+                log.warning(f"Could not recreate __lastQuery: {e}")
         _connections[username][active_db_name] = db
         _last_used[(username, active_db_name)] = time.monotonic()
 
@@ -345,6 +353,46 @@ def runQuery(query, logQuery=True, format="df", params=None):
 
 
 ####################################################
+def runUserQuery(sql, rows=1000):
+    """Run a script from the SQL panel and keep the result of its last statement as __lastQuery.
+
+    The result is a temporary table, so it isn't written into the user's database file. Queries are
+    stored with CREATE TABLE AS; other statements (PRAGMA, EXPLAIN, INSERT, SET...) are run and what
+    they return is stored instead. Returns the first rows of the result (all of them with rows=0).
+    """
+    username = _current_user.get()
+    with _db_session() as db:
+        key = (username, _active_db[username])
+        statements = db.extract_statements(sql)
+        if not statements:
+            raise ValueError("The query is empty")
+        *setup, last = statements
+        last_query = last.query
+        if any(not statement.query.strip() for statement in statements):
+            # DuckDB 1.5 splits PIVOT into pieces that can't run on their own: run the script as a whole
+            setup, last_query = [], sql
+        for statement in setup:
+            db.query(statement.query)
+        # __lastQuery used to be a table in the database file
+        catalog = db.query("SELECT current_database()").fetchall()[0][0]
+        db.query('DROP TABLE IF EXISTS "' + catalog.replace('"', '""') + '".main.__lastQuery')
+        try:
+            db.query("CREATE OR REPLACE TEMP TABLE __lastQueryData AS " + last_query)
+            _last_query[key] = last_query
+        except duckdb.ParserException:
+            # Not a query, or a syntax error that running the statement reports as it is
+            output = db.execute(last_query).df()
+            db.register("__statement_output", output)
+            try:
+                db.query("CREATE OR REPLACE TEMP TABLE __lastQueryData AS SELECT * FROM __statement_output")
+            finally:
+                db.unregister("__statement_output")
+            _last_query.pop(key, None)
+        db.query("CREATE OR REPLACE TEMP VIEW __lastQuery AS SELECT * FROM __lastQueryData")
+        return db.query("SELECT * FROM __lastQuery" + (" LIMIT " + str(int(rows)) if rows else "")).df()
+
+
+####################################################
 def getTableList(hideMeta: bool = True):
     tableList = runQuery("SHOW TABLES")
     tableListArray = None
@@ -357,18 +405,19 @@ def getTableList(hideMeta: bool = True):
 
 
 ####################################################
-def getDatabaseSchema():
-    """Return the visible tables and their ordered columns for SQL completion."""
+def getDatabaseSchema(include_hidden=False):
+    """Return the visible tables and their ordered columns for SQL completion (with include_hidden,
+    also the app's own tables, such as __lastQuery)."""
     with _db_session() as db:
         rows = db.query(
             """
             SELECT table_name, column_name, data_type
             FROM information_schema.columns
             WHERE table_schema = 'main'
-              AND NOT starts_with(table_name, '__')
-              AND NOT starts_with(table_name, 'cube_index_')
+              AND (? OR (NOT starts_with(table_name, '__') AND NOT starts_with(table_name, 'cube_index_')))
             ORDER BY table_name, ordinal_position
-            """
+            """,
+            params=[include_hidden]
         ).fetchall()
 
     schema = {}

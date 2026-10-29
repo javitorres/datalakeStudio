@@ -108,33 +108,14 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000, filte
 def runQuery(queryRequest: QueryRequest):
     log.info(f"POST runQuery {queryRequest}")
 
-    databaseService.runQuery("DROP TABLE IF EXISTS __lastQuery")
-
-    query = queryRequest.query
-
-    query = query.strip()
-    if query[-1] == ";":
-        query = query[:-1]
-
     try:
-        databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+        df = databaseService.runUserQuery(queryRequest.query, queryRequest.rows)
     except Exception as e:
         log.error(f"Error running query: {e}")
         response = {"status": "error", "message": "Error running query: " + str(e)}
         return JSONResponse(content=response, status_code=400)
 
-    if (queryRequest.rows==0):
-        LIMIT = ""
-    else:
-        LIMIT = " LIMIT " + str(queryRequest.rows)
-
-    df = databaseService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
-
-    if df is not None:
-        csv_data = df.to_csv(index=False)
-        return Response(content=csv_data, media_type="text/csv", status_code=200)
-    else:
-        return Response(content="Query failed or returned no data", status_code=400)
+    return Response(content=df.to_csv(index=False), media_type="text/csv", status_code=200)
 ####################################################
 @router.get("/getRowCount")
 def getRowsCount(tableName: str):

@@ -205,6 +205,49 @@ class DatabaseRoutesTest(unittest.TestCase):
         self.assertEqual(bad.status_code, 400)
         self.assertIn('Error running query', bad.body.decode('utf-8'))
 
+    def test_run_query_scripts_comments_and_other_statements(self):
+        def run(sql):
+            resp = database_controller.runQuery(QueryRequest(query=sql, rows=10))
+            body = self._csv_lines(resp.body) if resp.status_code == 200 else json.loads(resp.body)["message"]
+            return resp.status_code, body
+
+        self.assertEqual(run("SELECT 42 AS answer -- trailing comment"), (200, ["answer", "42"]))
+        status, message = run("   -- nothing to run")
+        self.assertEqual(status, 400)
+        self.assertIn("empty", message)
+        # In a script the earlier statements run and the last one gives the result
+        self.assertEqual(run("CREATE TABLE setosa AS FROM iris WHERE species = 'setosa'; SELECT count(*) AS n FROM setosa;"),
+                         (200, ["n", "1"]))
+        # Statements that aren't queries run once and keep what they return
+        self.assertEqual(run("INSERT INTO iris VALUES (4, 'new', 7.0) RETURNING id"), (200, ["id", "4"]))
+        self.assertEqual(int(databaseService.runQuery("SELECT count(*) AS n FROM iris")["n"][0]), 4)
+        self.assertEqual(run("EXPLAIN SELECT 1")[0], 200)
+        self.assertEqual(list(databaseService.runQuery("SELECT * FROM __lastQuery").columns), ["explain_key", "explain_value"])
+        # DuckDB 1.5 can't wrap these in CREATE TABLE AS, and splits PIVOT in two
+        self.assertEqual(run("SUMMARIZE iris")[0], 200)
+        self.assertEqual(run("PIVOT (SELECT species FROM iris) ON species USING count(*)")[1],
+                         ["new,setosa,versicolor,virginica", "1,1,1,1"])
+        status, message = run("SELECT * FROM does_not_exist")
+        self.assertEqual(status, 400)
+        self.assertIn("does_not_exist", message)
+
+    def test_query_results_are_not_written_to_the_database_file(self):
+        databaseService.runQuery("CREATE TABLE __lastQuery AS SELECT 1 AS old")  # as earlier versions left it
+        database_controller.runQuery(QueryRequest(query="SELECT * FROM iris", rows=10))
+
+        catalogs = databaseService.runQuery(
+            "SELECT DISTINCT table_catalog AS c FROM information_schema.tables WHERE starts_with(table_name, '__lastQuery')")
+        self.assertEqual(catalogs["c"].to_list(), ["temp"])
+        self.assertEqual(int(databaseService.runQuery("SELECT count(*) AS n FROM __lastQuery")["n"][0]), 3)
+
+    def test_map_of_a_query_result(self):
+        databaseService.runQuery("CREATE TABLE places AS SELECT 40.4 AS lat, -3.7 AS lon")
+        database_controller.runQuery(QueryRequest(query="SELECT * FROM places", rows=10))
+
+        response = asyncio.run(maps_controller.csv(table="__lastQuery", latitudeField="lat", longitudeField="lon",
+                                                   bbox="-4,40,-3,41"))
+        self.assertIn("40.4,-3.7", response.body.decode("utf-8"))
+
     def test_create_rowcount_and_delete_table(self):
         created = database_controller.createTableFromQuery('SELECT * FROM iris', 'iris_copy')
         self.assertEqual(created['status'], 'ok')

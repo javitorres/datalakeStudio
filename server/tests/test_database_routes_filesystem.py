@@ -11,6 +11,7 @@ import duckdb
 import pandas as pd
 from fastapi import UploadFile
 
+from model.QueryRequestDTO import QueryRequest
 from routes import database_controller
 from services import databaseService
 
@@ -259,6 +260,17 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
         # The next request opens it again
         self.assertEqual(int(databaseService.runQuery("SELECT 42 AS n")["n"][0]), 42)
         self.assertIn("aux.db", databaseService._connections[TEST_USER])
+
+    def test_query_result_survives_the_database_being_closed(self):
+        databaseService._config["duckdbIdleMinutes"] = 0
+        database_controller.changeDatabase("aux")
+        databaseService.runQuery("CREATE TABLE numbers AS SELECT range AS n FROM range(5)")
+        database_controller.runQuery(QueryRequest(query="SELECT n FROM numbers WHERE n > 2", rows=10))
+
+        databaseService._close_idle_connections()
+        self.assertNotIn("aux.db", databaseService._connections[TEST_USER])
+        # Reopened, __lastQuery is a view of the same query
+        self.assertEqual(databaseService.runQuery("SELECT n FROM __lastQuery ORDER BY n")["n"].to_list(), [3, 4])
 
     def test_least_recently_used_database_is_closed_beyond_the_limit(self):
         databaseService._config["duckdbMaxOpenDatabases"] = 1
