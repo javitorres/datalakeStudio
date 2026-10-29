@@ -3,8 +3,10 @@ import json
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 import duckdb
+import pandas as pd
 from fastapi import UploadFile
 
 from routes import database_controller
@@ -44,7 +46,8 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
     def tearDown(self):
         databaseService._load_extensions_for_db = self.original_load_extensions
         # Clean up user state
-        databaseService._connections.pop(TEST_USER, None)
+        for db in databaseService._connections.pop(TEST_USER, {}).values():
+            db.close()
         databaseService._active_db.pop(TEST_USER, None)
         self.tmp.cleanup()
 
@@ -77,14 +80,76 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
     def test_export_data_writes_csv(self):
         databaseService.runQuery("CREATE TABLE t AS SELECT 1 AS id, 'x' AS label")
 
-        out_file = os.path.join(self.tmp.name, "export.csv")
-        resp = database_controller.exportData("t", "csv", out_file)
+        resp = database_controller.exportData("t", "csv")
         self.assertEqual(resp.status_code, 200)
-        self.assertTrue(os.path.exists(out_file))
+        self.assertEqual(resp.path, os.path.join(self.download_folder, TEST_USER, "t.csv"))
 
-        with open(out_file, "r", encoding="utf-8") as f:
+        with open(resp.path, "r", encoding="utf-8") as f:
             content = f.read()
         self.assertIn("id,label", content)
+
+    def test_export_file_stays_in_the_temp_folder(self):
+        databaseService.runQuery('CREATE TABLE "../escaped" AS SELECT 1 AS id')
+
+        resp = database_controller.exportData('"../escaped"', "parquet")
+        self.assertEqual(os.path.dirname(resp.path), os.path.join(self.download_folder, TEST_USER))
+        self.assertEqual(database_controller.exportData("t", "xlsx").status_code, 400)
+
+    def test_database_names_cannot_leave_the_user_folder(self):
+        other_db = os.path.join(self.db_folder, "other_user", "secret.db")
+        os.makedirs(os.path.dirname(other_db))
+        duckdb.connect(other_db).close()
+
+        resp = database_controller.changeDatabase("../other_user/secret")
+        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(databaseService.get_current_database_name(), "main")
+
+        resp = database_controller.createDatabase("../../outside.db")
+        self.assertEqual(resp.status_code, 400)
+        self.assertFalse(os.path.exists(os.path.join(self.tmp.name, "outside.db")))
+
+    def test_upload_file_name_cannot_leave_the_temp_folder(self):
+        upload = UploadFile(filename="../../escaped.csv", file=io.BytesIO(b"id\n1\n"))
+
+        with patch.object(databaseService, "loadTable", return_value=False) as load_table:
+            database_controller.uploadFile(file=upload, tableName="escaped")
+        self.assertEqual(load_table.call_args.args[1], os.path.join(self.download_folder, TEST_USER, "escaped.csv"))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp.name, "escaped.csv")))
+
+    def test_loading_a_local_file_outside_the_temp_folder(self):
+        source = os.path.join(self.tmp.name, "keep.csv")
+        with open(source, "w", encoding="utf-8") as f:
+            f.write("id\n1\n")
+
+        # Sandbox on: refused and left untouched
+        self.assertFalse(databaseService.loadTable("blocked", source))
+        self.assertTrue(os.path.exists(source))
+
+        # Sandbox off (single user): loaded, and still never deleted
+        databaseService._config["sandboxEnabled"] = False
+        self.assertTrue(databaseService.loadTable("kept", source))
+        self.assertTrue(os.path.exists(source))
+
+    def test_sandbox_confines_sql_to_the_user_folders(self):
+        other_db = os.path.join(self.db_folder, "other_user", "secret.db")
+        os.makedirs(os.path.dirname(other_db))
+        duckdb.connect(other_db).close()
+        outside_csv = os.path.join(self.tmp.name, "outside.csv")
+        own_csv = os.path.join(databaseService.get_user_temp_folder(), "own.csv")
+        for path in (outside_csv, own_csv):
+            with open(path, "w", encoding="utf-8") as f:
+                f.write("a\n1\n")
+
+        database_controller.changeDatabase("aux")  # opens a sandboxed connection
+
+        self.assertEqual(len(databaseService.runQuery(f"SELECT * FROM read_csv('{own_csv}')")), 1)
+        databaseService.createTableFromDataFrame(pd.DataFrame({"id": [1, 2]}), "from_df")
+        for blocked in (f"SELECT * FROM read_csv('{outside_csv}')",
+                        f"ATTACH '{other_db}' AS other",
+                        f"COPY (SELECT 1) TO '{os.path.join(self.tmp.name, 'written.csv')}'",
+                        "SET enable_external_access = true"):
+            with self.assertRaises(Exception, msg=blocked):
+                databaseService.runQuery(blocked, False)
 
     def test_upload_file_creates_table(self):
         payload = b"id,name\n1,Ana\n2,Bob\n"

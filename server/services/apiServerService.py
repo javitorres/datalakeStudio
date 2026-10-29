@@ -2,14 +2,50 @@ from services import databaseService
 from model.PublishEndpointRequestDTO import PublishEndpointRequestDTO
 from services import queriesService
 import json
+import re
 from fastapi.responses import JSONResponse
 import base64
 import requests
+
+# String literals, quoted identifiers and comments (where {placeholders} are not looked for), or a placeholder
+_SQL_TOKENS = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|--[^\n]*|/\*.*?\*/|\{(\w+)\}", re.S)
+_PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
 def _escape_sql_string(value):
     if value is None:
         return ""
     return str(value).replace("'", "''")
+
+def _bind_parameters(query, values):
+    """Turn {name} placeholders into ? parameters so request values are never parsed as SQL.
+
+    A quoted placeholder '{name}' becomes ?, and one inside a longer literal is concatenated:
+    '%{name}%' becomes '%' || ? || '%'.
+    """
+    params, missing = [], []
+
+    def bind(name):
+        if name in values:
+            params.append(values[name])
+        else:
+            missing.append(name)
+        return "?"
+
+    def replace(match):
+        token, name = match.group(0), match.group(1)
+        if name is not None:
+            return bind(name)
+        if token.startswith("'"):
+            whole = _PLACEHOLDER.fullmatch(token[1:-1])
+            if whole:
+                return bind(whole.group(1))
+            return _PLACEHOLDER.sub(lambda m: "' || " + bind(m.group(1)) + " || '", token)
+        return token
+
+    sql = _SQL_TOKENS.sub(replace, query)
+    if missing:
+        raise ValueError("Missing parameters: " + ", ".join(dict.fromkeys(missing)))
+    return sql, params
 
 def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
@@ -56,7 +92,7 @@ def getEndpointConfiguration(path):
     print("Getting endpoint " + path)
     
     # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = ?", params=[path])
 
     # Map df to PublishEndpointRequestDTO object
     endpoint = PublishEndpointRequestDTO.from_dataframe(df)
@@ -77,20 +113,13 @@ def getAndRunEndpoint(path, query_params, body):
     if (endpoint is not None):
         print("endpoint: ", endpoint)
 
-        # Query contains expressoins like {marca} or {marca_id} replace with query_params
-        query = endpoint.query
-        if (query_params is not None):
-            for param in query_params:
-                query = query.replace("{" + param + "}", query_params[param])
+        # Query contains expressions like {marca} or {marca_id}: they are bound as parameters,
+        # never pasted into the SQL
+        query, params = _bind_parameters(endpoint.query, query_params or {})
 
-        # Check if any parameter remains in query, if so raise exception
-        if ("{" in query):
-            raise Exception("Some needed parameters were not found: " + query)
-        
-        
         # Run query
         print("Running query: " + query)
-        df = databaseService.runQuery(query)
+        df = databaseService.runQuery(query, params=params)
 
         if (df is not None):
             return df
@@ -181,7 +210,7 @@ def checkIfEndPointExists(endpoint):
     print("Checking if endpoint exists " + str(endpoint))
     
     # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + endpoint + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = ?", params=[endpoint])
 
     if (df is not None and len(df) > 0):
         return True

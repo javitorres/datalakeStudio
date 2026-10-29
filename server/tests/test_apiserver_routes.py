@@ -75,6 +75,55 @@ class ApiServerRoutesTest(unittest.TestCase):
         self.assertEqual(body['status'], 'DEV')
         self.assertIn('brand', body['parameters'])
 
+    @staticmethod
+    def _publish(endpoint, query):
+        databaseService.runQuery(
+            "INSERT INTO __endpoints VALUES (nextval('seq_id_endpoint'), 1, ?, '[]', '', ?, '', 'DEV')",
+            params=[endpoint, query])
+
+    def test_endpoint_parameters_are_bound_not_pasted(self):
+        databaseService.runQuery(
+            "CREATE TABLE iris AS SELECT * FROM (VALUES (5.0, 'setosa'), (6.5, 'virginica')) t(sepal_length, species)")
+        self._publish("irisBySize",
+                      "SELECT species FROM iris WHERE sepal_length >= {min_length} AND species LIKE '%{name}%' ORDER BY species")
+
+        df = apiServerService.getAndRunEndpoint("irisBySize", {"min_length": "5", "name": "a"}, None)
+        self.assertEqual(df["species"].to_list(), ["setosa", "virginica"])
+
+        with self.assertRaises(Exception):
+            apiServerService.getAndRunEndpoint(
+                "irisBySize", {"min_length": "0; CREATE TABLE pwned AS SELECT 1", "name": "a"}, None)
+        self.assertNotIn("pwned", databaseService.getTableList())
+
+        df = apiServerService.getAndRunEndpoint("irisBySize", {"min_length": "0", "name": "x' OR '1'='1"}, None)
+        self.assertEqual(len(df), 0)
+
+    def test_quoted_placeholder_still_matches_numeric_columns(self):
+        databaseService.runQuery("CREATE TABLE cars AS SELECT * FROM (VALUES (1, 'FORD'), (2, 'SEAT')) t(id, brand)")
+        self._publish("carById", "SELECT brand FROM cars WHERE id = '{id}'")
+
+        df = apiServerService.getAndRunEndpoint("carById", {"id": "2"}, None)
+        self.assertEqual(df["brand"].to_list(), ["SEAT"])
+
+    def test_missing_parameters_are_reported_without_the_sql(self):
+        self._publish("needsParams", "SELECT {a} AS a, {b} AS b, {b} AS b2")
+
+        with self.assertRaises(ValueError) as error:
+            apiServerService.getAndRunEndpoint("needsParams", {"a": "1"}, None)
+        self.assertEqual(str(error.exception), "Missing parameters: b")
+
+    def test_comments_and_struct_literals_are_not_placeholders(self):
+        self._publish("structs", "SELECT {'k': 1} AS s -- {not_a_param}\n, {v} AS v")
+
+        df = apiServerService.getAndRunEndpoint("structs", {"v": "x"}, None)
+        self.assertEqual(df["v"].to_list(), ["x"])
+
+    def test_endpoint_lookup_does_not_parse_the_path(self):
+        self._publish("real", "SELECT 1 AS one")
+
+        self.assertIsNone(apiServerService.getEndpointConfiguration("x' OR '1'='1"))
+        self.assertIsNotNone(apiServerService.getEndpointConfiguration("real"))
+
 
 if __name__ == '__main__':
     unittest.main()

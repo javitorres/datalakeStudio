@@ -138,7 +138,17 @@ downloadFolder: "temp"           # temp folder for uploads and exports
 authEnabled: false               # true = require login; false = anonymous "default" user
 allowedOrigins:                  # CORS origins for app endpoints (not /api/*)
   - "http://localhost:8080"
+# sandboxEnabled: true           # confine each user's SQL (default: same as authEnabled)
+# sandboxAllowedPrefixes:        # remote locations sandboxed SQL can reach
+#   - "https://"
+#   - "s3://"
 ```
+
+With the sandbox on, each user's SQL can only read and write their own database
+folder, their upload folder and the allowed remote prefixes: other users' files,
+the server's files and local paths elsewhere are refused, and the DuckDB settings
+are locked. It is on by default when `authEnabled` is true; leave it off for a
+single-user install where you want to query any local file.
 
 ### `server/secrets.yml`
 

@@ -181,13 +181,15 @@ def renameTable(tableName: str, newName: str):
     return {"status": "ok"}
 ####################################################
 @router.get("/exportData")
-def exportData(tableName: str, format: str = "csv", fileName: str = None):
-    if fileName is None:
-        fileName = databaseService.get_user_temp_folder() + "/" + tableName + "." + format
-
-    if (tableName is None or fileName is None):
-        response = {"status": "error", "message": "tableName and fileName are required"}
+def exportData(tableName: str, format: str = "csv"):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
+    if format not in ("csv", "parquet"):
+        response = {"status": "error", "message": "Format not supported: " + format}
+        return JSONResponse(content=response, status_code=400)
+    # The export always lands in the user's temp folder, under a name that can't carry a path
+    fileName = os.path.join(databaseService.get_user_temp_folder(), re.sub(r"[^\w-]", "_", tableName) + "." + format)
     log.info(f"Exporting data from table {tableName} to file {fileName} in format {format}")
     r = databaseService.exportData(tableName, format, fileName)
 
@@ -217,15 +219,21 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
         response = {"status": "error", "message": "file is required"}
         return JSONResponse(content=response, status_code=400)
 
+    # Keep only the file name: a client-supplied path must not leave the user's temp folder
+    file_name = os.path.basename(file.filename or "")
+    if not file_name:
+        response = {"status": "error", "message": "file name is required"}
+        return JSONResponse(content=response, status_code=400)
+
     data_dir = databaseService.get_user_temp_folder()
-    dest_file = os.path.join(data_dir, file.filename)
+    dest_file = os.path.join(data_dir, file_name)
     log.info(f"Uploading file {file.filename} to {dest_file}")
     with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     dest_file = os.path.abspath(dest_file)
 
     if (tableName is None):
-        tableName = file.filename.split(".")[0]
+        tableName = file_name.split(".")[0]
     if databaseService.loadTable(tableName, dest_file):
         df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
         return {"status": "ok", "rows": df.to_json()}
@@ -251,13 +259,19 @@ def getDatabaseList():
 ####################################################
 @router.get("/changeDatabase")
 def changeDatabase(databaseName: str):
-    databaseService.changeDatabase(databaseName)
+    try:
+        databaseService.changeDatabase(databaseName)
+    except ValueError as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
     return {"status": "ok"}
 
 ####################################################
 @router.get("/createDatabase")
 def createDatabase(databaseName: str):
-    databaseService.createDatabase(databaseName)
+    try:
+        databaseService.createDatabase(databaseName)
+    except ValueError as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
     return {"status": "ok"}
 
 # Based on https://github.com/uwdata/mosaic/blob/main/packages/duckdb-server/README.md

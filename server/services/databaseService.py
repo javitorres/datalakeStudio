@@ -1,5 +1,6 @@
 import duckdb
 import os
+import re
 import logging as log
 import contextvars
 import threading
@@ -22,6 +23,11 @@ _active_db = {}
 # Per-user lock. A DuckDB connection can't be used by two threads at once (DuckDB 2.0 raises
 # ResourceInUseException), so the request threads of a user take turns on its connection.
 _user_locks = {}
+
+# Database file names: letters, digits, "_" and "-", plus the ".db" suffix
+_DATABASE_NAME = re.compile(r"[\w-]+")
+# Folders with the CA bundle that httpfs needs for https/S3 inside the sandbox
+_CA_CERT_DIRS = ["/etc/ssl/certs/", "/etc/pki/tls/certs/"]
 
 _config = None
 _secrets = None
@@ -48,18 +54,56 @@ def get_current_user():
     return _current_user.get()
 
 
+def _check_path_component(name, what):
+    # User and database names become folder/file names, so they can't contain path syntax
+    if not name or name in (".", "..") or any(c in name for c in "/\\\0"):
+        raise ValueError(f"Invalid {what}: {name!r}")
+    return name
+
+
+def _database_file_name(databaseName):
+    name = databaseName.strip()
+    if name.endswith(".db"):
+        name = name[:-3]
+    if not _DATABASE_NAME.fullmatch(name):
+        raise ValueError(f"Invalid database name '{databaseName}'. Use letters, numbers, '_' and '-'.")
+    return name + ".db"
+
+
+def _is_inside(path, folder):
+    path, folder = os.path.realpath(path), os.path.realpath(folder)
+    return os.path.commonpath([path, folder]) == folder
+
+
 def _get_user_db_folder(username=None):
     if username is None:
         username = _current_user.get()
-    return os.path.join(_config["databasesFolder"], username)
+    return os.path.join(_config["databasesFolder"], _check_path_component(username, "user name"))
 
 
 def get_user_temp_folder(username=None):
     if username is None:
         username = _current_user.get()
-    folder = os.path.join(_config["downloadFolder"], username)
+    folder = os.path.join(_config["downloadFolder"], _check_path_component(username, "user name"))
     os.makedirs(folder, exist_ok=True)
     return folder
+
+
+def _sandbox_enabled():
+    # On by default when several users share the server (authEnabled); sandboxEnabled overrides it
+    return _config.get("sandboxEnabled", _config.get("authEnabled", True))
+
+
+def _apply_sandbox(db, username):
+    # The user's SQL only reaches their own folders, the CA bundle and the allowed remote prefixes,
+    # and the configuration is locked so SQL can't lift these limits.
+    allowed = [os.path.abspath(_get_user_db_folder(username)) + os.sep,
+               os.path.abspath(get_user_temp_folder(username)) + os.sep,
+               *_CA_CERT_DIRS,
+               *_config.get("sandboxAllowedPrefixes", ["https://", "s3://"])]
+    db.query("SET allowed_directories = [" + ", ".join("'" + p.replace("'", "''") + "'" for p in allowed) + "]")
+    db.query("SET enable_external_access = false")
+    db.query("SET lock_configuration = true")
 
 
 def _ensure_user_db(username=None):
@@ -83,9 +127,18 @@ def _ensure_user_db(username=None):
     if active_db_name not in _connections[username]:
         db_path = os.path.join(user_db_folder, active_db_name)
         log.info(f"Opening database {db_path} for user {username}")
-        db = duckdb.connect(db_path, config={"allow_unsigned_extensions": "true"})
-        _connections[username][active_db_name] = db
+        sandboxed = _sandbox_enabled()
+        # Persistent secrets are read from ~/.duckdb, outside the sandbox, and can't be disabled later
+        db = duckdb.connect(db_path, config={"allow_persistent_secrets": False} if sandboxed else {})
         _load_extensions_for_db(db)
+        if sandboxed:
+            try:
+                _apply_sandbox(db, username)
+            except Exception:
+                # Never hand out a connection without its sandbox
+                db.close()
+                raise
+        _connections[username][active_db_name] = db
 
     return _connections[username][active_db_name]
 
@@ -135,6 +188,10 @@ def loadTable(tableName, fileName):
 
     format_list = ['csv', 'tsv', 'parquet', 'gz', 'json', 'geojson', 'gpkg', 'kml', 'shp']
     log.info(f"Loading table {tableName} from {fileName}")
+    is_url = re.match(r"[a-z][a-z0-9+.-]*://", fileName, re.IGNORECASE) is not None
+    if not is_url and _sandbox_enabled() and not _is_inside(fileName, data_dir):
+        log.warning(f"Refusing to load local file outside the user's temp folder: {fileName}")
+        return False
     runQuery("DROP TABLE IF EXISTS " + tableName)
 
     extracted_files = []
@@ -146,7 +203,8 @@ def loadTable(tableName, fileName):
                 extracted_files.append(os.path.join(data_dir, info.filename))
                 if '.' in info.filename and info.filename.split('.')[-1] in format_list:
                     extracted_data_file = info.filename
-        os.remove(fileName)
+        if _is_inside(fileName, data_dir):
+            os.remove(fileName)
         if extracted_data_file:
             fileName = os.path.join(data_dir, extracted_data_file)
 
@@ -161,9 +219,11 @@ def loadTable(tableName, fileName):
     elif fileName.lower().endswith(".json"):
         runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
     elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
-        runQuery("INSTALL spatial;LOAD spatial;CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
+        # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
+        runQuery("CREATE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
 
-    if (not fileName.lower().startswith("s3") and not fileName.lower().startswith("http")):
+    # Only uploads and extracted files are temporary: never delete a file outside the user's temp folder
+    if _is_inside(fileName, data_dir):
         log.info(f"Removing file {fileName}")
         try:
             os.remove(fileName)
@@ -184,12 +244,12 @@ def loadTable(tableName, fileName):
 
 
 ####################################################
-def runQuery(query, logQuery=True, format="df"):
+def runQuery(query, logQuery=True, format="df", params=None):
     try:
         if logQuery:
             log.info(f"Executing query: {query}")
         with _db_session() as db:
-            r = db.query(query)
+            r = db.query(query, params=params)
             if r is not None:
                 if format == "arrow":
                     return r.to_arrow_table()
@@ -350,6 +410,7 @@ def get_current_database_name():
 def changeDatabase(databaseName):
     username = _current_user.get()
     log.info(f"Changing database to {databaseName} for user {username}")
+    db_name = _database_file_name(databaseName)
 
     # Wait for the user's running queries before closing their connection
     with _user_lock(username):
@@ -359,7 +420,6 @@ def changeDatabase(databaseName):
             _connections[username][old_db_name].close()
             del _connections[username][old_db_name]
 
-        db_name = databaseName + ".db" if not databaseName.endswith(".db") else databaseName
         _active_db[username] = db_name
 
         # This will open the new connection
@@ -371,7 +431,7 @@ def createDatabase(databaseName):
     username = _current_user.get()
     user_db_folder = _get_user_db_folder(username)
     os.makedirs(user_db_folder, exist_ok=True)
-    db_path = os.path.join(user_db_folder, databaseName)
+    db_path = os.path.join(user_db_folder, _database_file_name(databaseName))
     log.info(f"Creating database {db_path} for user {username}")
     temp_conn = duckdb.connect(db_path)
     temp_conn.close()

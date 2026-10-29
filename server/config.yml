@@ -8,6 +8,12 @@ defaultDatabase: "datalakeStudio.db"
 downloadFolder: "temp"
 # Enable login/registration (true) or allow anonymous access as "default" user (false)
 authEnabled: false
+# Confine each user's SQL to their own folders and the remote prefixes below (default: same as authEnabled)
+# sandboxEnabled: true
+# Remote locations sandboxed SQL can reach besides the user's folders (default: https:// and s3://)
+# sandboxAllowedPrefixes:
+#   - "https://"
+#   - "s3://"
 # Origins allowed for app endpoints (not applied to /api/*)
 allowedOrigins:
   - "http://localhost:8080"

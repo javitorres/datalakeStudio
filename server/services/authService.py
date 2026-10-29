@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import secrets
 import logging as log
 from datetime import datetime, timedelta, timezone
@@ -14,6 +15,10 @@ _frontend_url = None
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 48
 RESET_TOKEN_HOURS = 1
+# Usernames are also folder names (data/<username>/): no path syntax, no hidden names, and not
+# the folder of the anonymous user used when authEnabled is false.
+_USERNAME = re.compile(r"[a-z0-9_@+'-][a-z0-9._@+'-]{1,99}")
+_RESERVED_USERNAMES = {"default"}
 
 def init(config, secrets_cfg):
     global _users_file, _jwt_secret, _google_client_id, _frontend_url
@@ -27,6 +32,9 @@ def init(config, secrets_cfg):
 
 def get_google_client_id():
     return _google_client_id
+
+def is_valid_username(username):
+    return bool(username) and _USERNAME.fullmatch(username) is not None and username not in _RESERVED_USERNAMES
 
 def requires_email_verification():
     return mailService.is_configured()
@@ -47,6 +55,8 @@ def register(username, password):
     username = username.strip().lower()
     if len(username) < 2 or len(password) < 4:
         return None, "Min 2 chars username, 4 chars password"
+    if not is_valid_username(username):
+        return None, "Invalid username. Use letters, numbers and . _ @ + ' -"
     users = _load_users()
     if username in users:
         return None, "User already exists"
@@ -99,7 +109,7 @@ def authenticate(username, password):
         return None, "Username and password required"
     username = username.strip().lower()
     users = _load_users()
-    if username not in users:
+    if username not in users or not is_valid_username(username):
         return None, "Invalid credentials"
     user = users[username]
     if not user.get("password_hash"):
@@ -124,6 +134,8 @@ def verify_token(token):
 
 def find_or_create_google_user(email):
     email = email.strip().lower()
+    if not is_valid_username(email):
+        return None
     users = _load_users()
     if email not in users:
         users[email] = {
