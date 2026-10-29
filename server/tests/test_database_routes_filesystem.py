@@ -1,3 +1,4 @@
+import gzip
 import io
 import json
 import os
@@ -162,6 +163,16 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             self.assertEqual(resp.status_code, 400, name)
             self.assertIn(reason, self._json(resp)["message"].lower())
             self.assertFalse(os.path.exists(os.path.join(self.download_folder, TEST_USER, name)))
+
+    def test_compressed_csv_and_json_are_loaded(self):
+        for name, content in [("sales.csv.gz", b"id,city\n1,Madrid\n"),
+                              ("events.json.gz", b'[{"id": 1, "city": "Madrid"}]')]:
+            table = name.split(".")[0]
+            upload = UploadFile(filename=name, file=io.BytesIO(gzip.compress(content)))
+
+            out = database_controller.uploadFile(file=upload, tableName=table)
+            self.assertEqual(out["status"], "ok", name)
+            self.assertEqual(databaseService.runQuery(f"SELECT city FROM {table}")["city"].to_list(), ["Madrid"])
 
     def test_failed_load_keeps_the_existing_table(self):
         databaseService.runQuery("CREATE TABLE people AS SELECT 1 AS id")

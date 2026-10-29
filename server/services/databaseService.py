@@ -290,11 +290,12 @@ def loadTable(tableName, fileName):
     # Errors reach the caller, so the user sees why a file didn't load. CREATE OR REPLACE keeps the
     # previous table if the new file fails.
     try:
-        if fileName.lower().endswith(".csv") or fileName.lower().endswith(".tsv"):
+        # DuckDB reads gzip-compressed CSV and JSON directly
+        if fileName.lower().endswith((".csv", ".tsv", ".csv.gz", ".tsv.gz")):
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_csv_auto('" + fileName + "', HEADER=TRUE, SAMPLE_SIZE=1000000))")
-        elif fileName.endswith(".parquet") or fileName.lower().endswith(".pq.gz"):
+        elif fileName.lower().endswith((".parquet", ".pq.gz")):
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
-        elif fileName.lower().endswith(".json"):
+        elif fileName.lower().endswith((".json", ".json.gz")):
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
         elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
             # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
