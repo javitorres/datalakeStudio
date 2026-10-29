@@ -174,6 +174,35 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             self.assertEqual(out["status"], "ok", name)
             self.assertEqual(databaseService.runQuery(f"SELECT city FROM {table}")["city"].to_list(), ["Madrid"])
 
+    def test_spatial_files_load_for_users_with_a_dot_in_their_name(self):
+        user = "ana.garcia@example.com"
+        databaseService.set_current_user(user)
+        databaseService._connections[user] = {"main.db": duckdb.connect(':memory:')}
+        databaseService._active_db[user] = "main.db"
+        geojson = json.dumps({"type": "FeatureCollection", "features": [{
+            "type": "Feature", "properties": {"name": "Madrid"},
+            "geometry": {"type": "Point", "coordinates": [-3.7, 40.4]}}]}).encode()
+        try:
+            try:
+                databaseService.runQuery("INSTALL spatial; LOAD spatial;", False)
+                spatial = True
+            except Exception:
+                spatial = False
+
+            out = database_controller.uploadFile(file=UploadFile(filename="parcels.geojson", file=io.BytesIO(geojson)),
+                                                 tableName="parcels")
+            if spatial:
+                self.assertEqual(out["status"], "ok")
+            else:
+                # Without the extension the load fails, but in ST_Read: the file type was recognised
+                self.assertNotIn("Unsupported file type", self._json(out)["message"])
+        finally:
+            for db in databaseService._connections.pop(user, {}).values():
+                db.close()
+            databaseService._active_db.pop(user, None)
+            databaseService._last_used.pop((user, "main.db"), None)
+            databaseService.set_current_user(TEST_USER)
+
     def test_failed_load_keeps_the_existing_table(self):
         databaseService.runQuery("CREATE TABLE people AS SELECT 1 AS id")
         upload = UploadFile(filename="people.parquet", file=io.BytesIO(b"not parquet"))

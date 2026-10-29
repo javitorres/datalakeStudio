@@ -297,7 +297,7 @@ def loadTable(tableName, fileName):
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_parquet('" + fileName + "'))")
         elif fileName.lower().endswith((".json", ".json.gz")):
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM read_json_auto('" + fileName + "', maximum_object_size=60000000))")
-        elif '.' in fileName and fileName.lower().split('.')[1] in ['shp', 'geojson', 'gpkg', 'kml']:
+        elif fileName.lower().endswith((".shp", ".geojson", ".gpkg", ".kml")):
             # spatial is loaded with the connection (INSTALL/LOAD are refused inside the sandbox)
             runQuery("CREATE OR REPLACE TABLE " + tableName + " AS (SELECT * FROM ST_Read('" + fileName + "'))")
         else:
