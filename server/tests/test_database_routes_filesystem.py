@@ -2,6 +2,7 @@ import io
 import json
 import os
 import tempfile
+import threading
 import unittest
 from unittest.mock import patch
 
@@ -152,16 +153,6 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             with self.assertRaises(Exception, msg=blocked):
                 databaseService.runQuery(blocked, False)
 
-    def test_upload_file_creates_table(self):
-        payload = b"id,name\n1,Ana\n2,Bob\n"
-        upload = UploadFile(filename="people.csv", file=io.BytesIO(payload))
-
-        out = database_controller.uploadFile(file=upload, tableName="people")
-        self.assertEqual(out["status"], "ok")
-
-        count = databaseService.runQuery("SELECT COUNT(*) AS c FROM people")
-        self.assertEqual(int(count["c"].iloc[0]), 2)
-
     def test_load_errors_are_reported_with_their_reason(self):
         for name, content, reason in [("notes.txt", b"hello", "unsupported file type: notes.txt"),
                                       ("broken.parquet", b"not parquet", "parquet")]:
@@ -171,6 +162,81 @@ class DatabaseRoutesFilesystemTest(unittest.TestCase):
             self.assertEqual(resp.status_code, 400, name)
             self.assertIn(reason, self._json(resp)["message"].lower())
             self.assertFalse(os.path.exists(os.path.join(self.download_folder, TEST_USER, name)))
+
+    @staticmethod
+    def _bytes(size):
+        amount, unit = size.split()
+        return float(amount) * databaseService._SIZE_UNITS[unit]
+
+    def test_memory_and_threads_are_limited_per_database(self):
+        databaseService._config.update({"duckdbMemoryLimit": "1GB", "duckdbThreads": 2})
+        database_controller.changeDatabase("aux")
+
+        row = databaseService.runQuery("SELECT current_setting('memory_limit') AS m, current_setting('threads') AS t")
+        self.assertAlmostEqual(self._bytes(row["m"][0]), 10**9, delta=10**7)
+        self.assertEqual(int(row["t"][0]), 2)
+
+    def test_with_several_users_the_memory_is_split_among_open_databases(self):
+        databaseService._config["duckdbMaxOpenDatabases"] = 4
+        database_controller.changeDatabase("aux")
+
+        limit = databaseService.runQuery("SELECT current_setting('memory_limit') AS m")["m"][0]
+        with duckdb.connect() as con:
+            default = con.execute("SELECT current_setting('memory_limit')").fetchone()[0]
+        self.assertAlmostEqual(self._bytes(limit) * 4 / self._bytes(default), 1, delta=0.05)
+
+    def test_idle_databases_are_closed_but_never_while_in_use(self):
+        databaseService._config["duckdbIdleMinutes"] = 0
+        database_controller.changeDatabase("aux")
+
+        in_use, finished = threading.Event(), threading.Event()
+
+        def request_in_progress():
+            with databaseService._user_lock(TEST_USER):
+                in_use.set()
+                finished.wait()
+
+        request = threading.Thread(target=request_in_progress, daemon=True)
+        request.start()
+        in_use.wait()
+        try:
+            databaseService._close_idle_connections()
+            self.assertIn("aux.db", databaseService._connections[TEST_USER])
+        finally:
+            finished.set()
+            request.join()
+
+        databaseService._close_idle_connections()
+        self.assertNotIn("aux.db", databaseService._connections[TEST_USER])
+        # The next request opens it again
+        self.assertEqual(int(databaseService.runQuery("SELECT 42 AS n")["n"][0]), 42)
+        self.assertIn("aux.db", databaseService._connections[TEST_USER])
+
+    def test_least_recently_used_database_is_closed_beyond_the_limit(self):
+        databaseService._config["duckdbMaxOpenDatabases"] = 1
+        database_controller.changeDatabase("aux")
+
+        databaseService.set_current_user("other_user")
+        try:
+            databaseService.runQuery("SELECT 1")
+            self.assertNotIn("aux.db", databaseService._connections[TEST_USER])
+            self.assertIn("main.db", databaseService._connections["other_user"])
+        finally:
+            for db in databaseService._connections.pop("other_user", {}).values():
+                db.close()
+            databaseService._active_db.pop("other_user", None)
+            databaseService._last_used.pop(("other_user", "main.db"), None)
+            databaseService.set_current_user(TEST_USER)
+
+    def test_upload_file_creates_table(self):
+        payload = b"id,name\n1,Ana\n2,Bob\n"
+        upload = UploadFile(filename="people.csv", file=io.BytesIO(payload))
+
+        out = database_controller.uploadFile(file=upload, tableName="people")
+        self.assertEqual(out["status"], "ok")
+
+        count = databaseService.runQuery("SELECT COUNT(*) AS c FROM people")
+        self.assertEqual(int(count["c"].iloc[0]), 2)
 
 
 if __name__ == '__main__':

@@ -142,6 +142,10 @@ allowedOrigins:                  # CORS origins for app endpoints (not /api/*)
 # sandboxAllowedPrefixes:        # remote locations sandboxed SQL can reach
 #   - "https://"
 #   - "s3://"
+# duckdbMemoryLimit: "4GB"       # per open database (default with authEnabled: 80% of RAM / duckdbMaxOpenDatabases)
+# duckdbThreads: 4               # per open database (default: all cores)
+# duckdbMaxOpenDatabases: 8      # beyond it, the least recently used database is closed
+# duckdbIdleMinutes: 30          # close databases idle for longer than this
 ```
 
 With the sandbox on, each user's SQL can only read and write their own database

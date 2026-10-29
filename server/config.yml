@@ -14,6 +14,13 @@ authEnabled: false
 # sandboxAllowedPrefixes:
 #   - "https://"
 #   - "s3://"
+# DuckDB resources per open database (each one is its own DuckDB instance). With authEnabled and no
+# memory limit, DuckDB's default (80% of the RAM) is split among duckdbMaxOpenDatabases.
+# duckdbMemoryLimit: "4GB"
+# duckdbThreads: 4
+# Databases open at once (beyond it the least recently used is closed) and idle minutes before closing one
+# duckdbMaxOpenDatabases: 8
+# duckdbIdleMinutes: 30
 # Origins allowed for app endpoints (not applied to /api/*)
 allowedOrigins:
   - "http://localhost:8080"

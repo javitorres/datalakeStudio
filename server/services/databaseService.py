@@ -4,6 +4,7 @@ import re
 import logging as log
 import contextvars
 import threading
+import time
 from contextlib import contextmanager
 from zipfile import ZipFile
 from pathlib import Path
@@ -23,6 +24,11 @@ _active_db = {}
 # Per-user lock. A DuckDB connection can't be used by two threads at once (DuckDB 2.0 raises
 # ResourceInUseException), so the request threads of a user take turns on its connection.
 _user_locks = {}
+# Last use of each open database, to close the idle ones: {(username, db_name): time.monotonic()}
+_last_used = {}
+# Units in DuckDB's memory sizes ("3.1 GiB")
+_SIZE_UNITS = {"bytes": 1, "KB": 10**3, "MB": 10**6, "GB": 10**9, "TB": 10**12,
+               "KiB": 2**10, "MiB": 2**20, "GiB": 2**30, "TiB": 2**40}
 
 # Database file names: letters, digits, "_" and "-", plus the ".db" suffix
 _DATABASE_NAME = re.compile(r"[\w-]+")
@@ -44,6 +50,7 @@ def init(secrets, config):
     _secrets = secrets
     os.makedirs(config.get("downloadFolder", "temp"), exist_ok=True)
     os.makedirs(config.get("databasesFolder", "data"), exist_ok=True)
+    threading.Thread(target=_close_idle_connections_periodically, daemon=True).start()
 
 
 def set_current_user(username):
@@ -94,6 +101,39 @@ def _sandbox_enabled():
     return _config.get("sandboxEnabled", _config.get("authEnabled", True))
 
 
+def _max_open_databases():
+    return _config.get("duckdbMaxOpenDatabases", 8)
+
+
+def _shared_memory_limit():
+    # DuckDB's default budget (80% of the RAM it can see, container limits included) split among
+    # the databases that can be open at once, so together they can't exhaust the machine
+    try:
+        with duckdb.connect() as con:
+            amount, unit = con.execute("SELECT current_setting('memory_limit')").fetchone()[0].split()
+        return f"{int(float(amount) * _SIZE_UNITS[unit] / _max_open_databases() / 2**20)}MiB"
+    except Exception as e:
+        log.warning(f"Could not split DuckDB's memory limit, using its default: {e}")
+        return None
+
+
+def _duckdb_config(sandboxed):
+    # Each open database is a DuckDB instance with its own memory budget and threads. They are set
+    # when connecting: the sandbox locks the configuration afterwards.
+    config = {}
+    if sandboxed:
+        # Persistent secrets are read from ~/.duckdb, outside the sandbox, and can't be disabled later
+        config["allow_persistent_secrets"] = False
+    memory_limit = _config.get("duckdbMemoryLimit")
+    if memory_limit is None and _config.get("authEnabled", True):
+        memory_limit = _shared_memory_limit()
+    if memory_limit:
+        config["memory_limit"] = memory_limit
+    if _config.get("duckdbThreads"):
+        config["threads"] = _config["duckdbThreads"]
+    return config
+
+
 def _apply_sandbox(db, username):
     # The user's SQL only reaches their own folders, the CA bundle and the allowed remote prefixes,
     # and the configuration is locked so SQL can't lift these limits.
@@ -125,11 +165,11 @@ def _ensure_user_db(username=None):
     active_db_name = _active_db[username]
 
     if active_db_name not in _connections[username]:
+        _close_idle_connections(keep_user=username, make_room=True)
         db_path = os.path.join(user_db_folder, active_db_name)
         log.info(f"Opening database {db_path} for user {username}")
         sandboxed = _sandbox_enabled()
-        # Persistent secrets are read from ~/.duckdb, outside the sandbox, and can't be disabled later
-        db = duckdb.connect(db_path, config={"allow_persistent_secrets": False} if sandboxed else {})
+        db = duckdb.connect(db_path, config=_duckdb_config(sandboxed))
         _load_extensions_for_db(db)
         if sandboxed:
             try:
@@ -139,6 +179,7 @@ def _ensure_user_db(username=None):
                 db.close()
                 raise
         _connections[username][active_db_name] = db
+        _last_used[(username, active_db_name)] = time.monotonic()
 
     return _connections[username][active_db_name]
 
@@ -152,7 +193,46 @@ def _db_session():
     # Results must be fully read inside the block: DuckDB 2.0 reads them lazily on fetch.
     username = _current_user.get()
     with _user_lock(username):
-        yield _ensure_user_db(username)
+        db = _ensure_user_db(username)
+        try:
+            yield db
+        finally:
+            # Idle time counts from the end of the last use
+            _last_used[(username, _active_db[username])] = time.monotonic()
+
+
+def _close_idle_connections(keep_user=None, make_room=False):
+    """Close the databases idle for longer than duckdbIdleMinutes and, while more than
+    duckdbMaxOpenDatabases are open, the least recently used ones. A database in use is never closed:
+    its user's lock is busy. The next request of that user opens it again."""
+    idle_seconds = _config.get("duckdbIdleMinutes", 30) * 60
+    by_age = sorted(_last_used.items(), key=lambda item: item[1])
+    excess = len(by_age) + (1 if make_room else 0) - _max_open_databases()
+    now = time.monotonic()
+    for (username, db_name), last_used in by_age:
+        if username == keep_user or (excess <= 0 and now - last_used < idle_seconds):
+            continue
+        lock = _user_lock(username)
+        if not lock.acquire(blocking=False):
+            continue
+        try:
+            db = _connections.get(username, {}).pop(db_name, None)
+            _last_used.pop((username, db_name), None)
+            if db is not None:
+                db.close()
+                log.info(f"Closed database {db_name} of user {username} ({'too many open' if excess > 0 else 'idle'})")
+            excess -= 1
+        finally:
+            lock.release()
+
+
+def _close_idle_connections_periodically():
+    while True:
+        time.sleep(60)
+        try:
+            _close_idle_connections()
+        except Exception:
+            log.exception("Error closing idle databases")
 
 
 def _load_extensions_for_db(db):
@@ -419,6 +499,7 @@ def changeDatabase(databaseName):
             old_db_name = _active_db[username]
             _connections[username][old_db_name].close()
             del _connections[username][old_db_name]
+            _last_used.pop((username, old_db_name), None)
 
         _active_db[username] = db_name
 
