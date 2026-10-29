@@ -98,14 +98,17 @@ docker run --name datalakestudio-frontend -p 8080:8080 datalakestudio-frontend
 From the `server/` folder:
 
 ```bash
-python3 -m venv venv
+uv venv venv                      # uses the Python version in .python-version (3.12)
 source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 python server.py
 ```
 
-Requires **Python 3.11+** (DuckDB 2.0 needs it). Exit the virtualenv with
-`deactivate`.
+Requires **Python 3.11 or 3.12**: DuckDB 2.0 needs 3.11+, and the pinned pandas,
+numpy and pyarrow have no wheels for newer versions. [uv](https://docs.astral.sh/uv/)
+downloads that Python if your system doesn't have it, so the virtualenv keeps
+working when the system Python is upgraded. With plain pip, create it with
+`python3.12 -m venv venv`. Exit the virtualenv with `deactivate`.
 
 ### Client
 
