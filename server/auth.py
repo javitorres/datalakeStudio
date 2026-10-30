@@ -19,7 +19,8 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     token = credentials.credentials
     username = authService.verify_token(token)
-    if username is None:
+    # Tokens issued before usernames were validated could name another user's folder
+    if username is None or not authService.is_valid_username(username):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
     databaseService.set_current_user(username)
     return username

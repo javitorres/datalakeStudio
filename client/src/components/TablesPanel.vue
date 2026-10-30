@@ -1,13 +1,25 @@
 <template>
   <div v-if="tables && tables.length > 0" class="tables-panel">
     <div class="panel-header">
-      <h4 class="panel-title">Show Tables</h4>
+      <div class="explorer-intro">
+        <span class="explorer-kicker">Database objects</span>
+        <h4 class="panel-title">Choose a table to explore</h4>
+        <p>Inspect columns, sample rows, profile values and build visual analyses.</p>
+      </div>
       <span class="table-counter">{{ tables.length }} tables</span>
+    </div>
+
+    <div class="selector-toolbar">
+      <div class="table-search">
+        <i class="bi bi-search"></i>
+        <input v-model="tableFilter" type="search" placeholder="Filter tables..." aria-label="Filter tables">
+      </div>
+      <span v-if="tableFilter">{{ filteredTables.length }} matches</span>
     </div>
 
     <div class="table-selector">
       <button
-        v-for="table in tables"
+        v-for="table in filteredTables"
         :key="table"
         class="btn table-chip"
         :class="selectedTable === table ? 'table-chip-active' : 'table-chip-idle'"
@@ -24,6 +36,10 @@
     </div>
 
     <div v-if="selectedTable" class="action-toolbar">
+      <button class="btn btn-sm btn-primary toolbar-button" @click="openRename">
+        <i class="bi bi-pencil-square"></i>
+        Rename table
+      </button>
       <button class="btn btn-sm btn-danger toolbar-button" @click="confirmDelete">
         <i class="bi bi-x-octagon"></i>
         Delete table
@@ -80,26 +96,57 @@
       </div>
     </div>
   </div>
-  <div v-if="showDialog" class="modal-backdrop fade show"></div>
+  <div v-if="showRenameDialog" class="modal fade show" style="display: block" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Rename table</h5>
+          <button type="button" class="btn-close" @click="showRenameDialog = false" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Rename <b>{{ selectedTable }}</b> to:</p>
+          <input v-model="newTableName" type="text" class="form-control" placeholder="New table name" @keyup.enter="confirmRename">
+          <small v-if="newTableName.trim() && !renameValid" class="rename-hint">Use letters, numbers and underscores; don't start with a number, and pick a different name.</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" @click="showRenameDialog = false">Cancel</button>
+          <button type="button" class="btn btn-primary" :disabled="!renameValid" @click="confirmRename">Rename</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showDialog || showDownloadDialog || showRenameDialog" class="modal-backdrop fade show"></div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import TableInspector from './TableInspector.vue';
 import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
-defineProps({
+const props = defineProps({
   tables: Object,
 });
 
-const emit = defineEmits(['deleteTable']);
+const emit = defineEmits(['deleteTable', 'renameTable']);
 
 const showDialog = ref(false);
 const showDownloadDialog = ref(false);
+const showRenameDialog = ref(false);
+const newTableName = ref('');
 const showOptions = ref(true);
 const selectedTable = ref(null);
+const tableFilter = ref('');
+const renameValid = computed(() => {
+  const name = newTableName.value.trim();
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) && name !== selectedTable.value;
+});
+const filteredTables = computed(() => {
+  const query = tableFilter.value.trim().toLowerCase();
+  return query ? props.tables.filter((table) => table.toLowerCase().includes(query)) : props.tables;
+});
 
 function selectTable(table) {
   selectedTable.value = table;
@@ -111,6 +158,25 @@ function confirmDelete() {
 
 function confirmDownload() {
   showDownloadDialog.value = true;
+}
+
+function openRename() {
+  newTableName.value = selectedTable.value;
+  showRenameDialog.value = true;
+}
+
+function confirmRename() {
+  if (!renameValid.value) return;
+  const from = selectedTable.value;
+  const to = newTableName.value.trim();
+  emit('renameTable', {
+    from,
+    to,
+    onResult: (renamed) => {
+      if (renamed) selectedTable.value = to;
+    },
+  });
+  showRenameDialog.value = false;
 }
 
 function download(format) {
@@ -157,123 +223,20 @@ async function deleteTable() {
 </script>
 
 <style scoped>
-.tables-panel {
-  font-size: 13px;
-}
-
-.panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-.panel-title {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #2b2d31;
-}
-
-.table-counter {
-  font-size: 0.78rem;
-  background: #e3e7ef;
-  color: #4f5660;
-  padding: 3px 8px;
-  border-radius: 999px;
-}
-
-.table-selector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.table-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border-radius: 7px;
-  padding: 5px 9px;
-  font-size: 12px;
-  line-height: 1.2;
-  border: 1px solid transparent;
-}
-
-.table-chip-idle {
-  background: #f2f3f5;
-  color: #313338;
-  border-color: #e3e5e8;
-}
-
-.table-chip-active {
-  background: #dce8ff;
-  color: #0f3d91;
-  border-color: #9fc0ff;
-}
-
-.table-chip-close {
-  background: #f7f7f8;
-  color: #5c6675;
-  border-color: #d9dce2;
-}
-
-.action-toolbar {
-  display: flex;
-  gap: 8px;
-  padding: 8px;
-  border-radius: 8px;
-  background: #f6f7fb;
-  border: 1px solid #e4e6ec;
-  margin-bottom: 12px;
-}
-
-.toolbar-button {
-  font-size: 12px;
-  padding: 5px 10px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.inspector-container {
-  background: #ffffff;
-  border: 1px solid #e4e6ec;
-  border-radius: 10px;
-  padding: 10px;
-}
-
-.empty-state {
-  font-size: 13px;
-}
-
-.modal {
-  display: block;
-  position: fixed;
-  z-index: 1050;
-  left: 0;
-  top: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-}
-
-.modal-backdrop {
-  z-index: 1040;
-}
-
-.modal-content {
-  background-color: #fefefe;
-  margin: 12% auto;
-  padding: 16px;
-  border: 1px solid #d4d7dd;
-  width: 80%;
-}
-
-@media (max-width: 768px) {
-  .action-toolbar {
-    flex-wrap: wrap;
-  }
-}
-</style>
+.tables-panel{font-size:13px;padding:16px;border:1px solid var(--ds-line);border-radius:13px;background:#fff;box-shadow:0 8px 28px rgba(31,67,58,.045)}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--ds-line)}
+.panel-title{margin:0;color:var(--ds-ink);font-size:1rem;font-weight:750;letter-spacing:-.02em}
+.table-counter{padding:4px 9px;border-radius:999px;background:var(--ds-mint);color:var(--ds-teal-dark);font-size:.68rem;font-weight:750}
+.table-selector{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px}
+.table-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid transparent;border-radius:8px;font-size:11px;font-weight:650;line-height:1.2}
+.table-chip-idle{border-color:#dfe7e4;background:#f5f8f7;color:#485753}.table-chip-idle:hover{border-color:#a9cec4;background:#edf6f3;color:var(--ds-teal-dark)}
+.table-chip-active{border-color:#80c0b0;background:var(--ds-teal);color:#fff;box-shadow:0 5px 14px rgba(13,132,111,.18)}
+.table-chip-close{border-color:#dde5e2;background:#fff;color:#75817d}
+.action-toolbar{display:flex;gap:8px;margin-bottom:13px;padding:9px;border:1px solid var(--ds-line);border-radius:10px;background:#f6f9f8}
+.toolbar-button{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;font-size:11px}
+.inspector-container{padding:12px;border:1px solid var(--ds-line);border-radius:11px;background:#fbfcfc}
+.empty-state{min-height:300px;display:grid;place-items:center;border:1px dashed #c8d7d2;border-radius:13px;background:#f8fbfa;color:#7b8884;text-align:center}.empty-state h2{font-size:1rem;font-weight:650}
+.rename-hint{display:block;margin-top:6px;color:#b93748;font-size:11px}
+.modal{display:block;position:fixed;z-index:1050;inset:0;width:100%;height:100%;background:rgba(12,27,23,.48);backdrop-filter:blur(3px)}.modal-backdrop{z-index:1040}.modal-content{margin:12% auto;padding:16px;width:80%;border:1px solid var(--ds-line);border-radius:14px;background:#fff}
+@media(max-width:768px){.action-toolbar{flex-wrap:wrap}.tables-panel{padding:12px}}
+.explorer-intro{display:grid}.explorer-kicker{color:#899692;font-size:8px;font-weight:800;letter-spacing:.13em;text-transform:uppercase}.explorer-intro p{margin:3px 0 0;color:var(--ds-muted);font-size:9px}.selector-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}.selector-toolbar>span{color:#84918e;font-size:9px}.table-search{width:min(300px,100%);display:flex;align-items:center;gap:7px;padding:6px 9px;border:1px solid #dce6e3;border-radius:8px;background:#f8faf9;color:#87938f}.table-search:focus-within{border-color:#79bdaa;box-shadow:0 0 0 3px rgba(13,132,111,.08)}.table-search input{width:100%;padding:0;border:0;outline:0;background:transparent;color:var(--ds-ink);font-size:10px}.table-selector{max-height:112px;overflow:auto;padding:2px}</style>

@@ -11,23 +11,23 @@ def ensure_queries_metadata():
 def saveSqlQuery(saveQueryRequestDTO):
     print("Saving query " + saveQueryRequestDTO.sqlQueryName + ": " + saveQueryRequestDTO.query + " (" + saveQueryRequestDTO.description + ")")
     ensure_queries_metadata()
-    
-    # Scape single quotes
-    query = saveQueryRequestDTO.query.replace("'","''")
 
-    # Insert query into __queries table
-    databaseService.runQuery("INSERT INTO __queries (id_query, name, query, description) VALUES (nextval('seq_id_query'), '" + saveQueryRequestDTO.sqlQueryName + "', '" + query + "', '" + saveQueryRequestDTO.description + "')")
+    # Insert query into __queries table (as parameters: names and descriptions may contain quotes)
+    databaseService.runQuery(
+        "INSERT INTO __queries (id_query, name, query, description) VALUES (nextval('seq_id_query'), ?, ?, ?)",
+        params=[saveQueryRequestDTO.sqlQueryName, saveQueryRequestDTO.query, saveQueryRequestDTO.description])
 
     return True
 ####################################################
 def searchQuery(query):
     print("Searching query " + query)
     ensure_queries_metadata()
-    search_term = query.lower().replace("'","''")
-    
+    search_term = "%" + query.lower() + "%"
+
     # Search query into __queries table lower case
     df = databaseService.runQuery(
-        "SELECT * FROM __queries WHERE LOWER(name) LIKE '%" + search_term + "%' OR LOWER(description) LIKE '%" + search_term + "%'"
+        "SELECT * FROM __queries WHERE LOWER(name) LIKE ? OR LOWER(description) LIKE ?",
+        params=[search_term, search_term]
     )
 
     if (df is not None):

@@ -70,7 +70,7 @@ def connectDatabase(database_name, pgpassfile):
             
         except Exception as e:
             print("Error connecting to database:" + str(e))
-            pass
+            raise
     return None  # Si no se encuentra la base de datos
 
 #########################################################
@@ -117,10 +117,9 @@ def runRemoteQuery(connection, query):
     except Exception as e:
         print("Error running query:" + str(e))
         connection.rollback()
+        raise
     finally:
         cursor.close()
-
-    return None
 
 ######################################################### PROBADAS
 

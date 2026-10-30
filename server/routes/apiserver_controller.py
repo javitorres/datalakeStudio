@@ -29,7 +29,7 @@ def getServices(id_query: int):
     df = databaseService.runQuery(limitedQuery)
 
     if (df is not None):
-        result = df.to_dict(orient="records")
+        result = databaseService.to_json_records(df)
         print("Result:" + str(result))
         return JSONResponse(content=result, status_code=200)
     else:

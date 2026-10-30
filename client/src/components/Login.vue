@@ -296,38 +296,20 @@ async function resetPassword() {
 
 <style scoped>
 .login-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  position:relative; display:flex; align-items:center; justify-content:center; min-height:100vh; overflow:hidden;
+  padding:28px; background:radial-gradient(circle at 18% 16%,rgba(104,194,173,.22),transparent 25rem),radial-gradient(circle at 90% 90%,rgba(104,194,173,.13),transparent 28rem),#13201d;
 }
-
-.login-card {
-  background: white;
-  border-radius: 12px;
-  padding: 2rem;
-  width: 100%;
-  max-width: 380px;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
-}
-
-.login-title {
-  font-weight: 700;
-  color: #2f3440;
-}
-
-.separator {
-  text-align: center;
-  border-bottom: 1px solid #dee2e6;
-  line-height: 0.1em;
-  margin: 0.8rem 0 0;
-}
-
-.separator-text {
-  background: white;
-  padding: 0 10px;
-  color: #6c757d;
-  font-size: 0.85rem;
-}
+.login-wrapper::before { content:''; position:absolute; inset:0; opacity:.12; background-image:linear-gradient(#b7ded3 1px,transparent 1px),linear-gradient(90deg,#b7ded3 1px,transparent 1px); background-size:48px 48px; mask-image:radial-gradient(circle at center,#000,transparent 72%); }
+.login-wrapper::after { content:'DATA  →  INSIGHT  →  API'; position:absolute; left:35px; bottom:26px; color:#79938d; font-size:9px; font-weight:750; letter-spacing:.2em; }
+.login-card { position:relative; z-index:1; width:100%; max-width:410px; padding:35px; border:1px solid rgba(207,231,224,.78); border-radius:18px; background:rgba(255,255,255,.97); box-shadow:0 35px 90px rgba(4,18,14,.38); }
+.login-card img { width:70px; height:70px; padding:14px; border-radius:18px; background:#e6f5f0; }
+.login-title { margin-top:8px; color:#17211f; font-size:1.35rem; font-weight:750; letter-spacing:-.025em; }
+.login-card .text-muted { color:#74817d !important; }
+.login-card .form-label { margin-bottom:6px; color:#455651; font-size:10px !important; font-weight:750; letter-spacing:.06em; text-transform:uppercase; }
+.login-card .form-control { min-height:43px; border-radius:9px; background:#f8faf9; }
+.login-card .btn { min-height:41px; border-radius:9px; }
+.login-card .btn-primary { box-shadow:0 8px 18px rgba(13,132,111,.2); }
+.separator { text-align:center; border-bottom:1px solid #dfe8e5; line-height:.1em; margin:1rem 0 0; }
+.separator-text { padding:0 10px; color:#84908d; background:white; font-size:.75rem; }
+@media(max-width:520px){.login-wrapper{padding:15px}.login-card{padding:27px 22px}.login-wrapper::after{display:none}}
 </style>

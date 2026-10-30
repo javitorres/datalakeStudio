@@ -63,7 +63,29 @@ const props = defineProps({
   schema: Object,
 });
 
-const emit = defineEmits(['removeField']);
+const emit = defineEmits(['removeField', 'filterChange']);
+
+// Emit the current cross-filter both as a SQL predicate (no WHERE keyword, for
+// querying) and as a human-readable list (for display in the Data/Map tabs).
+function formatNum(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return String(value);
+  if (Math.abs(num) >= 1000) return num.toLocaleString('en-US', { maximumFractionDigits: 1 });
+  return String(Math.round(num * 100) / 100);
+}
+
+function emitFilter() {
+  const clause = buildWhereClause(null);
+  const list = [];
+  for (const [field, filter] of Object.entries(brushFilters.value)) {
+    if (filter.type === 'range') {
+      list.push({ field, text: `${formatNum(filter.min)} – ${formatNum(filter.max)}` });
+    } else if (filter.type === 'category') {
+      list.push({ field, text: filter.values.join(', ') });
+    }
+  }
+  emit('filterChange', { sql: clause ? clause.replace(/^WHERE /, '') : '', list });
+}
 
 const chartOptions = ref({});
 const chartRefs = {};
@@ -204,7 +226,7 @@ function buildHistogramOption(field, data) {
     brush: {
       toolbox: ['lineX', 'clear'],
       xAxisIndex: 0,
-      brushStyle: { borderWidth: 1, color: 'rgba(70,130,180,0.2)', borderColor: 'rgba(70,130,180,0.8)' },
+      brushStyle: { borderWidth: 1, color: 'rgba(13,132,111,0.16)', borderColor: 'rgba(13,132,111,0.75)' },
     },
     toolbox: {
       feature: {
@@ -216,7 +238,7 @@ function buildHistogramOption(field, data) {
     series: [{
       type: 'bar',
       data: values,
-      itemStyle: { color: 'steelblue' },
+      itemStyle: { color: '#0d846f' },
       barCategoryGap: '0%',
       barGap: '0%',
     }],
@@ -291,6 +313,7 @@ async function updateAllCharts(triggerField) {
   }
 
   await Promise.all(promises);
+  emitFilter();
 }
 
 function onBrush(field, params) {
@@ -395,43 +418,12 @@ watch(() => [props.table, props.selectedFields, props.schema], init, { deep: tru
 </script>
 
 <style scoped>
-.crossfilter-container {
-  padding: 10px;
-}
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-.chart-wrapper {
-  position: relative;
-  min-height: 350px;
-}
-.chart {
-  width: 100%;
-  height: 350px;
-}
-.close-btn {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  z-index: 10;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.15);
-  color: #333;
-  font-size: 13px;
-  line-height: 22px;
-  padding: 0;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.close-btn:hover {
-  background: rgba(220, 53, 69, 0.8);
-  color: #fff;
-}
+.crossfilter-container{padding:14px;background:#f8faf9}
+.charts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.chart-wrapper{position:relative;min-height:340px;overflow:hidden;border:1px solid var(--ds-line);border-radius:11px;background:#fff;box-shadow:0 5px 18px rgba(31,67,58,.045);transition:transform .15s,box-shadow .15s}
+.chart-wrapper:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(31,67,58,.08)}
+.chart{width:100%;height:340px}
+.close-btn{position:absolute;top:9px;left:9px;z-index:10;width:23px;height:23px;display:grid;place-items:center;padding:0;border:1px solid #e2e9e7;border-radius:6px;background:#f7faf9;color:#8a9692;font-size:10px;cursor:pointer}
+.close-btn:hover{border-color:#e5aeb5;background:#fff0f1;color:#b93748}
+@media(max-width:900px){.charts-grid{grid-template-columns:1fr}}
 </style>

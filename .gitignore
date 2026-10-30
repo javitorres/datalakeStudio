@@ -39,3 +39,7 @@ server/.pgpass
 .env
 .env.*
 !.env.example
+
+# Promo video: recordings and renders
+promo/work/
+promo/out/

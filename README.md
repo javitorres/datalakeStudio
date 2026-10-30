@@ -1,16 +1,15 @@
-<div align="center">
-<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4" height="200">
-<br/>
-<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/3306a67f-91d3-4427-8214-96f8a1f02eb1" width=60% height=auto>
-<br/><br/>
-</div>
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="Datalake Studio — from raw data to ready-to-use APIs" width="100%">
+</p>
 
 <p align="center">
-    <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Version">
-    <img src="https://img.shields.io/badge/Vue-3.4-blue" alt="Vue 3">
-    <img src="https://img.shields.io/badge/FastAPI-0.108-009688" alt="FastAPI">
-    <img src="https://img.shields.io/badge/DuckDB-1.5.4-yellow" alt="DuckDB">
-    <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License: GPL v3">
+  <img src="https://img.shields.io/badge/version-1.0.0-0d846f" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/DuckDB-2.0.0-FFF000?logo=duckdb&logoColor=black" alt="DuckDB 2.0.0">
+  <img src="https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white" alt="FastAPI 0.162">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3.4">
+  <img src="https://img.shields.io/badge/Vite-4.4-646CFF?logo=vite&logoColor=white" alt="Vite 4.4">
+  <img src="https://img.shields.io/badge/license-GPLv3-17211f" alt="License: GPL v3">
 </p>
 
 # Datalake Studio
@@ -22,7 +21,7 @@ query as a live REST API — all from a single tool that runs on your machine.
 
 Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-![Datalake Studio overview](https://github.com/javitorres/datalakeStudio/assets/4235424/786276af-5d2e-43a5-9f14-e56e7456e3ea)
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
 
 ## Table of contents
 
@@ -72,6 +71,11 @@ PostgreSQL, the AI assistant or maps, add a `server/secrets.yml` file (see
 [Configuration](#configuration)). Docker Compose also mounts your `~/.aws`
 credentials into the backend for AWS access.
 
+The backend image already includes the DuckDB extensions it uses, so it starts
+without downloading anything. It runs as a non-root user with uid 1000, which
+should own `server/data`; if your uid is different, build with
+`HOST_UID=$(id -u) docker-compose up --build`.
+
 ### Without Compose
 
 Build and run each image separately:
@@ -93,14 +97,17 @@ docker run --name datalakestudio-frontend -p 8080:8080 datalakestudio-frontend
 From the `server/` folder:
 
 ```bash
-python3 -m venv venv
+uv venv venv                      # uses the Python version in .python-version (3.12)
 source venv/bin/activate          # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+uv pip install -r requirements.txt
 python server.py
 ```
 
-Requires **Python 3.10+** (DuckDB 1.5+ needs it). Exit the virtualenv with
-`deactivate`.
+Requires **Python 3.11 or 3.12**: DuckDB 2.0 needs 3.11+, and the pinned pandas,
+numpy and pyarrow have no wheels for newer versions. [uv](https://docs.astral.sh/uv/)
+downloads that Python if your system doesn't have it, so the virtualenv keeps
+working when the system Python is upgraded. With plain pip, create it with
+`python3.12 -m venv venv`. Exit the virtualenv with `deactivate`.
 
 ### Client
 
@@ -138,7 +145,21 @@ downloadFolder: "temp"           # temp folder for uploads and exports
 authEnabled: false               # true = require login; false = anonymous "default" user
 allowedOrigins:                  # CORS origins for app endpoints (not /api/*)
   - "http://localhost:8080"
+# sandboxEnabled: true           # confine each user's SQL (default: same as authEnabled)
+# sandboxAllowedPrefixes:        # remote locations sandboxed SQL can reach
+#   - "https://"
+#   - "s3://"
+# duckdbMemoryLimit: "4GB"       # per open database (default with authEnabled: 80% of RAM / duckdbMaxOpenDatabases)
+# duckdbThreads: 4               # per open database (default: all cores)
+# duckdbMaxOpenDatabases: 8      # beyond it, the least recently used database is closed
+# duckdbIdleMinutes: 30          # close databases idle for longer than this
 ```
+
+With the sandbox on, each user's SQL can only read and write their own database
+folder, their upload folder and the allowed remote prefixes: other users' files,
+the server's files and local paths elsewhere are refused, and the DuckDB settings
+are locked. It is on by default when `authEnabled` is true; leave it off for a
+single-user install where you want to query any local file.
 
 ### `server/secrets.yml`
 

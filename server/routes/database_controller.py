@@ -5,11 +5,26 @@ from fastapi import Response, Request
 from fastapi.responses import JSONResponse, FileResponse
 from model.QueryRequestDTO import QueryRequest
 import os
+import re
 import logging as log
 import time
 
 router = APIRouter(prefix="/database")
 SLOW_QUERY_THRESHOLD = 5000
+
+
+def _load_table_response(tableName, fileName):
+    try:
+        loaded = databaseService.loadTable(tableName, fileName)
+    except Exception as e:
+        log.error(f"Error loading {fileName}: {e}")
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
+    if not loaded:
+        response = {"status": "error", "message": f"Table {tableName} was not created from {fileName}"}
+        return JSONResponse(content=response, status_code=400)
+    df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
+    return {"status": "ok", "rows": df.to_json()}
+
 
 # Load file into duckdb endpoint (get)
 @router.get("/loadFile")
@@ -19,11 +34,7 @@ def loadFile(fileName: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
 
     log.info(f"Loading file '{fileName}' into table '{tableName}'")
-    if databaseService.loadTable(tableName, fileName):
-        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-        return {"status": "ok", "rows": df.to_json()}
-    else:
-        return {"status": "error", "rows": 0}
+    return _load_table_response(tableName, fileName)
 
 ####################################################
 @router.get("/getTables")
@@ -39,6 +50,12 @@ def getTables():
         return JSONResponse(content=tableList, status_code=200)
     else:
         return JSONResponse(content=[], status_code=200)
+####################################################
+@router.get("/getDatabaseSchema")
+def getDatabaseSchema():
+    schema = databaseService.getDatabaseSchema()
+    return JSONResponse(content=schema, status_code=200)
+
 ####################################################
 @router.get("/getTableSchema")
 def getTableSchema(tableName: str):
@@ -56,7 +73,7 @@ def getTableSchema(tableName: str):
         return JSONResponse(content=[], status_code=200)
 ####################################################
 @router.get("/getSampleData", response_class=Response)
-def getTableData(tableName: str, type: str = "First", records: int = 1000):
+def getTableData(tableName: str, type: str = "First", records: int = 1000, filter: str = ""):
     if (tableName is None):
         response = {"status": "error", "message": "tableName is required"}
         return JSONResponse(content=response, status_code=400)
@@ -65,7 +82,19 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
         LIMIT = ""
     else:
         LIMIT = " LIMIT " + str(records)
-    df = databaseService.runQuery("SELECT * FROM " + tableName + LIMIT)
+    WHERE = ""
+    if (filter and filter.strip()):
+        WHERE = " WHERE (" + filter.strip() + ")"
+    query = "SELECT * FROM " + tableName + WHERE
+    if records and type == "Shuffle":
+        # Sample the filtered rows: USING SAMPLE on the table itself samples before the WHERE
+        query = "SELECT * FROM (" + query + ") USING SAMPLE " + str(records) + " ROWS"
+    elif records and type == "Last":
+        # The last rows in their original order (views have no rowid to sort by)
+        query += " OFFSET (SELECT greatest(count(*) - " + str(records) + ", 0) FROM " + tableName + WHERE + ")"
+    else:
+        query += LIMIT
+    df = databaseService.runQuery(query)
 
     # If any field name ends with () remove it
     df.columns = df.columns.str.replace(r"\(\)", "", regex=True)
@@ -79,33 +108,14 @@ def getTableData(tableName: str, type: str = "First", records: int = 1000):
 def runQuery(queryRequest: QueryRequest):
     log.info(f"POST runQuery {queryRequest}")
 
-    databaseService.runQuery("DROP TABLE IF EXISTS __lastQuery")
-
-    query = queryRequest.query
-
-    query = query.strip()
-    if query[-1] == ";":
-        query = query[:-1]
-
     try:
-        databaseService.runQuery("CREATE TABLE __lastQuery as ("+ query +")")
+        df = databaseService.runUserQuery(queryRequest.query, queryRequest.rows)
     except Exception as e:
         log.error(f"Error running query: {e}")
         response = {"status": "error", "message": "Error running query: " + str(e)}
         return JSONResponse(content=response, status_code=400)
 
-    if (queryRequest.rows==0):
-        LIMIT = ""
-    else:
-        LIMIT = " LIMIT " + str(queryRequest.rows)
-
-    df = databaseService.runQuery("SELECT *  FROM __lastQuery" + LIMIT)
-
-    if df is not None:
-        csv_data = df.to_csv(index=False)
-        return Response(content=csv_data, media_type="text/csv", status_code=200)
-    else:
-        return Response(content="Query failed or returned no data", status_code=400)
+    return Response(content=df.to_csv(index=False), media_type="text/csv", status_code=200)
 ####################################################
 @router.get("/getRowCount")
 def getRowsCount(tableName: str):
@@ -128,12 +138,8 @@ def createTableFromQuery(query: str, tableName: str):
         return JSONResponse(content=response, status_code=400)
     log.info(f"Creating table {tableName} from query {query}")
     try:
-        databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
-    except Exception as e:
-        log.error(f"Error dropping table: {e}")
-
-    try:
-        databaseService.runQuery("CREATE TABLE "+ tableName +" as ("+ query +")")
+        # Replaces the table only once the query has worked (and the query may read that same table)
+        databaseService.runQuery("CREATE OR REPLACE TABLE "+ tableName +" as ("+ query +")")
     except Exception as e:
         log.error(f"Error creating table: {e}")
         response = {"status": "error", "message": "Error creating table: " + str(e)}
@@ -150,14 +156,36 @@ def deleteTable(tableName: str):
     databaseService.runQuery("DROP TABLE IF EXISTS "+ tableName )
     return {"status": "ok"}
 ####################################################
-@router.get("/exportData")
-def exportData(tableName: str, format: str = "csv", fileName: str = None):
-    if fileName is None:
-        fileName = databaseService.get_user_temp_folder() + "/" + tableName + "." + format
-
-    if (tableName is None or fileName is None):
-        response = {"status": "error", "message": "tableName and fileName are required"}
+@router.get("/renameTable")
+def renameTable(tableName: str, newName: str):
+    if (not tableName or not newName):
+        response = {"status": "error", "message": "tableName and newName are required"}
         return JSONResponse(content=response, status_code=400)
+    if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", newName):
+        response = {"status": "error",
+                    "message": "Invalid name. Use letters, numbers and underscores, and don't start with a number."}
+        return JSONResponse(content=response, status_code=400)
+    log.info(f"Renaming table {tableName} to {newName}")
+    old_sql = '"' + tableName.replace('"', '""') + '"'
+    new_sql = '"' + newName + '"'
+    try:
+        databaseService.runQuery("ALTER TABLE " + old_sql + " RENAME TO " + new_sql)
+    except Exception as e:
+        log.error(f"Error renaming table: {e}")
+        response = {"status": "error", "message": "Error renaming table: " + str(e)}
+        return JSONResponse(content=response, status_code=400)
+    return {"status": "ok"}
+####################################################
+@router.get("/exportData")
+def exportData(tableName: str, format: str = "csv"):
+    if (tableName is None):
+        response = {"status": "error", "message": "tableName is required"}
+        return JSONResponse(content=response, status_code=400)
+    if format not in ("csv", "parquet"):
+        response = {"status": "error", "message": "Format not supported: " + format}
+        return JSONResponse(content=response, status_code=400)
+    # The export always lands in the user's temp folder, under a name that can't carry a path
+    fileName = os.path.join(databaseService.get_user_temp_folder(), re.sub(r"[^\w-]", "_", tableName) + "." + format)
     log.info(f"Exporting data from table {tableName} to file {fileName} in format {format}")
     r = databaseService.exportData(tableName, format, fileName)
 
@@ -187,20 +215,22 @@ def uploadFile(file: UploadFile = File(...), tableName: str = Form(None)):
         response = {"status": "error", "message": "file is required"}
         return JSONResponse(content=response, status_code=400)
 
+    # Keep only the file name: a client-supplied path must not leave the user's temp folder
+    file_name = os.path.basename(file.filename or "")
+    if not file_name:
+        response = {"status": "error", "message": "file name is required"}
+        return JSONResponse(content=response, status_code=400)
+
     data_dir = databaseService.get_user_temp_folder()
-    dest_file = os.path.join(data_dir, file.filename)
+    dest_file = os.path.join(data_dir, file_name)
     log.info(f"Uploading file {file.filename} to {dest_file}")
     with open(dest_file, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
     dest_file = os.path.abspath(dest_file)
 
     if (tableName is None):
-        tableName = file.filename.split(".")[0]
-    if databaseService.loadTable(tableName, dest_file):
-        df = databaseService.runQuery("SELECT COUNT(*) total FROM " + tableName)
-        return {"status": "ok", "rows": df.to_json()}
-    else:
-        return {"status": "error", "rows": 0}
+        tableName = file_name.split(".")[0]
+    return _load_table_response(tableName, dest_file)
 ####################################################
 @router.get("/getDatabaseList")
 def getDatabaseList():
@@ -221,13 +251,19 @@ def getDatabaseList():
 ####################################################
 @router.get("/changeDatabase")
 def changeDatabase(databaseName: str):
-    databaseService.changeDatabase(databaseName)
+    try:
+        databaseService.changeDatabase(databaseName)
+    except ValueError as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
     return {"status": "ok"}
 
 ####################################################
 @router.get("/createDatabase")
 def createDatabase(databaseName: str):
-    databaseService.createDatabase(databaseName)
+    try:
+        databaseService.createDatabase(databaseName)
+    except ValueError as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
     return {"status": "ok"}
 
 # Based on https://github.com/uwdata/mosaic/blob/main/packages/duckdb-server/README.md

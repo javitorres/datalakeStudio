@@ -189,8 +189,8 @@ async function clickDatabase(database) {
     else {
       toast.error(`Error: HTTP ${response.message}`);
     }
-  }).catch(() => {
-    toast.error('Error connecting to remote database');
+  }).catch((error) => {
+    toast.error(error.response?.data?.message || 'Error connecting to remote database');
   }).finally(() => {
     loading.value = false;
   });
@@ -245,7 +245,7 @@ async function runRemoteQuery(nextQuery) {
       error.value = `Error: HTTP ${response.message}`;
     }
   }).catch((err) => {
-    error.value = `Error: ${err.message}`;
+    error.value = `Error: ${err.response?.data?.message || err.message}`;
   }).finally(() => {
     loading.value = false;
   });
@@ -265,7 +265,7 @@ async function createTableFromRemoteQuery() {
       toast.error('Table creation error::' + response.message);
     }
   }).catch((error) => {
-    toast.error('Table creation error:' + error);
+    toast.error('Table creation error: ' + (error.response?.data?.message || error.message));
   }).finally(() => {
     loading.value = false;
   });
