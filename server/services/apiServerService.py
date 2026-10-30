@@ -2,14 +2,54 @@ from services import databaseService
 from model.PublishEndpointRequestDTO import PublishEndpointRequestDTO
 from services import queriesService
 import json
+import re
+from urllib.parse import parse_qsl
 from fastapi.responses import JSONResponse
 import base64
 import requests
+
+# String literals, quoted identifiers and comments (where {placeholders} are not looked for), or a placeholder
+_SQL_TOKENS = re.compile(r"'(?:[^']|'')*'|\"(?:[^\"]|\"\")*\"|--[^\n]*|/\*.*?\*/|\{(\w+)\}", re.S)
+_PLACEHOLDER = re.compile(r"\{(\w+)\}")
+
+class EndpointNotFound(Exception):
+    pass
 
 def _escape_sql_string(value):
     if value is None:
         return ""
     return str(value).replace("'", "''")
+
+def _bind_parameters(query, values):
+    """Turn {name} placeholders into ? parameters so request values are never parsed as SQL.
+
+    A quoted placeholder '{name}' becomes ?, and one inside a longer literal is concatenated:
+    '%{name}%' becomes '%' || ? || '%'.
+    """
+    params, missing = [], []
+
+    def bind(name):
+        if name in values:
+            params.append(values[name])
+        else:
+            missing.append(name)
+        return "?"
+
+    def replace(match):
+        token, name = match.group(0), match.group(1)
+        if name is not None:
+            return bind(name)
+        if token.startswith("'"):
+            whole = _PLACEHOLDER.fullmatch(token[1:-1])
+            if whole:
+                return bind(whole.group(1))
+            return _PLACEHOLDER.sub(lambda m: "' || " + bind(m.group(1)) + " || '", token)
+        return token
+
+    sql = _SQL_TOKENS.sub(replace, query)
+    if missing:
+        raise ValueError("Missing parameters: " + ", ".join(dict.fromkeys(missing)))
+    return sql, params
 
 def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
     print("Publishing query " + publishEndpointRequestDTO.endpoint + " with parameters " + str(publishEndpointRequestDTO.parameters) + " for query " + str(publishEndpointRequestDTO.id_query))
@@ -45,8 +85,9 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
         print("updateQuery: " + updateQuery)
         databaseService.runQuery(updateQuery)
     except Exception as e:
+        # Let the error reach the client: the controller used to answer "ok" anyway
         print("Error updating endpoint:" + str(e))
-        return False        
+        raise
 
     return True
 
@@ -54,9 +95,11 @@ def update(publishEndpointRequestDTO: PublishEndpointRequestDTO):
 
 def getEndpointConfiguration(path):
     print("Getting endpoint " + path)
-    
+    # A user who never published an endpoint has no __endpoints table yet
+    createTable()
+
     # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + path + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = ?", params=[path])
 
     # Map df to PublishEndpointRequestDTO object
     endpoint = PublishEndpointRequestDTO.from_dataframe(df)
@@ -77,20 +120,13 @@ def getAndRunEndpoint(path, query_params, body):
     if (endpoint is not None):
         print("endpoint: ", endpoint)
 
-        # Query contains expressoins like {marca} or {marca_id} replace with query_params
-        query = endpoint.query
-        if (query_params is not None):
-            for param in query_params:
-                query = query.replace("{" + param + "}", query_params[param])
+        # Query contains expressions like {marca} or {marca_id}: they are bound as parameters,
+        # never pasted into the SQL
+        query, params = _bind_parameters(endpoint.query, query_params or {})
 
-        # Check if any parameter remains in query, if so raise exception
-        if ("{" in query):
-            raise Exception("Some needed parameters were not found: " + query)
-        
-        
         # Run query
         print("Running query: " + query)
-        df = databaseService.runQuery(query)
+        df = databaseService.runQuery(query, params=params)
 
         if (df is not None):
             return df
@@ -98,7 +134,7 @@ def getAndRunEndpoint(path, query_params, body):
             return None
     
     else:
-        raise Exception("Endpoint not found: " + path)
+        raise EndpointNotFound("Endpoint not found: " + path)
 
 ####################################################
 def listEndpoints():
@@ -181,7 +217,7 @@ def checkIfEndPointExists(endpoint):
     print("Checking if endpoint exists " + str(endpoint))
     
     # Search query into __queries table lower case
-    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = '" + endpoint + "'")
+    df = databaseService.runQuery("SELECT * FROM __endpoints WHERE endpoint = ?", params=[endpoint])
 
     if (df is not None and len(df) > 0):
         return True
@@ -234,25 +270,19 @@ def getApiDefinition(path):
     
     '''
     endpointsDefinition = []
-    #print("endpoints: ", endpoints)
     for endpoint in endpoints:
-        endpointDict = {}
-        endpointDict["path"] = endpoint["endpoint"]
-        query = endpoint["queryStringTest"]
-        # Remove first ? from query string
-        endpointDict["query"] = endpoint["queryStringTest"][1:]
-        response = {}
-        res = getAndRunEndpoint(endpoint["endpoint"], query, None) 
-        #urlTest = "http://localhost:8000/api/" + endpoint["endpoint"]  + endpoint["queryStringTest"]
-        #print("urlTest: ", urlTest)
-        #response = requests.get(urlTest)
-        print("response: ", res)
-
-        endpointDict["response"] = res.to_dict(orient="records")
-        endpointsDefinition.append(endpointDict)
-        
-
-
+        if not endpoint["endpoint"]:
+            continue  # created in the UI but never saved
+        # The test query string (?a=1&b=2) gives the parameters and their example values
+        examples = dict(parse_qsl((endpoint["queryStringTest"] or "").lstrip("?")))
+        try:
+            # A few rows are enough as an example of the response
+            response = databaseService.to_json_records(getAndRunEndpoint(endpoint["endpoint"], examples, None).head(5))
+        except Exception as e:
+            # A broken endpoint must not take down the whole definition
+            print("Error running endpoint " + endpoint["endpoint"] + " for its example: " + str(e))
+            response = []
+        endpointsDefinition.append({"path": endpoint["endpoint"], "parameters": list(examples), "response": response})
 
     openapi_dict = {
         "openapi": "3.0.0",
@@ -260,17 +290,16 @@ def getApiDefinition(path):
             "title": "Mi API",
             "version": "1.0.0"
         },
+        "servers": [{"url": "/api"}],
         "paths": {}
     }
 
     for endpoint in endpointsDefinition:
         path = endpoint["path"]
-        query_params = endpoint["query"].split('&')
         response = endpoint["response"]
 
         parameters = []
-        for param in query_params:
-            name, _ = param.split('=')
+        for name in endpoint["parameters"]:
             parameters.append({
                 "name": name,
                 "in": "query",
@@ -278,7 +307,7 @@ def getApiDefinition(path):
                 "schema": {"type": "string"}
             })
 
-        openapi_dict["paths"][path] = {
+        openapi_dict["paths"]["/" + path] = {
             "get": {
                 "parameters": parameters,
                 "responses": {

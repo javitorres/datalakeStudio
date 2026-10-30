@@ -257,5 +257,5 @@ def runApiEnrichment(apiEnrichmentRequestDTO: ApiEnrichmentRequestDTO , api_doma
                 
     # Create table with the dataframe dfNew
     print("Creating table " + apiEnrichmentRequestDTO.newTableName + "...")
-    databaseService.createTableFromDataFrame("dfNew", apiEnrichmentRequestDTO.newTableName)
+    databaseService.createTableFromDataFrame(dfNew, apiEnrichmentRequestDTO.newTableName)
     return dfNew

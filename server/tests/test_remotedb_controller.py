@@ -53,7 +53,25 @@ class RemoteDbControllerTest(unittest.TestCase):
         mock_connect.return_value = None
 
         resp = remoteDb_controller.connectDatabase('x')
-        self.assertEqual(resp, {'status': 'error'})
+        self.assertEqual(resp.status_code, 404)
+
+    @patch('routes.remoteDb_controller.Config.get_instance', return_value=_FakeConfig())
+    @patch('routes.remoteDb_controller.remoteDbService.connectDatabase',
+           side_effect=Exception('password authentication failed'))
+    def test_connect_database_failure_reports_the_reason(self, _mock_connect, _mock_cfg):
+        resp = remoteDb_controller.connectDatabase('host - 5432 - db - user')
+        self.assertEqual(resp.status_code, 502)
+        self.assertIn('password authentication failed', self._json(resp)['message'])
+
+    @patch('routes.remoteDb_controller.remoteDbService.runRemoteQuery',
+           side_effect=Exception('syntax error at or near "selec"'))
+    def test_remote_query_errors_are_reported(self, _mock_run):
+        remoteDb_controller._remote_connections[TEST_USER] = object()
+
+        for resp in (remoteDb_controller.runRemoteQuery('selec 1'),
+                     remoteDb_controller.createTableFromRemoteQuery('selec 1', 't')):
+            self.assertEqual(resp.status_code, 400)
+            self.assertIn('syntax error', self._json(resp)['message'])
 
     def test_get_schemas_requires_connection(self):
         remoteDb_controller._remote_connections[TEST_USER] = None
@@ -90,7 +108,7 @@ class RemoteDbControllerTest(unittest.TestCase):
 
         resp = remoteDb_controller.createTableFromRemoteQuery('select 1 as id', 'new_table')
         self.assertEqual(resp, {'status': 'ok'})
-        mock_create.assert_called_once_with('dfRemoteDb', 'new_table')
+        mock_create.assert_called_once_with(mock_run.return_value, 'new_table')
 
 
 if __name__ == '__main__':

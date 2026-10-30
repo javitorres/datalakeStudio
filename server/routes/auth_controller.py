@@ -44,6 +44,8 @@ def google_login(req: GoogleAuthRequest):
     if email is None:
         return JSONResponse(content={"error": "Invalid Google token or Google auth not configured"}, status_code=401)
     username = authService.find_or_create_google_user(email)
+    if username is None:
+        return JSONResponse(content={"error": "This Google account name is not supported"}, status_code=401)
     token = authService.create_token(username)
     return {"token": token, "username": username}
 

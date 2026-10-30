@@ -35,7 +35,12 @@ def connectDatabase(databaseName: str):
         response = {"status": "error", "message": "databaseName is required"}
         return JSONResponse(content=response, status_code=400)
     print("Connecting to database '" + databaseName + "'")
-    connection = remoteDbService.connectDatabase(databaseName, Config.get_instance().get_secrets.get("pgpass_file"))
+    try:
+        connection = remoteDbService.connectDatabase(databaseName, Config.get_instance().get_secrets.get("pgpass_file"))
+    except Exception as e:
+        _set_connection(None)
+        response = {"status": "error", "message": "Could not connect to " + databaseName + ": " + str(e)}
+        return JSONResponse(content=response, status_code=502)
     _set_connection(connection)
 
     if (connection is not None):
@@ -43,7 +48,8 @@ def connectDatabase(databaseName: str):
         response = {"status": "ok", "schemas": schemas}
         return JSONResponse(content=response, status_code=200)
     else:
-        return {"status": "error"}
+        response = {"status": "error", "message": "Database not found in the pgpass file: " + databaseName}
+        return JSONResponse(content=response, status_code=404)
 
 @router.get("/getSchemas")
 def getSchemas():
@@ -76,11 +82,11 @@ def runRemoteQuery(query: str):
         response = {"status": "error", "message": "You must connect to a database first"}
         return JSONResponse(content=response, status_code=400)
     print("Running query " + query)
-    df = remoteDbService.runRemoteQuery(connection, query)
-    if (df is not None):
-        return JSONResponse(content=df.to_csv(index=False), status_code=200)
-    else:
-        return JSONResponse(content=[], status_code=200)
+    try:
+        df = remoteDbService.runRemoteQuery(connection, query)
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
+    return JSONResponse(content=df.to_csv(index=False), status_code=200)
 
 @router.get("/createTableFromRemoteQuery")
 def createTableFromRemoteQuery(query: str, tableName: str):
@@ -90,9 +96,9 @@ def createTableFromRemoteQuery(query: str, tableName: str):
         response = {"status": "error", "message": "You must connect to a database first"}
         return JSONResponse(content=response, status_code=400)
     print("Creating table " + tableName + " from query " + query)
-    dfRemoteDb = remoteDbService.runRemoteQuery(connection, query)
-    if (dfRemoteDb is not None):
-        databaseService.createTableFromDataFrame("dfRemoteDb", tableName)
-        return {"status": "ok"}
-    else:
-        return {"status": "error"}
+    try:
+        dfRemoteDb = remoteDbService.runRemoteQuery(connection, query)
+    except Exception as e:
+        return JSONResponse(content={"status": "error", "message": str(e)}, status_code=400)
+    databaseService.createTableFromDataFrame(dfRemoteDb, tableName)
+    return {"status": "ok"}

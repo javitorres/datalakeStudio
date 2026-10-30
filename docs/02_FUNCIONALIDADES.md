@@ -288,8 +288,7 @@ Cada tabla se puede explorar en profundidad con las siguientes herramientas:
 - Indexación H3 con agregaciones (count, avg).
 - Generación de GeoJSON desde DuckDB.
 
-### 12.3 Mapas HTML
-- Generación de mapas Plotly interactivos con cloroplethos H3.
-- Centro por defecto: Madrid.
+### 12.3 Mapas HTML (retirado)
+- El endpoint `/maps/html` (mapas Plotly) devuelve 410; los mapas se dibujan en el cliente a partir de `/maps/geojson`.
 
 **Componentes**: `Map.vue`, `MapH3.vue` → `maps_controller.py` → `databaseService.py`, `mapsService.py`

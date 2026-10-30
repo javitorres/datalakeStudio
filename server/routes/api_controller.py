@@ -15,8 +15,8 @@ async def catch_all(request: Request, path: str):
     print("Path: " + path)
     print("Method: " + request.method)
 
-    # if path ends with /
-    if (path.endswith("/")):
+    # /api/ itself (empty path) or any path ending with /: the OpenAPI definition
+    if (path == "" or path.endswith("/")):
         openapi_dict = apiServerService.getApiDefinition(path)
         # openapi_dict to json
         # openapi_json = json.dumps(openapi_dict)
@@ -49,6 +49,8 @@ async def catch_all(request: Request, path: str):
         
         try:
             df_result = apiServerService.getAndRunEndpoint(path, query_params, body)
+        except apiServerService.EndpointNotFound as e:
+            return JSONResponse(content={"error": str(e)}, status_code=404)
         except Exception as e:
             print("Error running endpoint:" + str(e))
             return JSONResponse(content={"error": str(e)}, status_code=400)
@@ -62,7 +64,7 @@ async def catch_all(request: Request, path: str):
                 csv_data = df_result.to_csv(index=False)
                 return Response(content=csv_data, media_type="text/csv", status_code=200)
             else:
-                result = df_result.to_dict(orient="records")
+                result = databaseService.to_json_records(df_result)
                 #print("Result:" + str(result))
                 return JSONResponse(content=result, status_code=200)
         else:

@@ -48,18 +48,17 @@ Datalake Studio es una aplicación web de exploración y gestión de datos const
 | Tecnología | Versión | Propósito |
 |---|---|---|
 | Python 3.12 | - | Lenguaje del servidor |
-| FastAPI | 0.108.0 | Framework REST API |
-| Uvicorn | 0.30.1 | Servidor ASGI |
-| DuckDB | 1.4.4 | Motor OLAP embebido |
+| FastAPI | 0.162.0 | Framework REST API (sobre Starlette 1.10) |
+| Uvicorn | 0.54.0 | Servidor ASGI |
+| DuckDB | 2.0.0 | Motor OLAP embebido |
 | Pandas | 2.2.2 | Manipulación de DataFrames |
 | PyArrow | 17.0 | Serialización Arrow para transferencia eficiente |
 | OpenAI SDK | 1.6.1 | Integración GPT-4, Whisper, TTS |
 | boto3 | 1.26.133 | AWS S3 |
 | psycopg2 | 2.9.9 | Conexión PostgreSQL remoto |
-| GeoPandas | 0.14.4 | Datos geoespaciales |
-| h3 | 3.7.7 | Indexación hexagonal H3 |
-| Plotly | 5.22.0 | Visualizaciones HTML de mapas |
-| pydantic | 2.5.3 | Validación de DTOs |
+| Shapely | 2.2.0 | Geometrías WKT del GeoJSON de los mapas |
+| Extensiones DuckDB | - | spatial y h3 (indexación hexagonal H3), incluidas en la imagen Docker |
+| pydantic | 2.14.1 | Validación de DTOs |
 
 ### Infraestructura
 | Tecnología | Propósito |
@@ -124,7 +123,7 @@ Los controladores se registran como **FastAPI Routers** con prefijos de URL y se
 
 - **Config (Singleton)**: Carga `config.yml` (puerto, ruta BD) y `secrets.yml` (API keys, credenciales S3/Mapbox/OpenAI).
 - **ServerStatus (Singleton)**: Inicializa DuckDB al arrancar, mantiene el estado de la base de datos activa.
-- **Conexión DuckDB**: Variable global en `databaseService.py`. Una única conexión compartida.
+- **Conexión DuckDB**: Una por usuario y base de datos activa en `databaseService.py`. Las peticiones de un mismo usuario la usan por turnos (lock por usuario), porque una conexión DuckDB no admite uso simultáneo desde varios hilos.
 - **Conexión PostgreSQL remota**: Variable global en `remoteDb_controller.py`. Se establece bajo demanda.
 
 ### 3.4 Motor de Base de Datos (DuckDB)

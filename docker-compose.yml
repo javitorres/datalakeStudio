@@ -1,11 +1,19 @@
-version: '3.8'
 services:
   backend:
     build:
       context: ./server
       dockerfile: Dockerfile
+      args:
+        # The backend runs as this uid, which should own ./server/data (HOST_UID=$(id -u) if yours isn't 1000)
+        UID: ${HOST_UID:-1000}
     volumes:
-      - ~/.aws:/root/.aws:ro
+      - ./server/data:/app/data
+      - ~/.aws:/home/app/.aws:ro
+      # Secrets and config are mounted at runtime (not baked into the image).
+      - ./server/secrets.yml:/app/secrets.yml:ro
+      - ./server/config.yml:/app/config.yml:ro
+      # Uncomment if you use remote PostgreSQL databases (match pgpass_file in secrets.yml):
+      # - ./server/.pgpass:/app/.pgpass:ro
     ports:
       - "8000:8000"
 

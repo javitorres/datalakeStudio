@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="t d">
+  <title id="t">Datalake Studio</title>
+  <desc id="d">From raw data to ready-to-use APIs: load, query, visualise and publish your data. Open source, powered by DuckDB.</desc>
+  <defs>
+    <radialGradient id="glow" cx="30%" cy="35%" r="75%">
+      <stop offset="0" stop-color="#1f4a40"/>
+      <stop offset="0.65" stop-color="#17211f"/>
+    </radialGradient>
+    <linearGradient id="flow" x1="0" x2="1">
+      <stop offset="0" stop-color="#0d846f" stop-opacity="0.2"/>
+      <stop offset="0.5" stop-color="#2fb594"/>
+      <stop offset="1" stop-color="#0d846f" stop-opacity="0.2"/>
+    </linearGradient>
+    <!-- Hexagon tiling, a nod to the H3 maps -->
+    <pattern id="hex" width="56" height="97" patternUnits="userSpaceOnUse" patternTransform="translate(820 -10)">
+      <path d="M28 0 L56 16.2 L56 48.5 L28 64.7 L0 48.5 L0 16.2 Z M0 64.7 L0 97 M56 64.7 L56 97" fill="none" stroke="#9fdcc9" stroke-width="1"/>
+    </pattern>
+    <linearGradient id="hexfade" x1="0" x2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="1"/>
+    </linearGradient>
+    <mask id="hexmask"><rect x="720" width="560" height="400" fill="url(#hexfade)"/></mask>
+    <clipPath id="card"><rect width="1280" height="400" rx="24"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#card)">
+    <rect width="1280" height="400" fill="url(#glow)"/>
+    <rect width="1280" height="400" fill="url(#hex)" opacity="0.13" mask="url(#hexmask)"/>
+  </g>
+
+  <!-- Logo mark (client/src/assets/logo.svg) -->
+  <g transform="translate(84 92) scale(1.25)">
+    <g transform="translate(0 126) scale(0.1 -0.1)" fill="#9fdcc9">
+      <path d="M549 1141 c-48 -48 -30 -137 31 -156 18 -6 20 -16 20 -91 0 -62 -3 -84 -13 -84 -7 0 -29 -8 -50 -19 l-36 -18 -60 59 c-54 54 -59 62 -49 83 23 51 -27 125 -84 125 -90 0 -136 -91 -81 -159 24 -29 74 -42 103 -27 20 10 28 5 82 -48 l60 -59 -16 -34 c-9 -19 -16 -41 -16 -51 0 -15 -11 -17 -86 -15 -85 1 -86 2 -105 32 -48 79 -160 53 -175 -41 -5 -29 -1 -41 24 -69 25 -28 37 -34 70 -34 42 0 92 34 92 62 0 10 22 13 90 13 72 0 90 -3 90 -15 0 -8 7 -30 16 -48 l16 -34 -57 -54 c-53 -50 -60 -54 -100 -51 -53 4 -80 -9 -101 -50 -22 -42 -11 -91 25 -118 76 -53 182 15 153 99 -10 28 -7 33 50 90 l60 60 36 -20 c20 -10 42 -19 49 -19 10 0 13 -23 13 -85 0 -81 -1 -86 -24 -95 -34 -13 -56 -48 -56 -91 0 -47 45 -89 95 -89 21 0 45 9 64 26 54 45 38 133 -29 156 -12 4 -14 21 -11 89 l3 84 45 21 44 22 58 -60 c57 -58 58 -60 53 -107 -4 -44 -2 -50 28 -74 44 -37 92 -36 131 2 41 41 40 91 -2 133 -27 28 -34 30 -78 25 -48 -6 -48 -5 -105 52 -57 57 -57 57 -41 87 8 16 15 37 15 47 0 15 11 17 90 17 77 0 92 -3 97 -17 19 -54 79 -76 131 -49 110 57 33 220 -81 172 -19 -8 -41 -26 -49 -41 -13 -26 -16 -27 -98 -28 l-85 0 -6 31 c-4 18 -12 39 -19 47 -11 14 -4 25 51 81 35 35 65 60 67 54 2 -5 22 -10 44 -10 54 0 98 43 98 95 0 27 -8 44 -29 66 -39 38 -87 39 -131 2 -30 -25 -32 -30 -27 -77 l4 -50 -59 -56 -60 -57 -36 18 c-20 11 -41 19 -47 19 -6 0 -8 29 -5 84 5 79 7 85 38 111 27 23 32 33 32 70 0 36 -5 48 -31 69 -43 36 -91 35 -130 -3z m111 -33 c11 -12 20 -28 20 -35 0 -19 -45 -63 -65 -63 -22 0 -55 37 -55 62 0 53 63 76 100 36z m-314 -133 c19 -30 11 -60 -22 -82 -24 -15 -27 -15 -52 4 -36 26 -40 66 -10 87 33 23 65 20 84 -9z m626 8 c31 -28 22 -70 -20 -92 -33 -18 -72 9 -72 49 0 53 53 79 92 43z m-281 -236 c117 -78 65 -257 -74 -257 -106 0 -172 114 -122 211 35 67 131 90 196 46z m-485 -82 c18 -19 23 -31 19 -48 -15 -47 -61 -61 -95 -27 -38 38 -14 94 43 99 4 1 19 -10 33 -24z m902 3 c20 -17 14 -65 -10 -82 -44 -31 -88 -9 -88 44 0 50 55 71 98 38z m-761 -324 c15 -24 15 -29 2 -53 -26 -46 -109 -33 -109 18 0 58 75 83 107 35z m627 10 c20 -20 20 -58 0 -78 -18 -19 -65 -21 -82 -4 -16 16 -16 70 0 86 17 17 64 15 82 -4z m-314 -136 c24 -26 25 -37 4 -66 -29 -42 -104 -22 -104 28 0 57 60 80 100 38z"/>
+    </g>
+  </g>
+
+  <g font-family="'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif">
+    <text x="280" y="150" fill="#ffffff" font-size="68" font-weight="700" letter-spacing="-1">Datalake Studio</text>
+    <text x="282" y="198" fill="#9fdcc9" font-size="28" font-weight="600">From raw data to ready-to-use APIs</text>
+
+    <!-- Load → Query → Visualise → Publish -->
+    <path d="M150 300 H1130" stroke="url(#flow)" stroke-width="2" stroke-dasharray="4 8"/>
+    <g font-size="22" font-weight="600" fill="#ffffff" text-anchor="middle">
+      <g transform="translate(240 300)">
+        <rect x="-96" y="-28" width="192" height="56" rx="28" fill="#17211f" stroke="#3f8f7c" stroke-width="2"/>
+        <text y="8">Load</text>
+      </g>
+      <g transform="translate(493 300)">
+        <rect x="-96" y="-28" width="192" height="56" rx="28" fill="#17211f" stroke="#3f8f7c" stroke-width="2"/>
+        <text y="8">Query</text>
+      </g>
+      <g transform="translate(746 300)">
+        <rect x="-96" y="-28" width="192" height="56" rx="28" fill="#17211f" stroke="#3f8f7c" stroke-width="2"/>
+        <text y="8">Visualise</text>
+      </g>
+      <g transform="translate(1000 300)">
+        <rect x="-96" y="-28" width="192" height="56" rx="28" fill="#0d846f" stroke="#2fb594" stroke-width="2"/>
+        <text y="8">Publish API</text>
+      </g>
+    </g>
+    <g font-size="15" fill="#b9c8c3" text-anchor="middle">
+      <text x="240" y="356">CSV · Parquet · JSON · S3 · Postgres</text>
+      <text x="493" y="356">SQL on DuckDB · AI assistant</text>
+      <text x="746" y="356">Charts · cross-filters · H3 maps</text>
+      <text x="1000" y="356">Parameterised REST endpoints</text>
+    </g>
+    <text x="1196" y="64" fill="#b9c8c3" font-size="16" text-anchor="end" letter-spacing="1">OPEN SOURCE · POWERED BY DUCKDB</text>
+  </g>
+</svg>
