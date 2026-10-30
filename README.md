@@ -1,16 +1,15 @@
-<div align="center">
-<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/462ac5ee-21a8-4a75-b3bc-cf90d36089b4" height="200">
-<br/>
-<img src="https://github.com/javitorres/datalakeStudio/assets/4235424/3306a67f-91d3-4427-8214-96f8a1f02eb1" width=60% height=auto>
-<br/><br/>
-</div>
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="Datalake Studio — from raw data to ready-to-use APIs" width="100%">
+</p>
 
 <p align="center">
-    <img src="https://img.shields.io/badge/Version-1.0.0-red" alt="Version">
-    <img src="https://img.shields.io/badge/Vue-3.4-blue" alt="Vue 3">
-    <img src="https://img.shields.io/badge/FastAPI-0.162-009688" alt="FastAPI">
-    <img src="https://img.shields.io/badge/DuckDB-2.0.0-yellow" alt="DuckDB">
-    <img src="https://img.shields.io/badge/License-GPLv3-green" alt="License: GPL v3">
+  <img src="https://img.shields.io/badge/version-1.0.0-0d846f" alt="Version 1.0.0">
+  <img src="https://img.shields.io/badge/DuckDB-2.0.0-FFF000?logo=duckdb&logoColor=black" alt="DuckDB 2.0.0">
+  <img src="https://img.shields.io/badge/FastAPI-0.162-009688?logo=fastapi&logoColor=white" alt="FastAPI 0.162">
+  <img src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white" alt="Python 3.12">
+  <img src="https://img.shields.io/badge/Vue-3.4-4FC08D?logo=vuedotjs&logoColor=white" alt="Vue 3.4">
+  <img src="https://img.shields.io/badge/Vite-4.4-646CFF?logo=vite&logoColor=white" alt="Vite 4.4">
+  <img src="https://img.shields.io/badge/license-GPLv3-17211f" alt="License: GPL v3">
 </p>
 
 # Datalake Studio
