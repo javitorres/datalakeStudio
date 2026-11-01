@@ -21,7 +21,7 @@ query as a live REST API — all from a single tool that runs on your machine.
 
 Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
+![Datalake Studio exploring 3M NYC taxi trips with cross-filter charts](docs/assets/screenshots/cross-filter.png)
 
 ## Table of contents
 
@@ -201,39 +201,39 @@ npm run test:run
 
 ### Load data
 
-Load from your local filesystem, any URL, or S3. Try this example dataset:
+Load from your local filesystem, any URL, S3, or a path on the server. Try this example dataset:
 `https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv`
 
-![Load data](https://github.com/javitorres/datalakeStudio/assets/4235424/6954818b-94f6-4438-b7b7-012f42edeb63)
+![Load data](docs/assets/screenshots/load-data.png)
 
 ### Table explorer
 
 Inspect loaded data and export it to CSV or Parquet.
 
-![Table explorer](https://github.com/javitorres/datalakeStudio/assets/4235424/5625c1e9-a399-4089-acd1-73381174089c)
+![Table explorer](docs/assets/screenshots/table-explorer.png)
 
 Get a data profile:
 
-![Data profile](https://github.com/javitorres/datalakeStudio/assets/4235424/959a1fae-2740-488e-b9ac-5e3c8079e8dd)
+![Data profile](docs/assets/screenshots/data-profile.png)
 
 Or use cross-filters to explore interactively:
 
-![Cross-filter](https://github.com/javitorres/datalakeStudio/assets/4235424/392f50f8-6d8d-4a4f-a1fa-9e70c7fc652b)
+![Cross-filter](docs/assets/screenshots/cross-filter.png)
 
 If your data has spatial information, view it on a map:
 
-![Map view](https://github.com/user-attachments/assets/cc91394c-1f4a-4b3b-9065-983b6efd3764)
+![Map points](docs/assets/screenshots/map-points.jpg)
 
-<img width="1239" alt="Map points" src="https://github.com/user-attachments/assets/5be35c2f-72ba-4678-a36f-4c2cab45046b">
+Or aggregate it into H3 hexagons, in 2D or 3D:
 
-<img width="1251" alt="H3 aggregation" src="https://github.com/user-attachments/assets/641c757a-c228-4f1d-9ad0-5c1d72554a99">
+![H3 aggregation](docs/assets/screenshots/map-h3.jpg)
 
 ### Query panel
 
 Query your data and generate new tables. Save and load queries, or ask the AI
 assistant to write SQL for you.
 
-![Query panel](https://github.com/javitorres/datalakeStudio/assets/4235424/13de8f41-e002-4f2a-811b-a64a3fdeca19)
+![Query panel](docs/assets/screenshots/query-panel.png)
 
 ### Enrich from APIs
 
@@ -255,11 +255,11 @@ Explore external databases and load data into Datalake Studio for local analysis
 
 Publish endpoints that serve your data with parameterised queries:
 
-![Publish API](https://github.com/javitorres/datalakeStudio/assets/4235424/34537cf8-c59c-4167-940c-3c07a71e2cc5)
+![Publish API](docs/assets/screenshots/publish-api.png)
 
 Keep control of the endpoints you publish:
 
-![Manage endpoints](https://github.com/javitorres/datalakeStudio/assets/4235424/32ee7182-228c-4130-8ce7-482e464c3c0d)
+![Manage endpoints](docs/assets/screenshots/manage-endpoints.png)
 
 ### Explore your S3 buckets
 
