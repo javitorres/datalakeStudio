@@ -21,7 +21,7 @@ query as a live REST API — all from a single tool that runs on your machine.
 
 Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-![Datalake Studio exploring 3M NYC taxi trips with cross-filter charts](docs/assets/screenshots/cross-filter.png)
+<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
 
 ## Table of contents
 
@@ -237,19 +237,20 @@ assistant to write SQL for you.
 
 ### Enrich from APIs
 
-Enrich your datasets by calling external APIs:
+Enrich your datasets by calling external APIs. Pick a table, point to an endpoint
+and check the response with the first row:
 
-![API enrichment](https://github.com/javitorres/datalakeStudio/assets/4235424/8a81495b-0e40-4829-af9e-f1081f871bb9)
+![API enrichment](docs/assets/screenshots/api-enrichment.png)
 
-Resulting table:
+Then choose which response fields become new columns of the enriched table:
 
-![Enriched table](https://github.com/javitorres/datalakeStudio/assets/4235424/d367ddfa-089d-4670-8277-0693899b50cd)
+![Enrichment output](docs/assets/screenshots/api-enrichment-output.png)
 
 ### Load from remote databases
 
 Explore external databases and load data into Datalake Studio for local analysis:
 
-![Remote databases](https://github.com/javitorres/datalakeStudio/assets/4235424/948a0165-a908-43ce-b195-cdd17839f45e)
+![Remote databases](docs/assets/screenshots/remote-db.png)
 
 ### Expose your data via API
 
@@ -265,17 +266,17 @@ Keep control of the endpoints you publish:
 
 Navigate your S3 buckets and add descriptions:
 
-![S3 explorer](https://github.com/javitorres/datalakeStudio/assets/4235424/cd63c467-7cee-4fdc-8c9d-705372e8387e)
+![S3 explorer](docs/assets/screenshots/s3-explorer.png)
 
 Preview files or load them into Datalake Studio:
 
-![S3 preview](https://github.com/javitorres/datalakeStudio/assets/4235424/16c1f44a-52a0-4593-9c42-4f687fe315b1)
+![S3 preview](docs/assets/screenshots/s3-preview.png)
 
 ### Talk to ChatGPT
 
 Explore your data conversationally (experimental):
 
-![ChatGPT](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
+![ChatGPT](docs/assets/screenshots/chatgpt.png)
 
 ## License
 
