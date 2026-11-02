@@ -18,6 +18,8 @@ export class LocalEngine {
     this.connection = null;
     this.ready = null;
     this.uploads = 0;
+    // OPFS files registered with DuckDB (their handles stay open until they're dropped)
+    this.registered = new Set();
   }
 
   // Starts DuckDB the first time it's needed (the WASM module is tens of MB)
@@ -59,6 +61,7 @@ export class LocalEngine {
       this.connection = null;
     }
     const { DuckDBAccessMode } = this.duckdb;
+    if (this.capabilities.persistent) await this.registerFiles(opfsFiles(name));
     await this.db.open({
       path: this.capabilities.persistent ? 'opfs://' + name : ':memory:',
       accessMode: DuckDBAccessMode.READ_WRITE,
@@ -68,13 +71,31 @@ export class LocalEngine {
     // Opening another database leaves the previous one's OPFS handles open, and then that file can't
     // be opened again in this tab: release them
     if (this.capabilities.persistent && this.databaseName && this.databaseName !== name) {
-      await this.db.dropFiles(opfsFiles(this.databaseName));
+      await this.releaseFiles(opfsFiles(this.databaseName));
     }
     this.connection = await this.db.connect();
     this.databaseName = name;
     try {
       localStorage.setItem(CURRENT_DB_KEY, name);
     } catch (_) { /* storage blocked: the default database is used next time */ }
+  }
+
+  // DuckDB-WASM only registers the database files that aren't empty when it opens them. An empty WAL
+  // (a database opened once and never written) is then left unregistered: DuckDB can't write to it
+  // ("File is not opened in write mode") and its handle is never released. Register both files.
+  async registerFiles(paths) {
+    const root = await navigator.storage.getDirectory();
+    for (const path of paths) {
+      if (this.registered.has(path)) continue;
+      const handle = await root.getFileHandle(path.slice('opfs://'.length), { create: true });
+      await this.db.registerFileHandle(path, handle, this.duckdb.DuckDBDataProtocol.BROWSER_FSACCESS, true);
+      this.registered.add(path);
+    }
+  }
+
+  async releaseFiles(paths) {
+    await this.db.dropFiles(paths);
+    for (const path of paths) this.registered.delete(path);
   }
 
   currentDatabaseName() {
@@ -127,6 +148,10 @@ export class LocalEngine {
   async loadFile({ file, url, tableName }) {
     await this.start();
     if (!file) {
+      // The browser only reads what the user picks: a path on their disk (or on a server) isn't reachable
+      if (!/^https?:\/\//i.test(url.trim())) {
+        throw new Error(`The browser can't open "${url}" by its path. Use Upload file to pick the file from your computer.`);
+      }
       try {
         return await this.loadPath(tableName, url);
       } catch (error) {
@@ -214,8 +239,8 @@ export class LocalEngine {
     try {
       await this.openDatabase(name);
     } catch (error) {
-      // Back to the previous database, with fresh handles for both files
-      await this.db.dropFiles([...opfsFiles(name), ...opfsFiles(previous)]).catch(() => {});
+      // Back to the previous database (its files are still registered)
+      await this.releaseFiles(opfsFiles(name)).catch(() => {});
       this.databaseName = null;
       await this.openDatabase(previous);
       throw new Error(openErrorMessage(error));

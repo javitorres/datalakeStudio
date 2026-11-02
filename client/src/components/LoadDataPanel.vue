@@ -118,8 +118,8 @@
         <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">URL to load</span>
           <input id="fileInputUrl" type="text" class="form-control"
-            placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
-            aria-describedby="basic-addon1" v-model="fileInputUrl">
+            :placeholder="engine.mode === 'local' ? 'https://… (a file on the web)' : 'Path to the file. Start with \'s3 \' for search in your bucket while you type'"
+            aria-label="File" aria-describedby="basic-addon1" v-model="fileInputUrl">
 
         </div>
 
