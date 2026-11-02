@@ -110,6 +110,42 @@ export async function mapGeometries(engine, { table, geomField, fields = [], bbo
     feature(geometry, withDefaults(properties, fields))));
 }
 
+// The area most rows fall in (2nd to 98th percentiles, so a few stray coordinates don't zoom the
+// map out to the whole world): { west, south, east, north }, or null when there's nothing to show
+export async function dataExtent(engine, { table, latitudeField, longitudeField, geomField, filter = '', sourceCrs = DEFAULT_SOURCE_CRS }) {
+  let x;
+  let y;
+  let where;
+  if (latitudeField && longitudeField) {
+    await checkColumns(engine, table, [latitudeField, longitudeField]);
+    y = `TRY_CAST(${quoteIdent(latitudeField)} AS DOUBLE)`;
+    x = `TRY_CAST(${quoteIdent(longitudeField)} AS DOUBLE)`;
+    where = `${y} BETWEEN -90 AND 90 AND ${x} BETWEEN -180 AND 180`;
+  } else if (geomField) {
+    const schema = await checkColumns(engine, table, [geomField]);
+    await engine.loadExtension?.('spatial');
+    const column = quoteIdent(geomField);
+    const source = /^GEOMETRY\b/i.test(schema[geomField]) ? column : `ST_GeomFromText(${column})`;
+    const center = `ST_Centroid(ST_Transform(${source}, '${sourceCrs}', 'EPSG:4326', always_xy := true))`;
+    y = `ST_Y(${center})`;
+    x = `ST_X(${center})`;
+    where = `${column} IS NOT NULL`;
+  } else {
+    return null;
+  }
+  const [extent] = await engine.query(`
+    SELECT quantile_cont(${x}, 0.02) AS west, quantile_cont(${y}, 0.02) AS south,
+           quantile_cont(${x}, 0.98) AS east, quantile_cont(${y}, 0.98) AS north
+    FROM ${quoteIdent(table)}
+    WHERE ${where}${andFilter(filter)}`);
+  if (!extent || ![extent.west, extent.south, extent.east, extent.north].every(Number.isFinite)) return null;
+  // A single place: a small area around it
+  const pad = (min, max) => (max - min < 0.01 ? [min - 0.01, max + 0.01] : [min, max]);
+  const [west, east] = pad(extent.west, extent.east);
+  const [south, north] = pad(extent.south, extent.north);
+  return { west, south, east, north };
+}
+
 function feature(geometry, properties) {
   return { type: 'Feature', geometry: typeof geometry === 'string' ? JSON.parse(geometry) : geometry, properties };
 }

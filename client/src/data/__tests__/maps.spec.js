@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createNodeEngine } from './nodeEngine'
-import { mapCells, mapGeometries, mapPoints, parseBbox } from '../maps'
+import { dataExtent, mapCells, mapGeometries, mapPoints, parseBbox } from '../maps'
 
 let engine
 
@@ -54,6 +54,22 @@ describe('maps', () => {
     expect(lon).toBeCloseTo(-3.71, 4)
     expect(lat).toBeCloseTo(40.41, 4)
     expect(geojson.features[0].properties).toEqual({ visitors: 7 })
+  })
+
+  it('finds the area where most of the data is', async () => {
+    await engine.exec(`CREATE TABLE spread AS SELECT 40 + i / 100 AS lat, -4 + i / 100 AS lon FROM range(100) t(i)
+      UNION ALL SELECT 0, 0`)
+    const extent = await dataExtent(engine, { table: 'spread', latitudeField: 'lat', longitudeField: 'lon' })
+    expect(extent.south).toBeGreaterThan(39.9)
+    expect(extent.north).toBeLessThan(41)
+    expect(extent.west).toBeGreaterThan(-4.1)
+    const single = await dataExtent(engine, { table: 'places', latitudeField: 'lat', longitudeField: 'lon', filter: "name = 'Sol'" })
+    expect(single.north - single.south).toBeCloseTo(0.02, 5)
+    const zones = await dataExtent(engine, { table: 'zones', geomField: 'wkt' })
+    expect(zones.west).toBeCloseTo(-3.71, 1)
+    expect(zones.north).toBeCloseTo(40.42, 1)
+    expect(await dataExtent(engine, { table: 'places', latitudeField: 'lat', longitudeField: 'lon', filter: 'false' })).toBeNull()
+    expect(await dataExtent(engine, { table: 'places' })).toBeNull()
   })
 
   it('rejects unknown and non-numeric columns', async () => {

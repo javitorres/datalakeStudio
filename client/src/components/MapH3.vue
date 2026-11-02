@@ -315,7 +315,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
 import { useEngine } from '../engine';
-import { mapCells, mapGeometries, mapPoints } from '../data/maps';
+import { dataExtent, mapCells, mapGeometries, mapPoints } from '../data/maps';
 import { uiType } from '../data/types';
 import { toast } from 'vue3-toastify';
 import DataSelector from './DataSelector.vue';
@@ -400,6 +400,7 @@ export default {
       activeRequests: 0,
       h3RequestId: 0,
       pointsRequestId: 0,
+      extentRequestId: 0,
       popupHandlersBound: false,
 
     };
@@ -414,6 +415,9 @@ export default {
     },
     canRenderH3() {
       return Boolean(this.mapLoaded && this.hasLocation);
+    },
+    locationKey() {
+      return [this.table, this.latitudeField, this.longitudeField, this.geomField].join("|");
     },
     canRenderPoints() {
       return Boolean(this.mapLoaded && this.hasCoordinates);
@@ -467,6 +471,10 @@ export default {
       },
       deep: true,
       immediate: true
+    },
+    // Another table or other location columns: show the area where their data is
+    locationKey() {
+      this.fitToData();
     },
     filter() {
       // Cross-filter changed: drop cached layers and reload with the new predicate.
@@ -654,6 +662,25 @@ export default {
         this.endRequest();
       }
     },
+    // Moves the map to the area where the data is (the map opens over Spain)
+    async fitToData() {
+      if (!this.map || !this.mapLoaded || !this.hasLocation) return;
+      const requestId = ++this.extentRequestId;
+      try {
+        const extent = await dataExtent(useEngine(), {
+          table: this.table,
+          latitudeField: this.hasCoordinates ? this.latitudeField : null,
+          longitudeField: this.hasCoordinates ? this.longitudeField : null,
+          geomField: this.geomField,
+          filter: this.filter || ""
+        });
+        if (!extent || requestId !== this.extentRequestId) return;
+        this.map.fitBounds([[extent.west, extent.south], [extent.east, extent.north]],
+          { padding: 40, maxZoom: 14, duration: 0 });
+      } catch (error) {
+        // The map just stays where it is
+      }
+    },
     currentBbox() {
       if (!this.map) return "-19.3,26.5,7.8,44.5";
       const bounds = this.map.getBounds();
@@ -738,6 +765,7 @@ export default {
         this.reloadLayers();
         this.addPopup();
         this.applyLayerVisibility();
+        this.fitToData();
       });
       this.map.on("error", (event) => {
         this.mapError = event?.error?.message || "The base map could not be loaded.";
