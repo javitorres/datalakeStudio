@@ -19,6 +19,7 @@
     "@uwdata/mosaic-core": "^0.10.0",
     "@uwdata/mosaic-spec": "^0.10.0",
     "@uwdata/vgplot": "^0.10.0",
+    "apache-arrow": "^16.1.0",
     "axios": "^1.6.2",
     "bootstrap": "^5.3.2",
     "bootstrap-icons": "^1.11.2",
@@ -37,6 +38,7 @@
     "yaml": "^2.5.0"
   },
   "devDependencies": {
+    "@duckdb/node-api": "^2.0.0-r.1",
     "@vitejs/plugin-vue": "^4.4.0",
     "@vue/test-utils": "^2.4.6",
     "eslint": "^8.49.0",

@@ -314,6 +314,7 @@
 import "mapbox-gl/dist/mapbox-gl.css";
 import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
+import { uiType } from '../data/types';
 import { toast } from 'vue3-toastify';
 import qs from 'qs';
 import csv2geojson from 'csv2geojson';
@@ -530,8 +531,7 @@ export default {
       const schema = this.schema || {};
       const selected = new Set(this.selectedFields || Object.keys(schema));
       this.numericFields = Object.keys(schema).filter((field) => {
-        const type = String(schema[field] || "");
-        return selected.has(field) && /(int|float|double|decimal|numeric|real)/i.test(type);
+        return selected.has(field) && uiType(schema[field]) === "numeric";
       });
 
       if (!this.selectedFieldForH3 ||

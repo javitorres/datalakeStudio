@@ -146,7 +146,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import api from '../services/api';
+import { useEngine } from '../engine';
+import { dropTable, listTables, renameTable as renameTableIn } from '../data/tables';
 
 import Welcome from './Welcome.vue';
 import LoadDataPanel from './LoadDataPanel.vue';
@@ -166,6 +167,7 @@ const props = defineProps({
   username: { type: String, default: '' }
 });
 
+const engine = useEngine();
 const activeMenu = ref('welcome');
 const tables = ref([]);
 const showUserMenu = ref(false);
@@ -262,46 +264,31 @@ const currentListeners = computed(() => {
 });
 
 async function getTables() {
-  await api.get(`/database/getTables`, {
-    params: {},
-  }).then((response) => {
-    tables.value = response.data;
-  }).catch(() => {
+  try {
+    tables.value = await listTables(engine);
+  } catch (error) {
     toast.error('Error loading tables');
-  });
+  }
 }
 
 async function deleteTable(table) {
-  await api.get(`/database/deleteTable`, {
-    params: {
-      tableName: table,
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      toast.success('Table deleted successfully');
-      getTables();
-    } else {
-      toast.error(`Error: HTTP ${response.message}`);
-    }
-  }).catch((error) => {
-    toast.error(`Error: HTTP ${error.message}`);
-  });
+  try {
+    await dropTable(engine, table);
+    toast.success('Table deleted successfully');
+    getTables();
+  } catch (error) {
+    toast.error(`Error: ${error.message}`);
+  }
 }
 
 async function renameTable({ from, to, onResult }) {
   try {
-    await api.get(`/database/renameTable`, {
-      params: {
-        tableName: from,
-        newName: to,
-      },
-    });
+    await renameTableIn(engine, from, to);
     toast.success(`Table renamed to ${to}`);
     onResult?.(true);
     getTables();
   } catch (error) {
-    const detail = error.response?.data?.message || error.message;
-    toast.error(`Error renaming table: ${detail}`);
+    toast.error(`Error renaming table: ${error.message}`);
     onResult?.(false);
   }
 }

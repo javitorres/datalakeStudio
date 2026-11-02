@@ -1,7 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils'
-import { http, HttpResponse } from 'msw'
 import DatalakeStudio from '../DatalakeStudio.vue'
-import { server } from '../../test/msw/server'
+import { setEngine } from '../../engine'
+import { fakeEngine, showTables } from '../../test/fakeEngine'
 
 vi.mock('vue3-toastify', () => ({
   toast: {
@@ -13,15 +13,19 @@ vi.mock('vue3-toastify', () => ({
   }
 }))
 
+function useTablesEngine() {
+  const engine = fakeEngine({ query: () => showTables(['iris', 'cars']) })
+  setEngine(engine)
+  return engine
+}
+
+function tablesListed(engine) {
+  return engine.calls.query.filter((sql) => sql === 'SHOW TABLES').length
+}
+
 describe('DatalakeStudio', () => {
   it('loads tables on mount and switches to ChangeDatabase from menu', async () => {
-    let getTablesCalls = 0
-    server.use(
-      http.get('http://localhost:8000/database/getTables', () => {
-        getTablesCalls += 1
-        return HttpResponse.json(['iris', 'cars'])
-      })
-    )
+    const engine = useTablesEngine()
 
     const wrapper = mount(DatalakeStudio, {
       global: {
@@ -42,7 +46,7 @@ describe('DatalakeStudio', () => {
 
     await flushPromises()
 
-    expect(getTablesCalls).toBe(1)
+    expect(tablesListed(engine)).toBe(1)
     expect(wrapper.find('[data-test="welcome"]').exists()).toBe(true)
 
     await wrapper.find('a[title="Change database"]').trigger('click')
@@ -52,11 +56,7 @@ describe('DatalakeStudio', () => {
   })
 
   it('switches to ShowTables and Queries passing current tables as props', async () => {
-    server.use(
-      http.get('http://localhost:8000/database/getTables', () => {
-        return HttpResponse.json(['iris', 'cars'])
-      })
-    )
+    useTablesEngine()
 
     const wrapper = mount(DatalakeStudio, {
       global: {
@@ -93,13 +93,7 @@ describe('DatalakeStudio', () => {
   })
 
   it('refreshes table list when LoadDataPanel emits tableCreated', async () => {
-    let getTablesCalls = 0
-    server.use(
-      http.get('http://localhost:8000/database/getTables', () => {
-        getTablesCalls += 1
-        return HttpResponse.json(['iris', 'cars'])
-      })
-    )
+    const engine = useTablesEngine()
 
     const wrapper = mount(DatalakeStudio, {
       global: {
@@ -122,24 +116,18 @@ describe('DatalakeStudio', () => {
     })
 
     await flushPromises()
-    expect(getTablesCalls).toBe(1)
+    expect(tablesListed(engine)).toBe(1)
 
     await wrapper.find('a[title="Load data from files"]').trigger('click')
     await flushPromises()
     await wrapper.find('[data-test="emit-created"]').trigger('click')
     await flushPromises()
 
-    expect(getTablesCalls).toBe(2)
+    expect(tablesListed(engine)).toBe(2)
   })
 
   it('refreshes table list when ChangeDatabase emits changedDatabase', async () => {
-    let getTablesCalls = 0
-    server.use(
-      http.get('http://localhost:8000/database/getTables', () => {
-        getTablesCalls += 1
-        return HttpResponse.json(['iris', 'cars'])
-      })
-    )
+    const engine = useTablesEngine()
 
     const wrapper = mount(DatalakeStudio, {
       global: {
@@ -162,32 +150,18 @@ describe('DatalakeStudio', () => {
     })
 
     await flushPromises()
-    expect(getTablesCalls).toBe(1)
+    expect(tablesListed(engine)).toBe(1)
 
     await wrapper.find('a[title="Change database"]').trigger('click')
     await flushPromises()
     await wrapper.find('[data-test="emit-db"]').trigger('click')
     await flushPromises()
 
-    expect(getTablesCalls).toBe(2)
+    expect(tablesListed(engine)).toBe(2)
   })
 
-  it('calls delete endpoint when TablesPanel emits deleteTable and reloads tables', async () => {
-    let getTablesCalls = 0
-    let deleteCalls = 0
-    server.use(
-      http.get('http://localhost:8000/database/getTables', () => {
-        getTablesCalls += 1
-        return HttpResponse.json(['iris', 'cars'])
-      }),
-      http.get('http://localhost:8000/database/deleteTable', ({ request }) => {
-        const url = new URL(request.url)
-        if (url.searchParams.get('tableName') === 'iris') {
-          deleteCalls += 1
-        }
-        return HttpResponse.json({ ok: true }, { status: 200 })
-      })
-    )
+  it('drops the table when TablesPanel emits deleteTable and reloads tables', async () => {
+    const engine = useTablesEngine()
 
     const wrapper = mount(DatalakeStudio, {
       global: {
@@ -216,7 +190,7 @@ describe('DatalakeStudio', () => {
     await wrapper.find('[data-test="emit-delete"]').trigger('click')
     await flushPromises()
 
-    expect(deleteCalls).toBe(1)
-    expect(getTablesCalls).toBeGreaterThanOrEqual(2)
+    expect(engine.calls.exec).toEqual(['DROP TABLE IF EXISTS "iris"'])
+    expect(tablesListed(engine)).toBeGreaterThanOrEqual(2)
   })
 })
