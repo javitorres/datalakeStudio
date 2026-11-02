@@ -13,7 +13,7 @@ const DEFAULT_DATABASE = 'datalakeStudio.db';
 export class LocalEngine {
   constructor() {
     this.mode = 'local';
-    this.capabilities = capabilities({ maps: true, h3: true, spatial: true, persistent: hasOpfs() });
+    this.capabilities = capabilities({ maps: true, h3: true, spatial: true, ownAi: true, persistent: hasOpfs() });
     this.db = null;
     this.connection = null;
     this.ready = null;
@@ -64,14 +64,18 @@ export class LocalEngine {
       await this.connection.close();
       this.connection = null;
     }
-    const { DuckDBAccessMode } = this.duckdb;
-    if (this.capabilities.persistent) await this.registerFiles(opfsFiles(name));
-    await this.db.open({
-      path: this.capabilities.persistent ? 'opfs://' + name : ':memory:',
-      accessMode: DuckDBAccessMode.READ_WRITE,
-      // Decimals as doubles and timestamps as milliseconds: values JavaScript can show as they are
-      query: { castDecimalToDouble: true, castTimestampToDate: true },
-    });
+    try {
+      await this.openFile(name);
+    } catch (error) {
+      if (!this.capabilities.persistent || !/replaying WAL/i.test(error.message)) throw error;
+      // The log holds changes the database file already has (left by earlier versions of the app, which
+      // couldn't always clear it): keep a copy of it aside and open the database without it. Every
+      // write is checkpointed right away, so the database file has the data.
+      const backup = await this.setWalAside(name);
+      await this.openFile(name);
+      this.notice = `The database ${name} couldn't replay its log, so it was opened without it. `
+        + `If something you did last is missing, a copy of that log is in ${backup}.`;
+    }
     // Opening another database leaves the previous one's OPFS handles open, and then that file can't
     // be opened again in this tab: release them
     if (this.capabilities.persistent && this.databaseName && this.databaseName !== name) {
@@ -82,6 +86,38 @@ export class LocalEngine {
     try {
       localStorage.setItem(CURRENT_DB_KEY, name);
     } catch (_) { /* storage blocked: the default database is used next time */ }
+  }
+
+  async openFile(name) {
+    const { DuckDBAccessMode } = this.duckdb;
+    if (this.capabilities.persistent) await this.registerFiles(opfsFiles(name));
+    await this.db.open({
+      path: this.capabilities.persistent ? 'opfs://' + name : ':memory:',
+      accessMode: DuckDBAccessMode.READ_WRITE,
+      // Decimals as doubles and timestamps as milliseconds: values JavaScript can show as they are
+      query: { castDecimalToDouble: true, castTimestampToDate: true },
+    });
+  }
+
+  // Moves a database's WAL to a dated copy next to it and returns the copy's name
+  async setWalAside(name) {
+    const wal = name + '.wal';
+    await this.releaseFiles(opfsFiles(name));
+    const root = await navigator.storage.getDirectory();
+    const backup = `${wal}.unreplayed-${new Date().toISOString().replace(/[:.]/g, '-')}`;
+    const content = await (await root.getFileHandle(wal)).getFile();
+    const writable = await (await root.getFileHandle(backup, { create: true })).createWritable();
+    await writable.write(content);
+    await writable.close();
+    await root.removeEntry(wal);
+    return backup;
+  }
+
+  // A message for the user about something the engine did on its own (once)
+  takeNotice() {
+    const notice = this.notice;
+    this.notice = null;
+    return notice;
   }
 
   // DuckDB-WASM only registers the database files that aren't empty when it opens them. An empty WAL

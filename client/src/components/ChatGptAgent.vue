@@ -31,6 +31,8 @@
       </div>
     </header>
 
+    <AiKeySettings v-if="usesOwnKey()" sends-rows />
+
     <div class="chat-layout">
       <main class="chat-main">
         <div v-if="blindMode" class="chat-blind-state compact-card">
@@ -93,8 +95,12 @@
 
 <script setup>
 import { ref } from 'vue';
-import api from '../services/api';
 import { toast } from 'vue3-toastify';
+import { useEngine } from '../engine';
+import { runUserQuery, sample } from '../data/tables';
+import { answer, askSql, speak, transcribe, usesOwnKey } from '../ai';
+import { resultQuestion } from '../ai/prompts';
+import AiKeySettings from './AiKeySettings.vue';
 import 'vue3-toastify/dist/index.css';
 
 import RecorderWidget from './RecorderWidget.vue';
@@ -112,44 +118,31 @@ const tableName = ref('__lastQuery');
 const textQuestion = ref(null);
 const queryError = ref(null);
 const querySuccesful = ref(false);
+const engine = useEngine();
+
+function showError(error) {
+  toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+}
 
 async function processRecording(recordedBlob) {
-  let formData = new FormData();
-  formData.append('file', recordedBlob, 'audio.wav');
-
-  const config = {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  };
-
-  const fetchData = async () => await api.post(`/gpt/askGPTWhisper`, formData, config);
-
   toast.promise(
-    fetchData(),
+    transcribe(recordedBlob),
     {
       pending: 'Speech to text, please wait...',
       success: 'Audio processed',
       error: 'Error in speech2text'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    if (response.data.transcription == 'EMPTY_AUDIO') {
+  ).then((transcription) => {
+    if (!transcription) {
       toast.error('Info: ' + 'Audio is empty, please check your microphone', { position: toast.POSITION.BOTTOM_RIGHT });
       return;
-    } else {
-      userQuestion.value = response.data.transcription;
-      conversation.value.push({ speaker: 'user', text: userQuestion.value });
-      chatGPTInput.value = userQuestion.value;
-      askChatGPT();
     }
-  }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
-  });
+    userQuestion.value = transcription;
+    conversation.value.push({ speaker: 'user', text: userQuestion.value });
+    chatGPTInput.value = userQuestion.value;
+    askChatGPT();
+  }).catch(showError);
 }
 
 async function processTextQuestion(nextTextQuestion) {
@@ -164,121 +157,85 @@ async function processTextQuestion(nextTextQuestion) {
 }
 
 async function askChatGPT() {
-  const fetchData = () => api.get(`/gpt/askGPT`, {
-    params: {
-      question: chatGPTInput.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    askSql(chatGPTInput.value),
     {
       pending: 'Asking ChatGPT, please wait...',
       success: 'ChatGPT answered',
       error: 'Error asking ChatGPT'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    query.value = response.data;
+  ).then((sql) => {
+    query.value = sql;
     conversation.value.push({ speaker: 'bot', text: query.value });
     chatGPTInput.value = null;
     runQuery();
-  }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
-  });
+  }).catch(showError);
 }
 
 async function runQuery() {
   queryError.value = null;
   querySuccesful.value = false;
-  const fetchData = () => api.post(`/database/runQuery`, {
-    query: query.value,
-  });
+  // The first rows of the result go into the question that explains it
+  const run = async () => {
+    await runUserQuery(engine, query.value);
+    return sample(engine, '__lastQuery', { records: 50 });
+  };
 
   toast.promise(
-    fetchData(),
+    run(),
     {
       pending: 'Running query, please wait...',
       success: 'Query executed',
       error: 'Error running query'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    data.value = response.data;
+  ).then((rows) => {
+    data.value = rows;
     conversation.value.push({ speaker: 'bot', table: data.value });
-    if (data.value) {
-      questionForGptInterpretation.value = 'User question is: ' + userQuestion.value + ' and ChatGPT answer is: ' + query.value + ' and SQL result: ' + data.value + '. Please give me a verbalized answer to the questoin using the provided data';
+    if (rows.length) {
+      questionForGptInterpretation.value = resultQuestion(userQuestion.value, query.value, rows);
       askChatGPTGenericQuestion(questionForGptInterpretation.value);
     } else {
       conversation.value.push({ speaker: 'bot', text: 'It seems there is something wrong with the query, please checkit' });
     }
   }).catch((error) => {
-    if (error.response.data.message) {
-      queryError.value = error.response.data.message;
-    } else {
-      queryError.value = error.response.data;
-    }
+    queryError.value = error.message;
   });
 }
 
 async function askChatGPTGenericQuestion(questionText) {
-  const fetchData = () => api.get(`/gpt/genericQuestion`, {
-    params: {
-      question: questionText,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    answer(questionText),
     {
       pending: 'Asking ChatGPT, please wait...',
       success: 'ChatGPT answered',
       error: 'Error asking ChatGPT'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    interpretation.value = response.data.answer;
+  ).then((text) => {
+    interpretation.value = text;
     conversation.value.push({ speaker: 'bot', text: interpretation.value });
     if (tts.value) {
       getText2Speech(interpretation.value);
     }
-  }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
-  });
+  }).catch(showError);
 }
 
 async function getText2Speech(text) {
-  const fetchData = () => api.get(`/gpt/text2speech`, {
-    params: {
-      text: text,
-    },
-    responseType: 'blob'
-  });
-
   toast.promise(
-    fetchData(),
+    speak(text),
     {
       pending: 'Text to speech, please wait...',
       success: 'Text to speech processed',
       error: 'Error in text2speech'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    const audioUrl = window.URL.createObjectURL(new Blob([response.data]));
+  ).then((audioBlob) => {
+    const audioUrl = window.URL.createObjectURL(audioBlob);
     var audio = new Audio(audioUrl);
     audio.play();
-  }).catch((error) => {
-    const errorMessage = error.response?.data?.message || 'Error desconocido';
-    toast.error('Info: ' + errorMessage, { position: toast.POSITION.BOTTOM_RIGHT });
-  });
+  }).catch(showError);
 }
 </script>
 

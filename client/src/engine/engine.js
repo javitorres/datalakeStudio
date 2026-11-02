@@ -27,6 +27,7 @@ export const CAPABILITIES = [
   'apiEnrichment', // enrich tables by calling external APIs
   'auth',        // users and login
   'serverAi',    // AI assistant with the server's OpenAI key
+  'ownAi',       // AI assistant with the user's own OpenAI key, called from the browser
   'serverPath',  // load files from a path on the server
   'maps',        // map view (its queries still run on the backend's /maps endpoints)
   'h3',          // H3 aggregation on maps
