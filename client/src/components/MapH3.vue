@@ -523,6 +523,10 @@ export default {
     // so tell Mapbox to recompute its size when the Map tab becomes visible again.
     this.$nextTick(() => {
       if (this.map) this.map.resize();
+      if (this.pendingFit) {
+        this.pendingFit = false;
+        this.fitToData();
+      }
       // The cross-filter may have changed while the map was hidden (deactivated
       // components don't reliably run watchers), so reload if it no longer matches.
       if (this.filter !== this.appliedFilter) {
@@ -607,10 +611,14 @@ export default {
       await Promise.all(tasks);
     },
     ////////////////////////////
-    async reloadMap(layer, reloadData = false, reloadLimits = false) {
+    async reloadMap(layer, reloadData = false, reloadLimits = false, refitted = false) {
       if (layer === "H3") {
         if (!this.canRenderH3) return;
         if (reloadData || !this.geojson) this.geojson = await this.fetchGeojsonData();
+        // Nothing in the visible area: move to where the data is and ask again
+        if (!this.geojson?.features?.length && !refitted && await this.fitToData()) {
+          return this.reloadMap(layer, true, reloadLimits, true);
+        }
         if (!this.geojson) return;
         if (reloadLimits || !this.percentilesH3) {
           this.limitsSetedManually = false;
@@ -619,6 +627,9 @@ export default {
       } else if (layer === "POINTS") {
         if (!this.canRenderPoints) return;
         if (reloadData || !this.pointsGeojson) this.pointsGeojson = await this.fetchPointsData();
+        if (!this.pointsGeojson?.features?.length && !refitted && await this.fitToData()) {
+          return this.reloadMap(layer, true, reloadLimits, true);
+        }
         if (!this.pointsGeojson) return;
         if (reloadLimits) {
           this.limitsPointsSetedManually = false;
@@ -662,9 +673,9 @@ export default {
         this.endRequest();
       }
     },
-    // Moves the map to the area where the data is (the map opens over Spain)
+    // Moves the map to the area where the data is (the map opens over Spain). Returns whether it moved.
     async fitToData() {
-      if (!this.map || !this.mapLoaded || !this.hasLocation) return;
+      if (!this.map || !this.mapLoaded || !this.hasLocation) return false;
       const requestId = ++this.extentRequestId;
       try {
         const extent = await dataExtent(useEngine(), {
@@ -674,11 +685,18 @@ export default {
           geomField: this.geomField,
           filter: this.filter || ""
         });
-        if (!extent || requestId !== this.extentRequestId) return;
+        if (!extent || requestId !== this.extentRequestId) return false;
+        // Hidden (another tab of the explorer): it has no size to fit to yet, so do it when shown
+        if (!this.map.getContainer().offsetWidth) {
+          this.pendingFit = true;
+          return false;
+        }
         this.map.fitBounds([[extent.west, extent.south], [extent.east, extent.north]],
           { padding: 40, maxZoom: 14, duration: 0 });
+        return true;
       } catch (error) {
         // The map just stays where it is
+        return false;
       }
     },
     currentBbox() {
