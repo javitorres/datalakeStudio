@@ -255,6 +255,8 @@ const currentProps = computed(() => {
 
 const currentListeners = computed(() => {
   switch (activeMenu.value) {
+    case 'welcome':
+      return { tableCreated, openTables: () => { activeMenu.value = 'showTables'; } };
     case 'loadData':
       return { tableCreated };
     case 'remoteDb':
