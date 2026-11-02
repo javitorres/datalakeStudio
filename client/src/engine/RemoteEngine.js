@@ -8,8 +8,8 @@ export class RemoteEngine {
   constructor() {
     this.mode = 'remote';
     this.capabilities = capabilities({
-      s3: true, remoteDb: true, publishApi: true, auth: true, serverAi: true, serverPath: true,
-      h3: true, spatial: true, persistent: true,
+      s3: true, remoteDb: true, publishApi: true, apiEnrichment: true, auth: true, serverAi: true, serverPath: true,
+      maps: true, h3: true, spatial: true, persistent: true,
     });
   }
 

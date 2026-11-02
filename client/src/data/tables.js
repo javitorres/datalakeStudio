@@ -43,7 +43,7 @@ export async function sample(engine, tableName, { type = 'First', records = 1000
   const table = quoteIdent(tableName);
   const where = filter && filter.trim() ? ` WHERE (${filter.trim()})` : '';
   const n = Number(records) || 0;
-  let sql = `SELECT * FROM ${table}${where}`;
+  let sql = `SELECT ${await readableColumns(engine, tableName)} FROM ${table}${where}`;
   if (n && type === 'Shuffle') {
     // Sample the filtered rows: USING SAMPLE on the table itself samples before the WHERE
     sql = `SELECT * FROM (${sql}) USING SAMPLE ${n} ROWS`;
@@ -54,6 +54,14 @@ export async function sample(engine, tableName, { type = 'First', records = 1000
     sql += ` LIMIT ${n}`;
   }
   return engine.query(sql);
+}
+
+// Geometries are binary: show them as WKT text
+async function readableColumns(engine, tableName) {
+  const geometries = Object.entries(await getTableSchema(engine, tableName))
+    .filter(([, type]) => /^GEOMETRY\b/i.test(type))
+    .map(([name]) => `ST_AsText(${quoteIdent(name)}) AS ${quoteIdent(name)}`);
+  return geometries.length ? `* REPLACE (${geometries.join(', ')})` : '*';
 }
 
 // count, mean, std, min, quartiles and max of every numeric column, one row per statistic

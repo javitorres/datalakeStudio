@@ -47,7 +47,7 @@
         <button :class="{ active: showMosaic }" @click="toggleMosaic()">
           <i class="bi bi-bar-chart"></i><span>Charts</span><small>Cross-filter</small>
         </button>
-        <button :class="{ active: showMap }" @click="mapData(tableName)">
+        <button v-if="engine.capabilities.maps" :class="{ active: showMap }" @click="mapData(tableName)">
           <i class="bi bi-map"></i><span>Map</span><small>Geospatial</small>
         </button>
       </nav>

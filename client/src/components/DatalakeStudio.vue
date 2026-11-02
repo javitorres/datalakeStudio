@@ -30,7 +30,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.remoteDb">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'remoteDb' }"
               @click.prevent="activeMenu = 'remoteDb'" title="Load data from external Database" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -52,7 +52,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.apiEnrichment">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiRetriever' }"
               @click.prevent="activeMenu = 'apiRetriever'" title="Get data from Api " data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -60,7 +60,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.publishApi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiServer' }"
               @click.prevent="activeMenu = 'apiServer'" title="Expose data via API" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -68,7 +68,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.s3">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 's3' }"
               @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -76,7 +76,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.serverAi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'chatgpt' }"
               @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -131,6 +131,16 @@
           <div><span class="workspace-kicker">Datalake Studio</span><h1>{{ activeMenuMeta.label }}</h1></div>
         </div>
         <div class="workspace-status">
+          <div v-if="canChooseEngine" class="engine-switch" role="group" aria-label="Where queries run">
+            <button :class="{ active: engine.mode === 'remote' }" @click="chooseEngine('remote')"
+              title="Run on the Datalake Studio server"><i class="bi bi-hdd-network"></i> Server</button>
+            <button :class="{ active: engine.mode === 'local' }" @click="chooseEngine('local')"
+              title="Run in this browser: the data never leaves your machine"><i class="bi bi-laptop"></i> Browser</button>
+          </div>
+          <span v-else-if="engine.mode === 'local'" class="engine-badge"
+            title="DuckDB runs in this browser: your data never leaves your machine">
+            <i class="bi bi-shield-lock"></i> Your data stays in this browser
+          </span>
           <span class="status-dot"></span>
           <span>{{ tables.length }} {{ tables.length === 1 ? 'table' : 'tables' }}</span>
           <span v-if="username && username !== 'default'" class="workspace-user">{{ username }}</span>
@@ -146,7 +156,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { useEngine } from '../engine';
+import { canChooseEngine, switchEngine, useEngine } from '../engine';
 import { dropTable, listTables, renameTable as renameTableIn } from '../data/tables';
 
 import Welcome from './Welcome.vue';
@@ -168,6 +178,7 @@ const props = defineProps({
 });
 
 const engine = useEngine();
+const caps = engine.capabilities;
 const activeMenu = ref('welcome');
 const tables = ref([]);
 const showUserMenu = ref(false);
@@ -267,7 +278,7 @@ async function getTables() {
   try {
     tables.value = await listTables(engine);
   } catch (error) {
-    toast.error('Error loading tables');
+    toast.error(`Error loading tables: ${error.message}`);
   }
 }
 
@@ -291,6 +302,10 @@ async function renameTable({ from, to, onResult }) {
     toast.error(`Error renaming table: ${error.message}`);
     onResult?.(false);
   }
+}
+
+function chooseEngine(mode) {
+  if (mode !== engine.mode) switchEngine(mode);
 }
 
 async function tableCreated() {
@@ -460,6 +475,10 @@ async function changedDatabase(id) {
 .workspace-kicker { display:block; color:#86938f; font-size:9px; font-weight:750; letter-spacing:.13em; text-transform:uppercase; }
 .workspace-heading h1 { margin:1px 0 0; color:var(--ds-ink); font-size:1.03rem; font-weight:750; letter-spacing:-.02em; }
 .workspace-status { display:flex; align-items:center; gap:8px; color:#72807c; font-size:11px; }
+.engine-switch { display:inline-flex; padding:2px; margin-right:6px; border:1px solid #d9e5e1; border-radius:8px; background:#f3f7f5; }
+.engine-switch button { border:0; background:transparent; color:#72807c; font-size:11px; padding:3px 9px; border-radius:6px; }
+.engine-switch button.active { background:#fff; color:#0d846f; font-weight:600; box-shadow:0 1px 2px rgba(23,33,31,.08); }
+.engine-badge { display:inline-flex; align-items:center; gap:5px; margin-right:6px; padding:3px 9px; border-radius:999px; background:#e6f4f0; color:#0d846f; font-weight:600; }
 .status-dot { width:7px; height:7px; border-radius:50%; background:#1aa382; box-shadow:0 0 0 4px rgba(26,163,130,.11); }
 .workspace-user { margin-left:7px; padding:5px 9px; border-radius:20px; background:#edf3f1; color:#485955; font-weight:650; }
 .user-menu-wrapper { bottom:24px; left:26px; }

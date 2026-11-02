@@ -9,12 +9,17 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import Login from './components/Login.vue';
 import DatalakeStudio from './components/DatalakeStudio.vue';
 import api from './services/api';
+import { useEngine } from './engine';
 
-const authEnabled = ref(true);
+// Without users (DuckDB in the browser) the login screen never shows, not even while loading
+const authEnabled = ref(useEngine().capabilities.auth);
 const isAuthenticated = ref(false);
 const username = ref('');
 
 onMounted(async () => {
+  // In the browser there are no users: the data lives on this machine
+  if (!authEnabled.value) return;
+
   // Check if auth is enabled
   try {
     const resp = await api.get(`/auth/auth-enabled`);

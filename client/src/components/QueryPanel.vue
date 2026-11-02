@@ -83,7 +83,7 @@
           <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>New table</span></a>
           <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>Save SQL</span></a>
           <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>Library</span></a>
-          <a href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
+          <a v-if="engine.capabilities.serverAi" href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
         </nav>
 
         <div class="tool-content">

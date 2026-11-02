@@ -7,8 +7,8 @@ export function fakeEngine({ query = () => [], exec = () => {}, ...methods } = {
   return {
     mode: 'remote',
     capabilities: capabilities({
-      s3: true, remoteDb: true, publishApi: true, auth: true, serverAi: true, serverPath: true,
-      h3: true, spatial: true, persistent: true,
+      s3: true, remoteDb: true, publishApi: true, apiEnrichment: true, auth: true, serverAi: true, serverPath: true,
+      maps: true, h3: true, spatial: true, persistent: true,
     }),
     calls,
     async query(sql) {

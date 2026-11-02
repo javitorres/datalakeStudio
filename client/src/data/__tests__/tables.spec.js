@@ -51,6 +51,11 @@ describe('tables', () => {
     expect(filtered.map((r) => r.id)).toEqual([2]);
   });
 
+  it('shows geometries as text in samples', async () => {
+    await engine.exec("INSTALL spatial; LOAD spatial; CREATE TABLE places AS SELECT 'a' AS name, ST_Point(1, 2) AS geom")
+    expect(await sample(engine, 'places')).toEqual([{ name: 'a', geom: 'POINT (1 2)' }])
+  })
+
   it('profiles the numeric columns, one row per statistic', async () => {
     const rows = await profile(engine, 'iris');
     expect(rows.map((r) => r.statistic)).toEqual(['count', 'mean', 'std', 'min', 'p25', 'p50', 'p75', 'max']);

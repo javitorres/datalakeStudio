@@ -24,9 +24,11 @@ export const CAPABILITIES = [
   's3',          // browse S3 buckets and load files from them
   'remoteDb',    // query remote PostgreSQL databases
   'publishApi',  // publish queries as REST endpoints
+  'apiEnrichment', // enrich tables by calling external APIs
   'auth',        // users and login
   'serverAi',    // AI assistant with the server's OpenAI key
   'serverPath',  // load files from a path on the server
+  'maps',        // map view (its queries still run on the backend's /maps endpoints)
   'h3',          // H3 aggregation on maps
   'spatial',     // geometry columns and shapefiles
   'persistent',  // databases survive a page reload

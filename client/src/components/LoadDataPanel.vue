@@ -9,7 +9,7 @@
       </li>
 
       <!-- Load from S3  -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.s3">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadS3' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadS3'">Load from S3</a>
       </li>
@@ -21,7 +21,7 @@
       </li>
 
       <!-- Load from Path -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.serverPath">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadPath' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadPath'">Load from server path</a>
       </li>
@@ -110,6 +110,10 @@
         <ul>
           <li>https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv</li>
         </ul>
+        <p v-if="engine.mode === 'local'" class="text-muted small">
+          <i class="bi bi-info-circle"></i> Your browser downloads the file directly, so its server must allow it (CORS).
+          If it doesn't, download the file and use Upload file.
+        </p>
 
         <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">URL to load</span>
