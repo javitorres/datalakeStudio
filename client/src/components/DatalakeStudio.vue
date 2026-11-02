@@ -279,6 +279,8 @@ const currentListeners = computed(() => {
 async function getTables() {
   try {
     tables.value = await listTables(engine);
+    const notice = engine.takeNotice?.();
+    if (notice) toast.warning(notice, { autoClose: false });
   } catch (error) {
     toast.error(`Error loading tables: ${error.message}`);
   }
