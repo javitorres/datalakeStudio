@@ -13,7 +13,7 @@ const DEFAULT_DATABASE = 'datalakeStudio.db';
 export class LocalEngine {
   constructor() {
     this.mode = 'local';
-    this.capabilities = capabilities({ maps: true, h3: true, spatial: true, persistent: hasOpfs() });
+    this.capabilities = capabilities({ maps: true, h3: true, spatial: true, ownAi: true, persistent: hasOpfs() });
     this.db = null;
     this.connection = null;
     this.ready = null;

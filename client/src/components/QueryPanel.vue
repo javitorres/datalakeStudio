@@ -83,7 +83,7 @@
           <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>New table</span></a>
           <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>Save SQL</span></a>
           <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>Library</span></a>
-          <a v-if="engine.capabilities.serverAi" href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
+          <a v-if="engine.capabilities.serverAi || engine.capabilities.ownAi" href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
         </nav>
 
         <div class="tool-content">
@@ -123,6 +123,7 @@
 
           <section v-if="activeTab === 'askGpt'" class="tool-section ai-section">
             <div class="tool-title"><i class="bi bi-stars"></i><div><h4>AI SQL assistant</h4><p>Describe the result you need in plain language.</p></div></div>
+            <AiKeySettings v-if="usesOwnKey()" />
             <div class="ai-prompt">
               <textarea id="chatGPTInput" v-model="chatGPTInput" rows="5" placeholder="Show average asking price by city..."></textarea>
               <button :disabled="!chatGPTInput.trim()" @click="askChatGPT"><i class="bi bi-send"></i> Generate SQL</button>
@@ -167,7 +168,6 @@ import { computed, ref, watch } from 'vue';
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
-import api from '../services/api';
 import { useEngine } from '../engine';
 import { createTableFromQuery, getDatabaseSchema, runUserQuery } from '../data/tables';
 import { deleteQuery as removeSavedQuery, saveQuery, searchQueries } from '../data/queries';
@@ -175,6 +175,8 @@ import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import TableInspector from './TableInspector.vue';
+import AiKeySettings from './AiKeySettings.vue';
+import { askSql, usesOwnKey } from '../ai';
 
 const props = defineProps({
   tables: Object,
@@ -317,28 +319,18 @@ async function createTable() {
 }
 
 async function askChatGPT() {
-  const fetchData = () => api.get(`/gpt/askGPT`, {
-    params: {
-      question: chatGPTInput.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    askSql(chatGPTInput.value),
     {
       pending: 'Asking ChatGPT, please wait...',
       success: 'ChatGPT answered',
       error: 'Error asking ChatGPT'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    chatGPTOutput.value = response.data;
+  ).then((sql) => {
+    chatGPTOutput.value = sql;
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
