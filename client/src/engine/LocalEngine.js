@@ -54,7 +54,10 @@ export class LocalEngine {
   }
 
   async openDatabase(name) {
-    if (this.connection) await this.connection.close();
+    if (this.connection) {
+      await this.connection.close();
+      this.connection = null;
+    }
     const { DuckDBAccessMode } = this.duckdb;
     await this.db.open({
       path: this.capabilities.persistent ? 'opfs://' + name : ':memory:',
@@ -62,6 +65,11 @@ export class LocalEngine {
       // Decimals as doubles and timestamps as milliseconds: values JavaScript can show as they are
       query: { castDecimalToDouble: true, castTimestampToDate: true },
     });
+    // Opening another database leaves the previous one's OPFS handles open, and then that file can't
+    // be opened again in this tab: release them
+    if (this.capabilities.persistent && this.databaseName && this.databaseName !== name) {
+      await this.db.dropFiles(opfsFiles(this.databaseName));
+    }
     this.connection = await this.db.connect();
     this.databaseName = name;
     try {
@@ -200,9 +208,21 @@ export class LocalEngine {
 
   async useDatabase(name) {
     await this.start();
+    if (!this.capabilities.persistent || name === this.databaseName) return;
     await this.checkpoint();
-    await this.openDatabase(name);
-    this.spatialLoaded = false;
+    const previous = this.databaseName;
+    try {
+      await this.openDatabase(name);
+    } catch (error) {
+      // Back to the previous database, with fresh handles for both files
+      await this.db.dropFiles([...opfsFiles(name), ...opfsFiles(previous)]).catch(() => {});
+      this.databaseName = null;
+      await this.openDatabase(previous);
+      throw new Error(openErrorMessage(error));
+    } finally {
+      // The extensions were loaded into the previous database
+      this.spatialLoaded = false;
+    }
   }
 
   async createDatabase(name) {
@@ -223,6 +243,17 @@ export class LocalEngine {
       },
     };
   }
+}
+
+// DuckDB-WASM reports a failed open as JSON inside the message
+function openErrorMessage(error) {
+  const match = error.message.match(/"exception_message":"((?:[^"\\]|\\.)*)"/);
+  return match ? JSON.parse('"' + match[1] + '"') : error.message;
+}
+
+// A database and its write-ahead log
+function opfsFiles(name) {
+  return ['opfs://' + name, 'opfs://' + name + '.wal'];
 }
 
 function hostOf(url) {
