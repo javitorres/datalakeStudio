@@ -76,7 +76,7 @@
             </a>
           </li>
 
-          <li v-if="caps.serverAi">
+          <li v-if="caps.serverAi || caps.ownAi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'chatgpt' }"
               @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -279,6 +279,8 @@ const currentListeners = computed(() => {
 async function getTables() {
   try {
     tables.value = await listTables(engine);
+    const notice = engine.takeNotice?.();
+    if (notice) toast.warning(notice, { autoClose: false });
   } catch (error) {
     toast.error(`Error loading tables: ${error.message}`);
   }
