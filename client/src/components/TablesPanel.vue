@@ -122,7 +122,7 @@
 <script setup>
 import { computed, ref } from 'vue';
 import TableInspector from './TableInspector.vue';
-import api from '../services/api';
+import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -131,6 +131,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['deleteTable', 'renameTable']);
+const engine = useEngine();
 
 const showDialog = ref(false);
 const showDownloadDialog = ref(false);
@@ -180,26 +181,18 @@ function confirmRename() {
 }
 
 function download(format) {
-  const fetchData = async () => await api.get(`/database/exportData`, {
-    params: {
-      format: format,
-      tableName: selectedTable.value,
-    },
-    responseType: 'blob'
-  });
-
   toast.promise(
-    fetchData(),
+    engine.exportTable(selectedTable.value, format),
     {
       pending: 'Exporting data, please wait...',
       success: 'Data exported successfully',
       error: 'Error creating export'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
+  ).then((blob) => {
     showDownloadDialog.value = false;
 
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', 'exported_data.' + format);
@@ -207,11 +200,7 @@ function download(format) {
     link.click();
     link.parentNode.removeChild(link);
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 

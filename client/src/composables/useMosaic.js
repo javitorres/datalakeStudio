@@ -1,8 +1,8 @@
 import { ref } from 'vue';
-import { socketConnector, restConnector, wasmConnector } from '@uwdata/mosaic-core';
+import { socketConnector, wasmConnector } from '@uwdata/mosaic-core';
 import { createAPIContext } from '@uwdata/vgplot';
 import { astToDOM } from '@uwdata/mosaic-spec';
-import { API_URL } from '../../config';
+import { useEngine } from '../engine';
 
 // Shared Mosaic/vgplot plumbing used by both Mosaic.vue and DataSelector.vue.
 // Each component keeps its own reload()/load()/getYaml() (they render different
@@ -34,7 +34,8 @@ export function useMosaic() {
         break;
       case 'rest':
       case 'rest_https':
-        connector = restConnector(`${API_URL}/database/restConnector`);
+        // The active engine's connector: it carries the user's token to the backend
+        connector = useEngine().mosaicConnector();
         break;
       case 'wasm':
         connector = wasm.value || (wasm.value = wasmConnector());

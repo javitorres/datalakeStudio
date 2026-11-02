@@ -83,7 +83,7 @@
           <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>New table</span></a>
           <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>Save SQL</span></a>
           <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>Library</span></a>
-          <a href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
+          <a v-if="engine.capabilities.serverAi" href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
         </nav>
 
         <div class="tool-content">
@@ -168,6 +168,9 @@ import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
 import api from '../services/api';
+import { useEngine } from '../engine';
+import { createTableFromQuery, getDatabaseSchema, runUserQuery } from '../data/tables';
+import { deleteQuery as removeSavedQuery, saveQuery, searchQueries } from '../data/queries';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
@@ -179,6 +182,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['tableCreated']);
+const engine = useEngine();
 
 const completionSchema = ref({});
 const schemaStatus = ref('loading');
@@ -257,9 +261,9 @@ async function loadDatabaseSchema() {
   schemaStatus.value = 'loading';
 
   try {
-    const response = await api.get('/database/getDatabaseSchema');
+    const databaseSchema = await getDatabaseSchema(engine);
     if (requestId !== schemaRequestId) return;
-    completionSchema.value = toCompletionSchema(response.data);
+    completionSchema.value = toCompletionSchema(databaseSchema);
     schemaStatus.value = 'ready';
   } catch (_) {
     if (requestId !== schemaRequestId) return;
@@ -277,38 +281,28 @@ async function runQuery() {
 
   queryRunning.value = true;
   const queryToRun = currentQuery.value;
-  const fetchData = () => api.post(`/database/runQuery`, {
-    query: queryToRun,
-  });
-
   toast.promise(
-    fetchData(),
+    runUserQuery(engine, queryToRun),
     {
       pending: 'Running query, please wait...',
       success: 'Query executed',
       error: 'Error running query'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    sampleData.value = response.data;
+  ).then(() => {
+    // Only the flag matters: TableInspector reads the result from __lastQuery
+    sampleData.value = true;
     querySuccesful.value = true;
   }).catch((error) => {
-    queryError.value = error.response?.data?.message || error.response?.data || error.message;
+    queryError.value = error.message;
   }).finally(() => {
     queryRunning.value = false;
   });
 }
 
 async function createTable() {
-  const fetchData = () => api.get(`/database/createTableFromQuery`, {
-    params: {
-      query: currentQuery.value,
-      tableName: tableFromQuery.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    createTableFromQuery(engine, tableFromQuery.value, currentQuery.value),
     {
       pending: 'Creating table from query, please wait...',
       success: 'Table created',
@@ -318,11 +312,7 @@ async function createTable() {
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -358,14 +348,12 @@ async function useChatGPTAnswer() {
 }
 
 async function saveSqlQuery() {
-  const fetchData = () => api.post(`/queries/saveSqlQuery`, {
-    query: currentQuery.value,
-    sqlQueryName: sqlQueryName.value,
-    description: sqlQueryDescription.value
-  });
-
   toast.promise(
-    fetchData(),
+    saveQuery(engine, {
+      name: sqlQueryName.value,
+      query: currentQuery.value,
+      description: sqlQueryDescription.value,
+    }),
     {
       pending: 'Saving SQL query, please wait...',
       success: 'SQL query saved',
@@ -373,37 +361,23 @@ async function saveSqlQuery() {
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
 async function searchQuery() {
-  const fetchData = () => api.get(`/queries/searchQuery`, {
-    params: {
-      query: sqlSearchQuery.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    searchQueries(engine, sqlSearchQuery.value),
     {
       pending: 'Searching SQL queries, please wait...',
       success: 'SQL queries loaded',
       error: 'Error loading SQL queries'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    queries.value = response.data;
+  ).then((rows) => {
+    queries.value = rows;
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -414,14 +388,8 @@ async function selectQuery(queryCandidate) {
 }
 
 async function deleteQuery(queryCandidate) {
-  const fetchData = () => api.get(`/queries/deleteQuery`, {
-    params: {
-      id_query: queryCandidate.id_query,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    removeSavedQuery(engine, queryCandidate.id_query),
     {
       pending: 'Deleting SQL query, please wait...',
       success: 'SQL query deleted',
@@ -431,11 +399,7 @@ async function deleteQuery(queryCandidate) {
   ).then(() => {
     searchQuery();
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 </script>
