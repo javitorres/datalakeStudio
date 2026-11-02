@@ -5,7 +5,7 @@ import { quoteIdent } from '../data/sql';
 
 // Runs DuckDB in the browser (DuckDB-WASM in a Web Worker). Databases are files in the browser's
 // private storage (OPFS): the data never leaves the user's machine. The engine's bundles are served
-// with the app; only DuckDB extensions (spatial, httpfs) are downloaded from duckdb.org when needed.
+// with the app; only DuckDB extensions (spatial, h3, httpfs) are downloaded from duckdb.org when needed.
 
 const CURRENT_DB_KEY = 'datalakeStudio.localDatabase';
 const DEFAULT_DATABASE = 'datalakeStudio.db';
@@ -13,13 +13,15 @@ const DEFAULT_DATABASE = 'datalakeStudio.db';
 export class LocalEngine {
   constructor() {
     this.mode = 'local';
-    this.capabilities = capabilities({ spatial: true, persistent: hasOpfs() });
+    this.capabilities = capabilities({ maps: true, h3: true, spatial: true, persistent: hasOpfs() });
     this.db = null;
     this.connection = null;
     this.ready = null;
     this.uploads = 0;
     // OPFS files registered with DuckDB (their handles stay open until they're dropped)
     this.registered = new Set();
+    // Extensions loaded into the open database
+    this.extensions = new Set();
   }
 
   // Starts DuckDB the first time it's needed (the WASM module is tens of MB)
@@ -44,6 +46,8 @@ export class LocalEngine {
     this.duckdb = duckdb;
     this.db = new duckdb.AsyncDuckDB(new duckdb.VoidLogger(), worker);
     await this.db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    // Ask the browser to keep the databases: without it, it may evict OPFS when it runs short of space
+    if (this.capabilities.persistent) navigator.storage.persist?.().catch(() => {});
     try {
       await this.openDatabase(this.currentDatabaseName());
     } catch (error) {
@@ -192,15 +196,17 @@ export class LocalEngine {
   }
 
   async loadPath(tableName, path) {
-    if (needsSpatial(path)) await this.loadSpatial();
+    if (needsSpatial(path)) await this.loadExtension('spatial');
     await this.exec(loadFileSql(tableName, path));
   }
 
-  async loadSpatial() {
-    if (!this.spatialLoaded) {
-      await this.queryArrow('INSTALL spatial; LOAD spatial;');
-      this.spatialLoaded = true;
-    }
+  // Downloads the extension from duckdb.org the first time (h3 is a community extension)
+  async loadExtension(name) {
+    await this.start();
+    if (this.extensions.has(name)) return;
+    const repository = name === 'h3' ? ' FROM community' : '';
+    await this.queryArrow(`INSTALL ${name}${repository}; LOAD ${name};`);
+    this.extensions.add(name);
   }
 
   async exportTable(tableName, format) {
@@ -246,7 +252,7 @@ export class LocalEngine {
       throw new Error(openErrorMessage(error));
     } finally {
       // The extensions were loaded into the previous database
-      this.spatialLoaded = false;
+      this.extensions.clear();
     }
   }
 

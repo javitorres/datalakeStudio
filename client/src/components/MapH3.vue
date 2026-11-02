@@ -292,7 +292,6 @@
       <div v-if="geometadata" class="alert alert-light" role="alert">
         <strong><b>H3 Layer</b></strong><br>
         <strong>Records:</strong> {{ geometadata.records }}<br>
-        <strong>Dataframe Size:</strong> {{ geometadata.dfsize }} Mb<br>
         <strong>Payload Size:</strong> {{ geometadata.objectSize }} Mb<br>
         <strong>Time:</strong> {{ geometadata.time }} seconds<br>
         <strong>H3 Radix:</strong> {{ h3Radix }} meters<br>
@@ -312,12 +311,13 @@
 
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
+import { useEngine } from '../engine';
+import { mapCells, mapGeometries, mapPoints } from '../data/maps';
 import { uiType } from '../data/types';
 import { toast } from 'vue3-toastify';
-import qs from 'qs';
-import csv2geojson from 'csv2geojson';
 import DataSelector from './DataSelector.vue';
 
 const rasterStyle = (tiles, attribution) => ({
@@ -393,7 +393,6 @@ export default {
       minPoints: 0,
       maxPoints: 100,
       limitsPointsSetedManually: false,
-      csvData: null,
       pointsGeojson: null,
       pointSize: 5,
       mapError: null,
@@ -502,7 +501,7 @@ export default {
       };
       this.selectedStyle = this.mapStyles.light;
     }
-    this.initMap();
+    await this.initMap();
   },
   beforeUnmount() {
     this.h3RequestId += 1;
@@ -630,27 +629,25 @@ export default {
       this.mapError = null;
 
       try {
-        const response = await api.get("/maps/geojson", {
-          params: {
-            table: this.table,
-            latitudeField: this.latitudeField || "",
-            longitudeField: this.longitudeField || "",
-            geomField: this.geomField || "",
-            fields: this.numericFields,
-            level: Number(this.h3Level),
-            bbox,
-            filter: this.filter || ""
-          },
-          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
-        });
+        const options = { table: this.table, fields: this.numericFields, bbox, filter: this.filter || "" };
+        let response;
+        if (this.latitudeField && this.longitudeField) {
+          response = await mapCells(useEngine(), {
+            ...options, latitudeField: this.latitudeField, longitudeField: this.longitudeField, level: Number(this.h3Level)
+          });
+        } else if (this.geomField) {
+          response = await mapGeometries(useEngine(), { ...options, geomField: this.geomField });
+        } else {
+          throw new Error("Select latitude and longitude columns or a geometry column");
+        }
         if (requestId !== this.h3RequestId) return null;
-        this.geometadata = response.data.metadata;
-        const result = response.data.geojson;
+        this.geometadata = response.metadata;
+        const result = response.geojson;
         if (!result?.features?.length) this.mapError = "No spatial records were found in the visible area.";
         return result;
       } catch (error) {
         if (requestId !== this.h3RequestId) return null;
-        this.mapError = error.response?.data?.detail || "The H3 layer could not be loaded.";
+        this.mapError = error.message || "The H3 layer could not be loaded.";
         toast.error(this.mapError);
         return null;
       } finally {
@@ -675,27 +672,13 @@ export default {
       this.mapError = null;
 
       try {
-        const response = await api.get("/maps/csv", {
-          params: {
-            table: this.table,
-            latitudeField: this.latitudeField,
-            longitudeField: this.longitudeField,
-            fields: this.numericFields,
-            bbox: this.currentBbox(),
-            filter: this.filter || ""
-          },
-          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
-        });
-        if (requestId !== this.pointsRequestId) return null;
-
-        this.csvData = response.data;
-        const pointsGeojson = await new Promise((resolve, reject) => {
-          csv2geojson.csv2geojson(response.data, {
-            latfield: "latitude",
-            lonfield: "longitude",
-            delimiter: ",",
-            numericFields: this.numericFields.join(",")
-          }, (error, data) => error ? reject(error) : resolve(data));
+        const pointsGeojson = await mapPoints(useEngine(), {
+          table: this.table,
+          latitudeField: this.latitudeField,
+          longitudeField: this.longitudeField,
+          fields: this.numericFields,
+          bbox: this.currentBbox(),
+          filter: this.filter || ""
         });
         if (requestId !== this.pointsRequestId) return null;
         this.totalPoints = pointsGeojson?.features?.length || 0;
@@ -703,7 +686,7 @@ export default {
         return pointsGeojson;
       } catch (error) {
         if (requestId !== this.pointsRequestId) return null;
-        this.mapError = error.response?.data?.detail || "The point layer could not be loaded.";
+        this.mapError = error.message || "The point layer could not be loaded.";
         toast.error(this.mapError);
         return null;
       } finally {
@@ -713,6 +696,8 @@ export default {
 
     ////////////////////////////
     async getToken() {
+      // Only the backend has a Mapbox token: in the browser the map uses the OSM/Carto basemaps
+      if (useEngine().mode !== "remote") return null;
       try {
         const response = await api.get('/maps/mapbox_token');
         return response.data.token;
@@ -729,17 +714,24 @@ export default {
     },
 
     ////////////////////////////
-    initMap() {
-      mapboxgl.accessToken = this.token || '';
+    async initMap() {
+      // Mapbox GL won't draw any map without a token: the open basemaps go through MapLibre, its
+      // open-source fork with the same API
+      if (this.token) {
+        mapboxgl.accessToken = this.token;
+        this.gl = mapboxgl;
+      } else {
+        this.gl = (await import('maplibre-gl')).default;
+      }
 
-      this.map = new mapboxgl.Map({
+      this.map = new this.gl.Map({
         container: 'map',
         style: this.selectedStyle,
         center: [-3.6844602977537817, 40.37148838867168],
         zoom: 5
       });
 
-      this.map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      this.map.addControl(new this.gl.NavigationControl(), "top-right");
       this.map.on("load", () => {
         this.mapLoaded = true;
         this.mapError = null;
@@ -984,7 +976,7 @@ export default {
     addPopup() {
       if (this.popupHandlersBound) return;
       this.popupHandlersBound = true;
-      this.popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+      this.popup = new this.gl.Popup({ closeButton: false, closeOnClick: false });
 
       const showPopup = (title) => (event) => {
         const feature = event.features?.[0];
