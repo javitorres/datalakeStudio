@@ -1,10 +1,10 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { CompletionContext } from '@codemirror/autocomplete'
 import { EditorState } from '@codemirror/state'
-import { http, HttpResponse } from 'msw'
 import QueryPanel from '../QueryPanel.vue'
 import MapH3 from '../MapH3.vue'
-import { server } from '../../test/msw/server'
+import { setEngine } from '../../engine'
+import { fakeEngine, schemaRows } from '../../test/fakeEngine'
 
 vi.mock('vue-codemirror', () => ({
   Codemirror: {
@@ -34,24 +34,23 @@ async function completionOptions(extensions, doc, pos = doc.length) {
 }
 
 describe('QueryPanel', () => {
+  let engine
+  const ranQueries = []
+
+  function useSchema(schema) {
+    engine = fakeEngine({
+      query: () => (typeof schema === 'function' ? schema() : schemaRows(schema)),
+      runUserQuery: async (sql) => { ranQueries.push(sql) },
+    })
+    setEngine(engine)
+  }
+
   beforeEach(() => {
-    server.use(
-      http.get('http://localhost:8000/database/getDatabaseSchema', () => HttpResponse.json({
-        iris: { id: 'INTEGER', species: 'VARCHAR', sepal_length: 'DOUBLE' }
-      }))
-    )
+    ranQueries.length = 0
+    useSchema({ iris: { id: 'INTEGER', species: 'VARCHAR', sepal_length: 'DOUBLE' } })
   })
-  it('runs the main query against backend', async () => {
-    let runQueryCalls = 0
-    server.use(
-      http.post('http://localhost:8000/database/runQuery', async ({ request }) => {
-        const body = await request.json()
-        if (body.query === 'SELECT * FROM iris') {
-          runQueryCalls += 1
-        }
-        return HttpResponse.json([{ id: 1 }], { status: 200 })
-      })
-    )
+
+  it('runs the main query on the engine', async () => {
 
     const wrapper = mount(QueryPanel, {
       props: { tables: ['iris'] },
@@ -66,32 +65,11 @@ describe('QueryPanel', () => {
     await runButton.trigger('click')
     await flushPromises()
 
-    expect(runQueryCalls).toBe(1)
+    expect(ranQueries).toEqual(['SELECT * FROM iris'])
     expect(wrapper.find('[data-test="table-inspector"]').exists()).toBe(true)
   })
 
   it('creates table from query and emits tableCreated', async () => {
-    let runQueryCalls = 0
-    let createTableCalls = 0
-    server.use(
-      http.post('http://localhost:8000/database/runQuery', async ({ request }) => {
-        const body = await request.json()
-        if (body.query === 'SELECT * FROM iris') {
-          runQueryCalls += 1
-        }
-        return HttpResponse.json([{ id: 1 }], { status: 200 })
-      }),
-      http.get('http://localhost:8000/database/createTableFromQuery', ({ request }) => {
-        const url = new URL(request.url)
-        if (
-          url.searchParams.get('query') === 'SELECT * FROM iris' &&
-          url.searchParams.get('tableName') === 'iris_copy'
-        ) {
-          createTableCalls += 1
-        }
-        return HttpResponse.json({ ok: true }, { status: 200 })
-      })
-    )
 
     const wrapper = mount(QueryPanel, {
       props: { tables: ['iris'] },
@@ -114,21 +92,17 @@ describe('QueryPanel', () => {
     await wrapper.findAll('button').find((b) => b.text().includes('Create table')).trigger('click')
     await flushPromises()
 
-    expect(runQueryCalls).toBe(1)
-    expect(createTableCalls).toBe(1)
+    expect(ranQueries).toEqual(['SELECT * FROM iris'])
+    expect(engine.calls.exec).toEqual(['CREATE OR REPLACE TABLE "iris_copy" AS (SELECT * FROM iris)'])
     expect(wrapper.emitted('tableCreated')).toBeTruthy()
   })
 
   it('loads and reloads the completion schema when tables change', async () => {
     let schemaCalls = 0
-    server.use(
-      http.get('http://localhost:8000/database/getDatabaseSchema', () => {
-        schemaCalls += 1
-        return HttpResponse.json(schemaCalls === 1
-          ? { iris: { id: 'INTEGER' } }
-          : { orders: { total: 'DOUBLE' } })
-      })
-    )
+    useSchema(() => {
+      schemaCalls += 1
+      return schemaRows(schemaCalls === 1 ? { iris: { id: 'INTEGER' } } : { orders: { total: 'DOUBLE' } })
+    })
 
     const wrapper = mount(QueryPanel, { props: { tables: ['iris'] } })
     await flushPromises()
@@ -147,12 +121,10 @@ describe('QueryPanel', () => {
   })
 
   it('offers tables, qualified columns, aliases and quoted identifiers', async () => {
-    server.use(
-      http.get('http://localhost:8000/database/getDatabaseSchema', () => HttpResponse.json({
-        iris: { id: 'INTEGER', 'sepal length': 'DOUBLE' },
-        'sales data': { 'order total': 'DECIMAL(10,2)' }
-      }))
-    )
+    useSchema({
+      iris: { id: 'INTEGER', 'sepal length': 'DOUBLE' },
+      'sales data': { 'order total': 'DECIMAL(10,2)' }
+    })
 
     const wrapper = mount(QueryPanel, { props: { tables: ['iris', 'sales data'] } })
     await flushPromises()
@@ -177,11 +149,7 @@ describe('QueryPanel', () => {
   })
 
   it('keeps SQL keyword completion available when schema loading fails', async () => {
-    server.use(
-      http.get('http://localhost:8000/database/getDatabaseSchema', () => (
-        new HttpResponse(null, { status: 500 })
-      ))
-    )
+    useSchema(() => { throw new Error('Database closed') })
 
     const wrapper = mount(QueryPanel, { props: { tables: ['iris'] } })
     await flushPromises()
@@ -196,7 +164,7 @@ describe('QueryPanel', () => {
   describe('map helpers', () => {
     it('detects coordinate and numeric fields without confusing population with latitude', () => {
       const context = {
-        schema: { population: 'int64', lat_coord: 'float64', longitude: 'DOUBLE', name: 'object' },
+        schema: { population: 'BIGINT', lat_coord: 'DOUBLE', longitude: 'DECIMAL(9,6)', name: 'VARCHAR' },
         selectedFields: ['population', 'lat_coord', 'longitude', 'name'],
         numericFields: [],
         selectedFieldForH3: null,

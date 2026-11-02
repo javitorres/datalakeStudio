@@ -9,7 +9,7 @@
       </li>
 
       <!-- Load from S3  -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.s3">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadS3' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadS3'">Load from S3</a>
       </li>
@@ -21,7 +21,7 @@
       </li>
 
       <!-- Load from Path -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.serverPath">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadPath' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadPath'">Load from server path</a>
       </li>
@@ -110,12 +110,16 @@
         <ul>
           <li>https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv</li>
         </ul>
+        <p v-if="engine.mode === 'local'" class="text-muted small">
+          <i class="bi bi-info-circle"></i> Your browser downloads the file directly, so its server must allow it (CORS).
+          If it doesn't, download the file and use Upload file.
+        </p>
 
         <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">URL to load</span>
           <input id="fileInputUrl" type="text" class="form-control"
-            placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
-            aria-describedby="basic-addon1" v-model="fileInputUrl">
+            :placeholder="engine.mode === 'local' ? 'https://… (a file on the web)' : 'Path to the file. Start with \'s3 \' for search in your bucket while you type'"
+            aria-label="File" aria-describedby="basic-addon1" v-model="fileInputUrl">
 
         </div>
 
@@ -178,10 +182,12 @@
 <script setup>
 import { ref } from 'vue';
 import api from '../services/api';
+import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['tableCreated']);
+const engine = useEngine();
 
 const activeTab = ref('uploadFile');
 const bucket = ref('');
@@ -201,37 +207,18 @@ function uploadFile() {
     return;
   }
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('tableName', tableNameInputUpload.value);
-
-  const fetchData = () => api.post(`/database/uploadFile`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-
   toast.promise(
-    fetchData(),
+    engine.loadFile({ file, tableName: tableNameInputUpload.value }),
     {
       pending: 'Uploading file, please wait...',
       success: 'Upload finished',
       error: 'Error uploading file'
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    if (response.status == 'error') {
-      toast.error('Error' + `Could not load data: ${response.data.status}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      emit('tableCreated');
-    }
+  ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -284,15 +271,8 @@ function clickS3File(S3File) {
 }
 
 async function loadFile(tableNameInput, fileInput) {
-  const fetchData = () => api.get(`/database/loadFile`, {
-    params: {
-      tableName: tableNameInput,
-      fileName: fileInput,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    engine.loadFile({ url: fileInput, tableName: tableNameInput }),
     {
       pending: 'Creating table from file, please wait...',
       success: 'Table created',
@@ -302,11 +282,7 @@ async function loadFile(tableNameInput, fileInput) {
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
