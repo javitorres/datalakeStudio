@@ -24,3 +24,13 @@ authEnabled: false
 # Origins allowed for app endpoints (not applied to /api/*)
 allowedOrigins:
   - "http://localhost:8080"
+  - "http://127.0.0.1:8080"
+
+# AI assistant models (keys in secrets.yml: openai_api_key, elevenlabs_api_key). Uncomment to change them.
+# aiModel: "gpt-5.4-mini"                          # writes the SQL, explains results, picks charts and names conversations
+# aiTranscriptionModel: "gpt-4o-mini-transcribe"   # voice questions
+# aiSpeechModel: "gpt-4o-mini-tts"                 # spoken answers with OpenAI
+# elevenLabsModel: "eleven_v4"                     # spoken answers with ElevenLabs
+# elevenLabsVoices:                                # ElevenLabs voice id per app language
+#   es: "dNjJKg63Fr5AXwIdkATa"
+#   en: "JBFqnCBsd6RMkjVDRZzb"

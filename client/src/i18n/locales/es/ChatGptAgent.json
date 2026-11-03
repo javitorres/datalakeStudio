@@ -1,0 +1,73 @@
+{
+  "title": "Asistente de IA",
+  "subtitle": "Pregunta por tus datos por voz o por texto: escribe el SQL, lo ejecuta y te explica el resultado.",
+  "tts": "Leer en voz alta",
+  "ttsHelp": "Lee cada respuesta en voz alta (consume tokens de voz)",
+  "blindMode": "Modo ciego",
+  "blindModeHelp": "Ocultar la conversación",
+  "blindModeOn": "El modo ciego está activado",
+  "blindModeHint": "La conversación está oculta. Pregunta por voz y activa Leer en voz alta para escuchar las respuestas.",
+  "newChat": "Nueva conversación",
+  "emptyTitle": "¿Qué quieres saber de tus datos?",
+  "emptyHint": "Pregunta con tus palabras: el asistente conoce tus tablas y sus columnas, y puede dibujar gráficos.",
+  "noTables": "Carga una tabla para empezar a preguntar.",
+  "suggestions": {
+    "rowCount": "¿Cuántas filas tiene {table}?",
+    "describe": "Resume las columnas de {table}",
+    "sample": "Enséñame 5 filas de {table}"
+  },
+  "textQuestion": "Pregunta",
+  "placeholder": "Pregunta lo que quieras sobre tus datos…",
+  "needsKey": "Añade arriba tu clave de OpenAI para preguntar",
+  "ask": "Enviar",
+  "disclaimer": "El asistente puede equivocarse: revisa el SQL antes de usarlo.",
+  "copy": "Copiar",
+  "copied": "Copiado",
+  "copySql": "Copiar el SQL",
+  "rows": "sin filas | {n} fila | {n} filas",
+  "rowsShown": "Mostrando {shown} de {total} filas",
+  "readAloud": "Leer en voz alta",
+  "status": {
+    "transcribing": "Escuchando tu pregunta…",
+    "writing": "Escribiendo el SQL…",
+    "running": "Ejecutando la consulta…",
+    "explaining": "Leyendo los resultados…"
+  },
+  "error": "Error: {detail}",
+  "unknownError": "error desconocido",
+  "queryFailed": "La consulta ha fallado: {detail}",
+  "emptyAudio": "La grabación está vacía: revisa el micrófono.",
+  "speechError": "No se ha podido leer la respuesta en voz alta: {detail}",
+  "history": {
+    "title": "Conversaciones recientes",
+    "search": "Buscar conversaciones",
+    "empty": "Aquí aparecerán tus conversaciones.",
+    "noMatch": "Ninguna conversación coincide.",
+    "loadError": "No se han podido cargar tus conversaciones.",
+    "saveError": "No se ha podido guardar la conversación.",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "cancel": "Cancelar",
+    "confirmDelete": "¿Eliminarla?",
+    "show": "Mostrar conversaciones",
+    "hide": "Ocultar conversaciones",
+    "groups": {
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "week": "Últimos 7 días",
+      "older": "Anteriores"
+    }
+  },
+  "chart": {
+    "type": "Tipo de gráfico",
+    "others": "Otros",
+    "types": {
+      "bar": "Barras",
+      "horizontalBar": "Barras horizontales",
+      "line": "Líneas",
+      "area": "Área",
+      "pie": "Sectores",
+      "scatter": "Dispersión"
+    }
+  }
+}

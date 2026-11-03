@@ -16,7 +16,7 @@
         <ul class="nav nav-pills nav-flush flex-column mb-auto text-center">
           <li class="nav-item">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'changeDatabase' }"
-              @click.prevent="activeMenu = 'changeDatabase'" title="Change database" aria-current="page" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'changeDatabase'" :title="t('DatalakeStudio.tooltips.changeDatabase')" aria-current="page" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-database"></i></h2>
             </a>
@@ -24,7 +24,7 @@
 
           <li class="nav-item">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'loadData' }"
-              @click.prevent="activeMenu = 'loadData'" title="Load data from files" aria-current="page" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'loadData'" :title="t('DatalakeStudio.tooltips.loadData')" aria-current="page" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-box-arrow-down"></i></h2>
             </a>
@@ -32,7 +32,7 @@
 
           <li v-if="caps.remoteDb">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'remoteDb' }"
-              @click.prevent="activeMenu = 'remoteDb'" title="Load data from external Database" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'remoteDb'" :title="t('DatalakeStudio.tooltips.remoteDb')" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-database-down"></i></h2>
             </a>
@@ -40,21 +40,21 @@
 
           <li>
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'showTables' }"
-              @click.prevent="activeMenu = 'showTables'" title="Show tables" data-bs-toggle="tooltip" data-bs-placement="right">
+              @click.prevent="activeMenu = 'showTables'" :title="t('DatalakeStudio.tooltips.showTables')" data-bs-toggle="tooltip" data-bs-placement="right">
               <h2><i class="bi bi-table"></i></h2>
             </a>
           </li>
 
           <li>
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'queries' }"
-              @click.prevent="activeMenu = 'queries'" title="Queries" data-bs-toggle="tooltip" data-bs-placement="right">
+              @click.prevent="activeMenu = 'queries'" :title="t('DatalakeStudio.tooltips.queries')" data-bs-toggle="tooltip" data-bs-placement="right">
               <h2><i class="bi bi-filetype-sql"></i></h2>
             </a>
           </li>
 
           <li v-if="caps.apiEnrichment">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiRetriever' }"
-              @click.prevent="activeMenu = 'apiRetriever'" title="Get data from Api " data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'apiRetriever'" :title="t('DatalakeStudio.tooltips.apiRetriever')" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-globe2"></i></h2>
             </a>
@@ -62,7 +62,7 @@
 
           <li v-if="caps.publishApi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiServer' }"
-              @click.prevent="activeMenu = 'apiServer'" title="Expose data via API" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'apiServer'" :title="t('DatalakeStudio.tooltips.apiServer')" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-boxes"></i></h2>
             </a>
@@ -70,7 +70,7 @@
 
           <li v-if="caps.s3">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 's3' }"
-              @click.prevent="activeMenu = 's3'" title="Explore your S3 buckets" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 's3'" :title="t('DatalakeStudio.tooltips.s3')" data-bs-toggle="tooltip"
               data-bs-placement="right">
               <h2><i class="bi bi-bucket"></i></h2>
             </a>
@@ -78,9 +78,17 @@
 
           <li v-if="caps.serverAi || caps.ownAi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'chatgpt' }"
-              @click.prevent="activeMenu = 'chatgpt'" title="Talk with ChatGpt (Experimental)" data-bs-toggle="tooltip"
+              @click.prevent="activeMenu = 'chatgpt'" :title="t('DatalakeStudio.tooltips.chatgpt')" data-bs-toggle="tooltip"
               data-bs-placement="right">
-              <img src="../assets/ChatGPT.svg" alt="Logo" class="rounded mx-auto d-block compact-menu-img">
+              <h2><i class="bi bi-stars"></i></h2>
+            </a>
+          </li>
+
+          <li>
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'settings' }"
+              @click.prevent="activeMenu = 'settings'" :title="t('DatalakeStudio.tooltips.settings')" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <h2><i class="bi bi-gear"></i></h2>
             </a>
           </li>
         </ul>
@@ -91,10 +99,10 @@
     <div v-if="username && username !== 'default'" class="user-menu-wrapper">
       <div class="user-menu-popup" v-if="showUserMenu">
         <button class="user-menu-item" @click="showAbout = true; showUserMenu = false">
-          <i class="bi bi-info-circle me-2"></i>About
+          <i class="bi bi-info-circle me-2"></i>{{ t('DatalakeStudio.about') }}
         </button>
         <button class="user-menu-item text-danger" @click="$emit('logout'); showUserMenu = false">
-          <i class="bi bi-box-arrow-left me-2"></i>Logout
+          <i class="bi bi-box-arrow-left me-2"></i>{{ t('DatalakeStudio.logout') }}
         </button>
       </div>
       <button class="user-menu-btn" @click="showUserMenu = !showUserMenu" :title="username">
@@ -112,13 +120,13 @@
         <div class="text-center mb-3">
           <img src="../assets/logo.svg" alt="Logo" width="48" height="48">
           <h5 class="mt-2 mb-1">Datalake Studio</h5>
-          <small class="text-muted">Your personal data workspace</small>
+          <small class="text-muted">{{ t('DatalakeStudio.tagline') }}</small>
         </div>
         <div class="small text-muted">
-          <p class="mb-1"><strong>User:</strong> {{ username }}</p>
+          <p class="mb-1"><strong>{{ t('DatalakeStudio.user') }}:</strong> {{ username }}</p>
         </div>
         <div class="text-end mt-3">
-          <button class="btn btn-sm btn-outline-secondary" @click="showAbout = false">Close</button>
+          <button class="btn btn-sm btn-outline-secondary" @click="showAbout = false">{{ t('common.close') }}</button>
         </div>
       </div>
     </div>
@@ -128,21 +136,21 @@
       <header class="workspace-topbar">
         <div class="workspace-heading">
           <span class="workspace-icon"><i :class="activeMenuMeta.icon"></i></span>
-          <div><span class="workspace-kicker">Datalake Studio</span><h1>{{ activeMenuMeta.label }}</h1></div>
+          <div><span class="workspace-kicker">Datalake Studio</span><h1>{{ t(`DatalakeStudio.sections.${activeMenuMeta.key}`) }}</h1></div>
         </div>
         <div class="workspace-status">
-          <div v-if="canChooseEngine" class="engine-switch" role="group" aria-label="Where queries run">
+          <div v-if="canChooseEngine" class="engine-switch" role="group" :aria-label="t('DatalakeStudio.engine.where')">
             <button :class="{ active: engine.mode === 'remote' }" @click="chooseEngine('remote')"
-              title="Run on the Datalake Studio server"><i class="bi bi-hdd-network"></i> Server</button>
+              :title="t('DatalakeStudio.engine.serverHelp')"><i class="bi bi-hdd-network"></i> {{ t('DatalakeStudio.engine.server') }}</button>
             <button :class="{ active: engine.mode === 'local' }" @click="chooseEngine('local')"
-              title="Run in this browser: the data never leaves your machine"><i class="bi bi-laptop"></i> Browser</button>
+              :title="t('DatalakeStudio.engine.browserHelp')"><i class="bi bi-laptop"></i> {{ t('DatalakeStudio.engine.browser') }}</button>
           </div>
           <span v-else-if="engine.mode === 'local'" class="engine-badge"
-            title="DuckDB runs in this browser: your data never leaves your machine">
-            <i class="bi bi-shield-lock"></i> Your data stays in this browser
+            :title="t('DatalakeStudio.engine.badgeHelp')">
+            <i class="bi bi-shield-lock"></i> {{ t('DatalakeStudio.engine.badge') }}
           </span>
           <span class="status-dot"></span>
-          <span>{{ tables.length }} {{ tables.length === 1 ? 'table' : 'tables' }}</span>
+          <span>{{ t('DatalakeStudio.tables', tables.length) }}</span>
           <span v-if="username && username !== 'default'" class="workspace-user">{{ username }}</span>
         </div>
       </header>
@@ -169,6 +177,9 @@ import ApiServer from './ApiServer.vue';
 import ChatGptAgent from './ChatGptAgent.vue';
 import S3Explorer from './S3Explorer.vue';
 import ChangeDatabase from './ChangeDatabase.vue';
+import SettingsPanel from './SettingsPanel.vue';
+import { loadPreferences } from '../lib/preferences';
+import { useI18n } from 'vue-i18n';
 
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -184,19 +195,26 @@ const tables = ref([]);
 const showUserMenu = ref(false);
 const showAbout = ref(false);
 
-const menuMetadata = {
-  welcome: { label: 'Overview', icon: 'bi bi-grid-1x2' },
-  changeDatabase: { label: 'Databases', icon: 'bi bi-database' },
-  loadData: { label: 'Load data', icon: 'bi bi-cloud-arrow-down' },
-  remoteDb: { label: 'Remote database', icon: 'bi bi-database-down' },
-  showTables: { label: 'Table explorer', icon: 'bi bi-table' },
-  queries: { label: 'SQL workspace', icon: 'bi bi-filetype-sql' },
-  apiRetriever: { label: 'API enrichment', icon: 'bi bi-globe2' },
-  apiServer: { label: 'Published APIs', icon: 'bi bi-boxes' },
-  s3: { label: 'S3 explorer', icon: 'bi bi-bucket' },
-  chatgpt: { label: 'AI data assistant', icon: 'bi bi-stars' }
+const { t } = useI18n();
+
+// Section title: DatalakeStudio.sections.<key>
+const menuIcons = {
+  welcome: 'bi bi-grid-1x2',
+  changeDatabase: 'bi bi-database',
+  loadData: 'bi bi-cloud-arrow-down',
+  remoteDb: 'bi bi-database-down',
+  showTables: 'bi bi-table',
+  queries: 'bi bi-filetype-sql',
+  apiRetriever: 'bi bi-globe2',
+  apiServer: 'bi bi-boxes',
+  s3: 'bi bi-bucket',
+  chatgpt: 'bi bi-stars',
+  settings: 'bi bi-gear'
 };
-const activeMenuMeta = computed(() => menuMetadata[activeMenu.value] || menuMetadata.welcome);
+const activeMenuMeta = computed(() => {
+  const key = menuIcons[activeMenu.value] ? activeMenu.value : 'welcome';
+  return { key, icon: menuIcons[key] };
+});
 
 function onClickOutside(e) {
   if (showUserMenu.value && !e.target.closest('.user-menu-wrapper')) {
@@ -206,6 +224,7 @@ function onClickOutside(e) {
 
 onMounted(() => {
   getTables();
+  loadPreferences();
   document.addEventListener('click', onClickOutside);
 });
 
@@ -235,6 +254,8 @@ const currentComponent = computed(() => {
       return ChatGptAgent;
     case 's3':
       return S3Explorer;
+    case 'settings':
+      return SettingsPanel;
     default:
       return Welcome;
   }
@@ -247,6 +268,8 @@ const currentProps = computed(() => {
     case 'queries':
       return { tables: tables.value };
     case 'apiRetriever':
+      return { tables: tables.value };
+    case 'chatgpt':
       return { tables: tables.value };
     default:
       return {};
@@ -282,28 +305,28 @@ async function getTables() {
     const notice = engine.takeNotice?.();
     if (notice) toast.warning(notice, { autoClose: false });
   } catch (error) {
-    toast.error(`Error loading tables: ${error.message}`);
+    toast.error(t('DatalakeStudio.errorLoadingTables'));
   }
 }
 
 async function deleteTable(table) {
   try {
     await dropTable(engine, table);
-    toast.success('Table deleted successfully');
+    toast.success(t('DatalakeStudio.tableDeleted'));
     getTables();
   } catch (error) {
-    toast.error(`Error: ${error.message}`);
+    toast.error(t('DatalakeStudio.errorDeleting', { detail: error.message }));
   }
 }
 
 async function renameTable({ from, to, onResult }) {
   try {
     await renameTableIn(engine, from, to);
-    toast.success(`Table renamed to ${to}`);
+    toast.success(t('DatalakeStudio.tableRenamed', { name: to }));
     onResult?.(true);
     getTables();
   } catch (error) {
-    toast.error(`Error renaming table: ${error.message}`);
+    toast.error(t('DatalakeStudio.errorRenaming', { detail: error.message }));
     onResult?.(false);
   }
 }
@@ -355,11 +378,6 @@ async function changedDatabase(id) {
   font-size: var(--sidebar-icon-size);
   margin: 0;
   line-height: 1;
-}
-
-.compact-menu-img {
-  width: var(--sidebar-icon-size);
-  height: var(--sidebar-icon-size);
 }
 
 .content-shell {

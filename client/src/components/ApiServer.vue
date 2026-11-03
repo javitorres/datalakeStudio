@@ -2,9 +2,9 @@
 
   <!-- Show endpoints list  -->
   <div class="form-group compact-panel compact-api-server" v-if="activeTab === 'listEndpoints'">
-    <h2 class="compact-title">Published endpoints</h2>
+    <h2 class="compact-title">{{ t('ApiServer.title') }}</h2>
     <div  v-if="availableEndpoints && availableEndpoints.length == 0">
-      <p class="compact-muted">No endpoints published </p>
+      <p class="compact-muted">{{ t('ApiServer.empty') }}</p>
     </div>
     
     <div v-if="availableEndpoints && availableEndpoints.length > 0">
@@ -13,17 +13,17 @@
       <table class="table table-striped table-hover table-bordered table-sm">
         <thead>
           <tr class="table-primary">
-            <th>ID</th>
-            <th>Endpoint</th>
-            <th>Description</th>
-            <th>URL</th>
-            <th>Parameters</th>
+            <th>{{ t('ApiServer.columns.id') }}</th>
+            <th>{{ t('ApiServer.columns.endpoint') }}</th>
+            <th>{{ t('ApiServer.columns.description') }}</th>
+            <th>{{ t('ApiServer.columns.url') }}</th>
+            <th>{{ t('ApiServer.columns.parameters') }}</th>
             <th>id_query</th>
-            <th>status</th>
-            <th>query</th>
-            <th>Example</th>
+            <th>{{ t('ApiServer.columns.status') }}</th>
+            <th>{{ t('ApiServer.columns.query') }}</th>
+            <th>{{ t('ApiServer.columns.example') }}</th>
 
-            <th>Actions</th>
+            <th>{{ t('ApiServer.columns.actions') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -43,8 +43,8 @@
               }}/api/{{ endpointItem.endpoint }}{{ endpointItem.queryStringTest }}</a>
             </td>
             <td>
-              <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpointItem.id_endpoint)">Delete</button>
-              <button type="button" class="btn btn-secondary" @click="editEndpoint(endpointItem)">Edit</button>
+              <button type="button" class="btn btn-danger" @click="deleteEndpoint(endpointItem.id_endpoint)">{{ t('ApiServer.delete') }}</button>
+              <button type="button" class="btn btn-secondary" @click="editEndpoint(endpointItem)">{{ t('ApiServer.edit') }}</button>
             </td>
           </tr>
         </tbody>
@@ -53,7 +53,7 @@
 
     </div>
     
-    <button type="button" class="btn btn-sm btn-primary" @click="createEmptyEndpoint">Create new endpoint</button>
+    <button type="button" class="btn btn-sm btn-primary" @click="createEmptyEndpoint">{{ t('ApiServer.createNew') }}</button>
   </div>
 
 
@@ -62,53 +62,53 @@
 
   <!-- Endpoint editor  -->
   <div class="form-group compact-panel compact-api-server" v-if="activeTab === 'newEndpoint' || activeTab === 'editEndpoint'">
-    <h2 class="compact-title">Edit endpoint</h2>
+    <h2 class="compact-title">{{ t('ApiServer.editTitle') }}</h2>
 
-    <p class="compact-muted">Select the query your endpoint will be based on</p>
+    <p class="compact-muted">{{ t('ApiServer.selectQueryHelp') }}</p>
     <div class="input-group mb-3 compact-input-group">
-      <span class="input-group-text" id="basic-addon1">Search query</span>
-      <input type="text" class="form-control" placeholder="Query name" v-model="sqlSearchQuery" @input="searchQuery">
+      <span class="input-group-text" id="basic-addon1">{{ t('ApiServer.searchQuery') }}</span>
+      <input type="text" class="form-control" :placeholder="t('ApiServer.queryName')" v-model="sqlSearchQuery" @input="searchQuery">
     </div>
 
     <div v-if="queries && queries.length > 0">
       <ul class="list-group d-flex flex-wrap compact-query-list">
         <li v-for="queryCandidate in queries" :key="queryCandidate.id_query" class="list-group-item"
           @click="selectQuery(queryCandidate)">
-          <b>id:</b>{{ queryCandidate.id_query }} <b>Name:</b> {{ queryCandidate.name }}<br /><b>Description:</b>{{
-            queryCandidate.description }}<br /><b>SQL:</b>{{ queryCandidate.query }}
+          <b>{{ t('ApiServer.queryItem.id') }}</b>{{ queryCandidate.id_query }} <b>{{ t('ApiServer.queryItem.name') }}</b> {{ queryCandidate.name }}<br /><b>{{ t('ApiServer.queryItem.description') }}</b>{{
+            queryCandidate.description }}<br /><b>{{ t('ApiServer.queryItem.sql') }}</b>{{ queryCandidate.query }}
         </li>
       </ul>
     </div>
     
 
     <div v-if="activeTab === 'editEndpoint' && ! endpointForm.id_endpoint">
-      <p class="compact-muted">No endpoint selected, select one of published endpoints list</p>
+      <p class="compact-muted">{{ t('ApiServer.noEndpointSelected') }}</p>
     </div>
 
     
 
-      <p class="compact-muted">Add any {parameter} in your SQL query to add query params:</p>
+      <p class="compact-muted">{{ t('ApiServer.parametersHelp') }}</p>
       <div class="form-group">
-        <codemirror v-model="endpointForm.query" placeholder="code goes here..." :style="{ height: '240px' }"
+        <codemirror v-model="endpointForm.query" :placeholder="t('ApiServer.codePlaceholder')" :style="{ height: '240px' }"
           :autofocus="true" :indent-with-tab="true" :tab-size="4" :extensions="extensions"
           @change="sqlChanged('change', $event)" />
       </div>
       <div class="col-md-3">
         <div class="input-group mb-3 compact-input-group mt-2">
-          <span class="input-group-text" id="basic-addon1">Endpoint</span>
-          <input type="text" class="form-control" placeholder="Query name" v-model="endpointForm.endpoint">
+          <span class="input-group-text" id="basic-addon1">{{ t('ApiServer.endpoint') }}</span>
+          <input type="text" class="form-control" :placeholder="t('ApiServer.endpointName')" v-model="endpointForm.endpoint">
         </div>
       </div>
     
-    <h3 v-if="endpointForm.endpoint">URL: {{ apiUrl }}/api/{{ endpointForm.endpoint }}{{ (endpointForm.parameters && endpointForm.parameters.length > 0) ?
-      endpointForm.queryStringTest : "" }}</h3>
+    <h3 v-if="endpointForm.endpoint">{{ t('ApiServer.url', { url: `${apiUrl}/api/${endpointForm.endpoint}${(endpointForm.parameters && endpointForm.parameters.length > 0) ?
+      endpointForm.queryStringTest : ''}` }) }}</h3>
 
     <!-- For each parameter an imput -->
     <div v-if="endpointForm.query && endpointForm.parameters && endpointForm.parameters.length > 0">
       <div class="col-md-4" v-for="parameter in endpointForm.parameters" :key="parameter">
         <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">{{ parameter.name }}</span>
-          <input type="text" class="form-control" placeholder="Write an example value for testing"
+          <input type="text" class="form-control" :placeholder="t('ApiServer.exampleValuePlaceholder')"
             v-model="parameter.exampleValue" @keyup="rebuildQueryStringTest">
         </div>
       </div>
@@ -119,15 +119,15 @@
     <!-- Description -->
     <div v-if="endpointForm.endpoint">
       <div class="input-group mb-3 compact-input-group">
-        <span class="input-group-text" id="basic-addon1">Description</span>
-        <input type="text" class="form-control" placeholder="Description" v-model="endpointForm.description">
+        <span class="input-group-text" id="basic-addon1">{{ t('ApiServer.description') }}</span>
+        <input type="text" class="form-control" :placeholder="t('ApiServer.description')" v-model="endpointForm.description">
       </div>
     </div>
 
     <!-- status: combo with DEV, READY-->
     <div v-if="endpointForm.endpoint">
       <div class="input-group mb-3 compact-input-group">
-        <span class="input-group-text" id="basic-addon1">Status</span>
+        <span class="input-group-text" id="basic-addon1">{{ t('ApiServer.status') }}</span>
         <select class="form-select" v-model="endpointForm.status">
           <option value="DEV">DEV</option>
           <option value="PROD">PROD</option>
@@ -137,19 +137,19 @@
 
     <!-- Simulate endpoint -->
     <div v-if="endpointForm.query">
-      <button type="button" class="btn btn-sm btn-primary" @click="testEndpoint">Save and Test endpoint</button>
+      <button type="button" class="btn btn-sm btn-primary" @click="testEndpoint">{{ t('ApiServer.saveAndTest') }}</button>
     </div>
 
     <!-- Cancel button, go to list of endpoints -->
     <div v-if="endpointForm.query" class="mt-2">
-      <button type="button" class="btn btn-sm btn-danger" @click="activeTab = 'listEndpoints'">Cancel and back to endpoint list</button>
+      <button type="button" class="btn btn-sm btn-danger" @click="activeTab = 'listEndpoints'">{{ t('ApiServer.cancelAndBack') }}</button>
     </div>
 
     <!-- Show json response -->
     <div v-if="endpointForm.query && response" class="mt-2">
       <div class="input-group mb-3 compact-input-group">
-        <span class="input-group-text" id="basic-addon1">Response</span>
-        <textarea class="form-control" aria-label="With textarea" v-model="response" rows="15"></textarea>
+        <span class="input-group-text" id="basic-addon1">{{ t('ApiServer.response') }}</span>
+        <textarea class="form-control" :aria-label="t('ApiServer.responseAria')" v-model="response" rows="15"></textarea>
       </div>
     </div>
 
@@ -166,6 +166,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -175,6 +176,8 @@ import { sql } from "@codemirror/lang-sql";
 
 import { API_HOST, API_PORT } from '../../config';
 const apiUrl = `${API_HOST}:${API_PORT}`;
+
+const { t } = useI18n();
 
 const extensions = [sql()];
 
@@ -244,18 +247,18 @@ async function searchQuery() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Searching SQL queries, please wait...',
-      success: 'SQL queries loaded',
-      error: 'Error loading SQL queries'
+      pending: t('ApiServer.toast.searchingQueries'),
+      success: t('ApiServer.toast.queriesLoaded'),
+      error: t('ApiServer.toast.queriesError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     queries.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -280,9 +283,9 @@ async function createEmptyEndpoint() {
   return toast.promise(
     fetchData(),
     {
-      pending: 'Creating new endpoint, please wait...',
-      success: 'New endpoint created',
-      error: 'Error creating new endpoint'
+      pending: t('ApiServer.toast.creating'),
+      success: t('ApiServer.toast.created'),
+      error: t('ApiServer.toast.createError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
@@ -291,9 +294,9 @@ async function createEmptyEndpoint() {
 
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -308,15 +311,15 @@ async function testEndpoint() {
   const path = "/api/" + endpointForm.value.endpoint + ((endpointForm.value.parameters.length > 0) ? endpointForm.value.queryStringTest : "");
   const url = apiUrl + path;
 
-  toast.info('Info' + `Testing endpoint: ${url}`, { position: toast.POSITION.BOTTOM_RIGHT });
+  toast.info(t('ApiServer.testingUrl', { url }), { position: toast.POSITION.BOTTOM_RIGHT });
   const fetchData = async () => await api.get(path, {});
 
   toast.promise(
     fetchData(),
     {
-      pending: 'Testing endpoint, please wait...',
-      success: 'Endpoint tested',
-      error: 'Error testing endpoint'
+      pending: t('ApiServer.toast.testing'),
+      success: t('ApiServer.toast.tested'),
+      error: t('ApiServer.toast.testError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((result) => {
@@ -324,10 +327,10 @@ async function testEndpoint() {
   }).catch((error) => {
     if (error.response && error.response.status === 400) {
       response.value = JSON.stringify(error.response.data, null, 2);
-      toast.error('Info' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
       response.value = JSON.stringify(error, null, 2);
-      toast.error('Info' + `Error: ${error}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -348,18 +351,18 @@ async function update() {
   return toast.promise(
     fetchData(),
     {
-      pending: 'Publishing endpoint, please wait...',
-      success: 'Endpoint published',
-      error: 'Error publishing endpoint'
+      pending: t('ApiServer.toast.publishing'),
+      success: t('ApiServer.toast.published'),
+      error: t('ApiServer.toast.publishError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     published.value = true;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -370,7 +373,7 @@ async function reloadAvailableEndpoints() {
   toast.promise(
     fetchData(),
     {
-      error: 'Error loading endpoints'
+      error: t('ApiServer.toast.listError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((result) => {
@@ -378,9 +381,9 @@ async function reloadAvailableEndpoints() {
     activeTab.value = 'listEndpoints';
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -396,18 +399,18 @@ async function deleteEndpoint(id_endpoint) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Deleting endpoint, please wait...',
-      success: 'Endpoint deleted',
-      error: 'Error deleting endpoint'
+      pending: t('ApiServer.toast.deleting'),
+      success: t('ApiServer.toast.deleted'),
+      error: t('ApiServer.toast.deleteError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     reloadAvailableEndpoints();
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -422,9 +425,9 @@ async function editEndpoint(selectedEndpoint) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Loading endpoint configuration...',
-      success: 'Endpoint loaded',
-      error: 'Error loading endpoint'
+      pending: t('ApiServer.toast.loading'),
+      success: t('ApiServer.toast.loaded'),
+      error: t('ApiServer.toast.loadError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((result) => {
@@ -449,14 +452,14 @@ async function editEndpoint(selectedEndpoint) {
         }
       }
       activeTab.value = 'editEndpoint';
-      toast.info('Loaded endpoint from local list (server detail endpoint not available).', { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.info(t('ApiServer.loadedFromList'), { position: toast.POSITION.BOTTOM_RIGHT });
       return;
     }
 
     if (error.response?.data?.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response?.data || error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiServer.errorDetail', { detail: error.response?.data || error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }

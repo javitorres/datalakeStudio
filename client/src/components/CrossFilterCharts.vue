@@ -2,7 +2,7 @@
   <div class="crossfilter-container">
     <div class="charts-grid">
       <div v-for="field in numericFields" :key="field" class="chart-wrapper">
-        <button class="close-btn" title="Remove field" @click="removeField(field)">✕</button>
+        <button class="close-btn" :title="t('CrossFilterCharts.removeField')" @click="removeField(field)">✕</button>
         <v-chart
           :ref="el => setChartRef(field, el)"
           :option="chartOptions[field]"
@@ -14,7 +14,7 @@
         />
       </div>
       <div v-for="field in categoricalFields" :key="field" class="chart-wrapper">
-        <button class="close-btn" title="Remove field" @click="removeField(field)">✕</button>
+        <button class="close-btn" :title="t('CrossFilterCharts.removeField')" @click="removeField(field)">✕</button>
         <v-chart
           :ref="el => setChartRef(field, el)"
           :option="chartOptions[field]"
@@ -29,6 +29,7 @@
 
 <script setup>
 import { ref, watch, onMounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
 import { BarChart, PieChart } from 'echarts/charts';
@@ -65,6 +66,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['removeField', 'filterChange']);
+const { t, locale } = useI18n();
 const engine = useEngine();
 
 // Emit the current cross-filter both as a SQL predicate (no WHERE keyword, for
@@ -203,7 +205,7 @@ function buildHistogramOption(field, data) {
       formatter(params) {
         const idx = params[0].dataIndex;
         const d = data[idx];
-        return `${Number(d.bin_start).toFixed(2)} - ${Number(d.bin_end).toFixed(2)}<br/>Count: ${d.cnt}`;
+        return `${Number(d.bin_start).toFixed(2)} - ${Number(d.bin_end).toFixed(2)}<br/>${t('CrossFilterCharts.count', { count: d.cnt })}`;
       },
     },
     grid: { left: 50, right: 20, top: 35, bottom: 60 },
@@ -228,7 +230,7 @@ function buildHistogramOption(field, data) {
     },
     toolbox: {
       feature: {
-        brush: { title: { lineX: 'Brush', clear: 'Clear' } },
+        brush: { title: { lineX: t('CrossFilterCharts.brush'), clear: t('CrossFilterCharts.clear') } },
       },
       right: 20,
       top: 0,
@@ -413,6 +415,16 @@ async function init() {
 }
 
 watch(() => [props.table, props.selectedFields, props.schema], init, { deep: true, immediate: true });
+
+// Chart options embed translated labels (toolbox titles): rebuild them from the cached data on language change.
+watch(locale, () => {
+  for (const field of numericFields.value) {
+    if (fullData.value[field]) chartOptions.value[field] = buildHistogramOption(field, fullData.value[field]);
+  }
+  for (const field of categoricalFields.value) {
+    if (fullData.value[field]) chartOptions.value[field] = buildCategoryOption(field, fullData.value[field]);
+  }
+});
 </script>
 
 <style scoped>

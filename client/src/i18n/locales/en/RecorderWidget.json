@@ -1,0 +1,8 @@
+{
+  "startRecording": "Start recording",
+  "stopRecording": "Stop recording",
+  "clickToStart": "Click to start recording message",
+  "clickToStop": "Click icon again to stop recording",
+  "micFailed": "Failed to use microphone. Please refresh and try again and permit the use of a microphone.",
+  "recorded": "Recorded"
+}

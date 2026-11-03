@@ -2,19 +2,19 @@
   <div v-if="tables && tables.length > 0" class="tables-panel">
     <div class="panel-header">
       <div class="explorer-intro">
-        <span class="explorer-kicker">Database objects</span>
-        <h4 class="panel-title">Choose a table to explore</h4>
-        <p>Inspect columns, sample rows, profile values and build visual analyses.</p>
+        <span class="explorer-kicker">{{ t('TablesPanel.kicker') }}</span>
+        <h4 class="panel-title">{{ t('TablesPanel.title') }}</h4>
+        <p>{{ t('TablesPanel.intro') }}</p>
       </div>
-      <span class="table-counter">{{ tables.length }} tables</span>
+      <span class="table-counter">{{ t('TablesPanel.tableCount', tables.length) }}</span>
     </div>
 
     <div class="selector-toolbar">
       <div class="table-search">
         <i class="bi bi-search"></i>
-        <input v-model="tableFilter" type="search" placeholder="Filter tables..." aria-label="Filter tables">
+        <input v-model="tableFilter" type="search" :placeholder="t('TablesPanel.filterPlaceholder')" :aria-label="t('TablesPanel.filterLabel')">
       </div>
-      <span v-if="tableFilter">{{ filteredTables.length }} matches</span>
+      <span v-if="tableFilter">{{ t('TablesPanel.matches', filteredTables.length) }}</span>
     </div>
 
     <div class="table-selector">
@@ -31,22 +31,22 @@
 
       <button v-if="selectedTable" class="btn table-chip table-chip-close" @click="selectedTable = null">
         <i class="bi bi-x-square"></i>
-        Close table view
+        {{ t('TablesPanel.closeView') }}
       </button>
     </div>
 
     <div v-if="selectedTable" class="action-toolbar">
       <button class="btn btn-sm btn-primary toolbar-button" @click="openRename">
         <i class="bi bi-pencil-square"></i>
-        Rename table
+        {{ t('TablesPanel.rename') }}
       </button>
       <button class="btn btn-sm btn-danger toolbar-button" @click="confirmDelete">
         <i class="bi bi-x-octagon"></i>
-        Delete table
+        {{ t('TablesPanel.delete') }}
       </button>
       <button class="btn btn-sm btn-success toolbar-button" @click="confirmDownload">
         <i class="bi bi-cloud-arrow-down"></i>
-        Download data
+        {{ t('TablesPanel.download') }}
       </button>
     </div>
 
@@ -56,22 +56,22 @@
   </div>
 
   <div v-else class="empty-state">
-    <h2>No tables to show. Load some data</h2>
+    <h2>{{ t('TablesPanel.empty') }}</h2>
   </div>
 
   <div v-if="showDialog" class="modal fade show" style="display: block" aria-modal="true" role="dialog">
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Attention</h5>
-          <button type="button" class="btn-close" @click="showDialog = false" aria-label="Close"></button>
+          <h5 class="modal-title">{{ t('TablesPanel.attention') }}</h5>
+          <button type="button" class="btn-close" @click="showDialog = false" :aria-label="t('common.close')"></button>
         </div>
         <div class="modal-body">
-          <p>Are you sure you want to drop table {{ selectedTable }}?</p>
+          <p>{{ t('TablesPanel.confirmDrop', { name: selectedTable }) }}</p>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showDialog = false">Cancel</button>
-          <button type="button" class="btn btn-danger" @click="deleteTable">Yes, delete it</button>
+          <button type="button" class="btn btn-secondary" @click="showDialog = false">{{ t('common.cancel') }}</button>
+          <button type="button" class="btn btn-danger" @click="deleteTable">{{ t('TablesPanel.confirmDelete') }}</button>
         </div>
       </div>
     </div>
@@ -81,17 +81,17 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Download data</h5>
-          <button type="button" class="btn-close" @click="showDownloadDialog = false" aria-label="Close"></button>
+          <h5 class="modal-title">{{ t('TablesPanel.download') }}</h5>
+          <button type="button" class="btn-close" @click="showDownloadDialog = false" :aria-label="t('common.close')"></button>
         </div>
         <div class="modal-body">
-          <p>Downloading {{ selectedTable }}, select format:</p>
+          <p>{{ t('TablesPanel.downloadPrompt', { name: selectedTable }) }}</p>
           <button class="btn btn-success m-1 opcion-style" @click="download('csv')"><i class="bi bi-filetype-csv"></i> CSV</button>
           <button class="btn btn-success m-1 opcion-style" @click="download('parquet')"><i class="bi bi-table"></i> Parquet</button>
           <button class="btn btn-success m-1 opcion-style" @click="download('excel')"><i class="bi bi-filetype-xlsx"></i> Excel</button>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showDownloadDialog = false">Cancel</button>
+          <button type="button" class="btn btn-secondary" @click="showDownloadDialog = false">{{ t('common.cancel') }}</button>
         </div>
       </div>
     </div>
@@ -100,17 +100,19 @@
     <div class="modal-dialog">
       <div class="modal-content">
         <div class="modal-header">
-          <h5 class="modal-title">Rename table</h5>
-          <button type="button" class="btn-close" @click="showRenameDialog = false" aria-label="Close"></button>
+          <h5 class="modal-title">{{ t('TablesPanel.rename') }}</h5>
+          <button type="button" class="btn-close" @click="showRenameDialog = false" :aria-label="t('common.close')"></button>
         </div>
         <div class="modal-body">
-          <p>Rename <b>{{ selectedTable }}</b> to:</p>
-          <input v-model="newTableName" type="text" class="form-control" placeholder="New table name" @keyup.enter="confirmRename">
-          <small v-if="newTableName.trim() && !renameValid" class="rename-hint">Use letters, numbers and underscores; don't start with a number, and pick a different name.</small>
+          <i18n-t keypath="TablesPanel.renamePrompt" tag="p">
+            <template #name><b>{{ selectedTable }}</b></template>
+          </i18n-t>
+          <input v-model="newTableName" type="text" class="form-control" :placeholder="t('TablesPanel.newNamePlaceholder')" @keyup.enter="confirmRename">
+          <small v-if="newTableName.trim() && !renameValid" class="rename-hint">{{ t('TablesPanel.renameHint') }}</small>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" @click="showRenameDialog = false">Cancel</button>
-          <button type="button" class="btn btn-primary" :disabled="!renameValid" @click="confirmRename">Rename</button>
+          <button type="button" class="btn btn-secondary" @click="showRenameDialog = false">{{ t('common.cancel') }}</button>
+          <button type="button" class="btn btn-primary" :disabled="!renameValid" @click="confirmRename">{{ t('TablesPanel.renameButton') }}</button>
         </div>
       </div>
     </div>
@@ -121,6 +123,7 @@
 
 <script setup>
 import { computed, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TableInspector from './TableInspector.vue';
 import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
@@ -131,6 +134,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['deleteTable', 'renameTable']);
+const { t } = useI18n();
 const engine = useEngine();
 
 const showDialog = ref(false);
@@ -184,9 +188,9 @@ function download(format) {
   toast.promise(
     engine.exportTable(selectedTable.value, format),
     {
-      pending: 'Exporting data, please wait...',
-      success: 'Data exported successfully',
-      error: 'Error creating export'
+      pending: t('TablesPanel.exporting'),
+      success: t('TablesPanel.exported'),
+      error: t('TablesPanel.exportError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((blob) => {
@@ -200,7 +204,7 @@ function download(format) {
     link.click();
     link.parentNode.removeChild(link);
   }).catch((error) => {
-    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    toast.error(t('TablesPanel.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 

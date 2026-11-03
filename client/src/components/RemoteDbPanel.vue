@@ -1,12 +1,12 @@
 <template>
   <div class="spinner-border" role="status" v-if="loading">
-    <span class="visually-hidden">Loading...</span>
+    <span class="visually-hidden">{{ t('common.loading') }}</span>
   </div>
   <div class="compact-panel compact-remote-view">
   <div class="col-md-6">
     <div class="input-group mb-3 compact-input-group">
-      <span class="input-group-text" id="basic-addon1">Database name</span>
-      <input id="databaseInput" type="text" class="form-control" placeholder="Write the database name" aria-label="File"
+      <span class="input-group-text" id="basic-addon1">{{ t('RemoteDbPanel.databaseName') }}</span>
+      <input id="databaseInput" type="text" class="form-control" :placeholder="t('RemoteDbPanel.databasePlaceholder')" :aria-label="t('RemoteDbPanel.databaseName')"
         aria-describedby="basic-addon1" v-model="databaseInput" @input="searchDatabase">
     </div>
   </div> <!-- col-md-6 -->
@@ -15,13 +15,13 @@
   <div class="row">
     <div class="col-md-2" v-if="connectedDatabase">
       <button class="btn btn-sm btn-success m-1" @click="disconnectDatabase(connectedDatabase)">
-        Database: {{ connectedDatabase }}.<br /> Click to disconnect
+        {{ t('RemoteDbPanel.connectedDatabase', { name: connectedDatabase }) }}<br /> {{ t('RemoteDbPanel.clickToDisconnect') }}
       </button>
     </div> <!-- col-md-2 -->
 
     <div class="col-md-2" v-if="schemaSelected">
       <button class="btn btn-sm btn-success m-1" @click="showSchemas = !showSchemas">
-        Schema active: {{ schemaSelected }}.<br /> {{ showSchemas ? 'Click to hide schemas' : 'Click to show schemas' }}
+        {{ t('RemoteDbPanel.activeSchema', { name: schemaSelected }) }}<br /> {{ showSchemas ? t('RemoteDbPanel.hideSchemas') : t('RemoteDbPanel.showSchemas') }}
       </button>
     </div> <!-- col-md-2 -->
   </div>
@@ -42,7 +42,7 @@
   <!-- Schemas -->
   <div class="row" v-if="connectedDatabase && showSchemas">
     <div v-if="schemas && schemas.length > 0">
-      <p class="compact-muted">Remote Schemas:</p>
+      <p class="compact-muted">{{ t('RemoteDbPanel.remoteSchemas') }}</p>
       <ul class="list-unstyled compact-chip-list">
         <li v-for="schema in schemas" :key="schema.id">
           <button class="btn btn-sm btn-outline-primary compact-chip-btn" @click="clickSchema(schema, true)">
@@ -56,9 +56,9 @@
   <!-- Tables -->
   <div class="row" v-if="connectedDatabase">
     <div v-if="tables && tables.length > 0">
-      <p class="compact-muted">Remote Tables:</p>
+      <p class="compact-muted">{{ t('RemoteDbPanel.remoteTables') }}</p>
       <div class="compact-input-group">
-      <input type="text" class="form-control" id="tableNameInput" placeholder="Filter by name" v-model="filterTable">
+      <input type="text" class="form-control" id="tableNameInput" :placeholder="t('RemoteDbPanel.filterPlaceholder')" v-model="filterTable">
       </div>
       <ul class="list-unstyled compact-chip-list">
         <li v-for="table in tables" :key="table.id">
@@ -74,12 +74,12 @@
 
   <div class="row" v-if="connectedDatabase">
     <div class="col-md-6">
-      <h4 class="compact-title">Query on remote database</h4>
+      <h4 class="compact-title">{{ t('RemoteDbPanel.queryTitle') }}</h4>
       <div class="form-group">
 
         <codemirror
               v-model="query" 
-              placeholder="code goes here..."
+              :placeholder="t('RemoteDbPanel.codePlaceholder')"
               :style="{ height: '240px' }"
               :autofocus="true"
               :indent-with-tab="true"
@@ -88,19 +88,19 @@
           />
 
       </div>
-      <button type="button" class="btn btn-sm btn-primary" @click="runRemoteQuery(query)">Run remote Query</button>
+      <button type="button" class="btn btn-sm btn-primary" @click="runRemoteQuery(query)">{{ t('RemoteDbPanel.runQuery') }}</button>
 
       <!-- Create table from query -->
       <div class="form-group" v-if="sampleData">
-        <label for="tableNameInput" class="compact-muted mt-2">Create table from query</label>
+        <label for="tableNameInput" class="compact-muted mt-2">{{ t('RemoteDbPanel.createFromQuery') }}</label>
         <div class="row">
           <div class="md-col-4">
-            <input type="text" class="form-control" id="tableNameInput" placeholder="New table name"
+            <input type="text" class="form-control" id="tableNameInput" :placeholder="t('RemoteDbPanel.newTablePlaceholder')"
               v-model="tableFromQuery">
           </div>
 
           <div class="md-col-2">
-            <button type="button" class="btn btn-sm btn-primary" @click="createTableFromRemoteQuery">Create table</button>
+            <button type="button" class="btn btn-sm btn-primary" @click="createTableFromRemoteQuery">{{ t('RemoteDbPanel.createTable') }}</button>
           </div>
         </div>
       </div>
@@ -114,6 +114,7 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 
 import { Codemirror } from "vue-codemirror";
@@ -124,6 +125,8 @@ import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['tableCreated']);
+
+const { t } = useI18n();
 
 const extensions = [sql()];
 const expanded = ref(true);
@@ -159,10 +162,10 @@ async function searchDatabase() {
         databases.value = response.data;
       }
       else {
-        toast.error(`Error: HTTP ${response.message}`);
+        toast.error(t('RemoteDbPanel.httpError', { detail: response.message }));
       }
     }).catch(() => {
-      toast.error('Error searching databases');
+      toast.error(t('RemoteDbPanel.toast.searchError'));
     }).finally(() => {
       loading.value = false;
     });
@@ -180,17 +183,17 @@ async function clickDatabase(database) {
         connectedDatabase.value = database;
         databases.value = [];
         schemas.value = response.data.schemas;
-        toast.success('Database ' + database + ' connected');
+        toast.success(t('RemoteDbPanel.toast.connected', { name: database }));
       }
       else {
-        toast.error(`Error: HTTP ${response.message}`);
+        toast.error(t('RemoteDbPanel.httpError', { detail: response.message }));
       }
     }
     else {
-      toast.error(`Error: HTTP ${response.message}`);
+      toast.error(t('RemoteDbPanel.httpError', { detail: response.message }));
     }
   }).catch((error) => {
-    toast.error(error.response?.data?.message || 'Error connecting to remote database');
+    toast.error(error.response?.data?.message || t('RemoteDbPanel.toast.connectError'));
   }).finally(() => {
     loading.value = false;
   });
@@ -210,14 +213,14 @@ async function clickSchema(schema) {
         tables.value = response.data.tables;
       }
       else {
-        toast.error(`Error: HTTP ${response.data.message}`);
+        toast.error(t('RemoteDbPanel.httpError', { detail: response.data.message }));
       }
     }
     else {
-      toast.error(`Error: HTTP ${response.message}`);
+      toast.error(t('RemoteDbPanel.httpError', { detail: response.message }));
     }
   }).catch(() => {
-    toast.error('Error loading schemas');
+    toast.error(t('RemoteDbPanel.toast.schemasError'));
   }).finally(() => {
     loading.value = false;
   });
@@ -242,10 +245,10 @@ async function runRemoteQuery(nextQuery) {
         layout: 'fitColumns',
       });
     } else {
-      error.value = `Error: HTTP ${response.message}`;
+      error.value = t('RemoteDbPanel.httpError', { detail: response.message });
     }
   }).catch((err) => {
-    error.value = `Error: ${err.response?.data?.message || err.message}`;
+    error.value = t('RemoteDbPanel.errorDetail', { detail: err.response?.data?.message || err.message });
   }).finally(() => {
     loading.value = false;
   });
@@ -259,13 +262,13 @@ async function createTableFromRemoteQuery() {
     },
   }).then((response) => {
     if (response.status === 200) {
-      toast.success('Table created successfully');
+      toast.success(t('RemoteDbPanel.toast.tableCreated'));
       emit('tableCreated');
     } else {
-      toast.error('Table creation error::' + response.message);
+      toast.error(t('RemoteDbPanel.toast.tableError', { detail: response.message }));
     }
   }).catch((error) => {
-    toast.error('Table creation error: ' + (error.response?.data?.message || error.message));
+    toast.error(t('RemoteDbPanel.toast.tableError', { detail: error.response?.data?.message || error.message }));
   }).finally(() => {
     loading.value = false;
   });
@@ -282,7 +285,7 @@ async function disconnectDatabase(database) {
     tables.value = [];
     schemaSelected.value = '';
   }).catch(() => {
-    toast.error('Error disconnecting remote database');
+    toast.error(t('RemoteDbPanel.toast.disconnectError'));
   });
 }
 </script>

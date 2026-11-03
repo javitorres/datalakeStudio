@@ -7,6 +7,7 @@
 
 <script setup>
 import { onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { parseSpec } from '@uwdata/mosaic-spec';
 import { API_URL } from '../../config';
 import { useMosaic } from '../composables/useMosaic';
@@ -17,6 +18,7 @@ const props = defineProps({
   schema: Object,
 });
 
+const { t } = useI18n();
 const { selectedConnector, vg, loadDOM, setupMosaic } = useMosaic();
 
 onMounted(async () => {
@@ -68,8 +70,8 @@ async function load(name) {
 function getYaml(table, selectedFields, schema) {
   const yamlSpec = {
     meta: {
-      title: `Cross-Filter ${table.charAt(0).toUpperCase() + table.slice(1)}`,
-      description: `Histograms showing ${selectedFields.join(', ')} for ${table}.`,
+      title: t('Mosaic.title', { table: table.charAt(0).toUpperCase() + table.slice(1) }),
+      description: t('Mosaic.description', { fields: selectedFields.join(', '), table }),
     },
     data: {
       [table]: { query: `SELECT * FROM ${table}` }

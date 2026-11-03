@@ -3,8 +3,8 @@
     <div class="col-md-6">
       <div class="col-md-6">
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
-          <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File"
+          <span class="input-group-text" id="basic-addon1">{{ t('S3Explorer.bucket') }}</span>
+          <input id="bucket" type="text" class="form-control" :placeholder="t('S3Explorer.bucketPlaceholder')" :aria-label="t('S3Explorer.bucket')"
             aria-describedby="basic-addon1" v-model="bucket">
         </div>
       </div>
@@ -22,14 +22,14 @@
 
         <div v-if=" path == null">
           <button v-if="bucket" class="btn btn-sm btn-primary m-1" @click="getContent">
-            List S3 content
+            {{ t('S3Explorer.listContent') }}
           </button>
         </div>
         <div v-else>
-          <h3 class="compact-title">Folder: {{ path ? path : "/" }}</h3>
-          <h3 v-if="path != ''" class="back-link" @click="back()"><i class="bi bi-arrow-left"> Back</i></h3>
+          <h3 class="compact-title">{{ t('S3Explorer.folder', { path: path ? path : '/' }) }}</h3>
+          <h3 v-if="path != ''" class="back-link" @click="back()"><i class="bi bi-arrow-left"> {{ t('S3Explorer.back') }}</i></h3>
           <!-- For every content in content -->
-          <p class="compact-muted" v-if=" content.length == 1">No content in this folder</p>
+          <p class="compact-muted" v-if=" content.length == 1">{{ t('S3Explorer.emptyFolder') }}</p>
           <div v-for="item in content" :key="item.id">
             <h4 class="s3-item" @click="clickS3Element(item)" v-if="item != path">
               <i v-if="isFolder(item)" class="bi bi-folder folder-item"> {{ itemWithoutPath(item) }}</i>
@@ -45,47 +45,47 @@
         <h3 class="compact-title">s3://{{ bucket }}/{{ selectedElement }}</h3>
 
         <div v-if="selectionType === 'file'">
-          <h3 class="compact-title">File preview:</h3>
+          <h3 class="compact-title">{{ t('S3Explorer.filePreview') }}</h3>
           <textarea class="form-control" id="exampleFormControlTextarea1" v-model="fileContent"></textarea>
           <div class="input-group mb-3 compact-input-group mt-2">
-            <span class="input-group-text" id="basic-addon1">Load data as table</span>
-            <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File" aria-describedby="basic-addon1" v-model="newTableName">
+            <span class="input-group-text" id="basic-addon1">{{ t('S3Explorer.loadAsTable') }}</span>
+            <input id="bucket" type="text" class="form-control" :placeholder="t('S3Explorer.tableName')" :aria-label="t('S3Explorer.tableName')" aria-describedby="basic-addon1" v-model="newTableName">
             <button class="btn btn-sm btn-primary" @click="loadFile(newTableName, selectedElement)">
-              Load file {{ newTableName }}
+              {{ t('S3Explorer.loadFile', { name: newTableName }) }}
             </button>
           </div>
 
         </div>
 
         <div v-if="selectionType === 'folder'">
-          <h3 class="compact-title">Folder info:</h3>
+          <h3 class="compact-title">{{ t('S3Explorer.folderInfo') }}</h3>
           <div v-if=" ! folderMetadata ">
-            <h2>No metadata found</h2>
-            <p class="compact-muted">Metadata helps keep your datalake documented and improves SQL AI assistant results.</p>
+            <h2>{{ t('S3Explorer.noMetadata') }}</h2>
+            <p class="compact-muted">{{ t('S3Explorer.metadataHelp') }}</p>
             <!-- Button create metadata -->
             <button class="btn btn-sm btn-primary" @click="createEmptyMetadata">
-              Create metadata
+              {{ t('S3Explorer.createMetadata') }}
             </button>
           </div>
           <div v-else>
 
             <div class="form-floating mb-3">
-              <textarea v-model="folderMetadata.description" style="height: 200px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
-              <label for="floatingInput">Description</label>
+              <textarea v-model="folderMetadata.description" style="height: 200px" class="form-control" :placeholder="t('S3Explorer.commentPlaceholder')" id="floatingTextarea"></textarea>
+              <label for="floatingInput">{{ t('S3Explorer.description') }}</label>
             </div>
 
             <div class="form-floating mb-3">
-              <textarea v-model="folderMetadata.owner" style="height: 20px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
-              <label for="floatingInput">Owner/s (space separated)</label>
+              <textarea v-model="folderMetadata.owner" style="height: 20px" class="form-control" :placeholder="t('S3Explorer.commentPlaceholder')" id="floatingTextarea"></textarea>
+              <label for="floatingInput">{{ t('S3Explorer.owners') }}</label>
             </div>
 
             <div class="form-floating mb-3">
-              <textarea v-model="folderMetadata.schema" style="height: 200px" class="form-control" placeholder="Leave a comment here" id="floatingTextarea"></textarea>
-              <label for="floatingInput">Schema</label>
+              <textarea v-model="folderMetadata.schema" style="height: 200px" class="form-control" :placeholder="t('S3Explorer.commentPlaceholder')" id="floatingTextarea"></textarea>
+              <label for="floatingInput">{{ t('S3Explorer.schema') }}</label>
             </div>
 
             <button class="btn btn-sm btn-primary" @click="updateMetadata">
-              Update metadata
+              {{ t('S3Explorer.updateMetadata') }}
             </button>
           </div>
         </div>
@@ -96,11 +96,14 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['tableCreated']);
+
+const { t } = useI18n();
 
 const bucket = ref('');
 const path = ref(null);
@@ -135,9 +138,9 @@ async function getContent() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Listing S3 content, please wait...',
+      pending: t('S3Explorer.toast.listing'),
       success: '',
-      error: 'Error searching in S3'
+      error: t('S3Explorer.toast.listError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT, timeout: 1000 }
   ).then((response) => {
@@ -145,9 +148,9 @@ async function getContent() {
     folderMetadata.value = response.data.metadata;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -179,7 +182,7 @@ async function clickS3Element(item) {
 async function getFilePreview(item) {
   const fileExtension = item.toLowerCase().split('.').pop();
   if (!['csv', 'txt', 'json'].includes(fileExtension)) {
-    fileContent.value = `File preview not available for this file type (${fileExtension}). Only .csv, .txt and .json files are supported.`;
+    fileContent.value = t('S3Explorer.previewNotAvailable', { extension: fileExtension });
     return;
   }
 
@@ -193,18 +196,18 @@ async function getFilePreview(item) {
   return toast.promise(
     fetchData(),
     {
-      pending: 'Getting file content, please wait...',
-      success: 'File content retrieved',
-      error: 'Error getting file content'
+      pending: t('S3Explorer.toast.gettingFile'),
+      success: t('S3Explorer.toast.fileRetrieved'),
+      error: t('S3Explorer.toast.fileError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     fileContent.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -245,18 +248,18 @@ async function updateMetadata() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Updating metadata, please wait...',
-      success: 'Metadata updated',
-      error: 'Error updating metadata'
+      pending: t('S3Explorer.toast.updatingMetadata'),
+      success: t('S3Explorer.toast.metadataUpdated'),
+      error: t('S3Explorer.toast.metadataError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     getContent();
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -272,18 +275,18 @@ async function loadFile(tableNameInput, fileInput) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Creating table from file, please wait...',
-      success: 'Table created',
-      error: 'Error creting table from file'
+      pending: t('S3Explorer.toast.creatingTable'),
+      success: t('S3Explorer.toast.tableCreated'),
+      error: t('S3Explorer.toast.tableError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('S3Explorer.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }

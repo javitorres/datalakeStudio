@@ -2,34 +2,34 @@
   <section class="welcome-shell">
     <div class="welcome-card">
       <div class="welcome-copy">
-        <span class="welcome-kicker"><i></i> LOCAL DATA WORKSPACE</span>
-        <h2>Explore freely.<br><em>Ship confidently.</em></h2>
-        <p>Bring your data into one fast workspace, ask better questions and turn the answers into something useful.</p>
-        <a href="https://github.com/javitorres/datalakeStudio" target="_blank">Read the documentation <i class="bi bi-arrow-up-right"></i></a>
+        <span class="welcome-kicker"><i></i> {{ $t('Welcome.kicker') }}</span>
+        <h2>{{ $t('Welcome.titleLine1') }}<br><em>{{ $t('Welcome.titleLine2') }}</em></h2>
+        <p>{{ $t('Welcome.intro') }}</p>
+        <a href="https://github.com/javitorres/datalakeStudio" target="_blank">{{ $t('Welcome.docs') }} <i class="bi bi-arrow-up-right"></i></a>
         <div v-if="sampleAvailable" class="sample-box">
           <div>
-            <b><i class="bi bi-taxi-front"></i> New here? Try it with real data</b>
-            <small>NYC yellow taxi trips, January 2024: {{ sample.rows }} trips with pickup zones and coordinates ({{ sample.size }}).</small>
+            <b><i class="bi bi-taxi-front"></i> {{ $t('Welcome.sample.title') }}</b>
+            <small>{{ $t('Welcome.sample.text', { rows: sample.rows, size: sample.size }) }}</small>
           </div>
           <button :disabled="loadingSample" @click="loadSample">
             <span v-if="loadingSample" class="spinner-border spinner-border-sm"></span>
-            <i v-else class="bi bi-download"></i> Load sample data
+            <i v-else class="bi bi-download"></i> {{ $t('Welcome.sample.load') }}
           </button>
         </div>
       </div>
       <div class="welcome-visual">
         <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
-        <img src="../assets/logo.svg" alt="Datalake Studio logo">
-        <span class="node node-a"><i class="bi bi-database"></i> Connect</span>
-        <span class="node node-b"><i class="bi bi-command"></i> Query</span>
-        <span class="node node-c"><i class="bi bi-graph-up"></i> Visualize</span>
-        <span class="node node-d"><i class="bi bi-braces"></i> Publish</span>
+        <img src="../assets/logo.svg" :alt="$t('Welcome.logoAlt')">
+        <span class="node node-a"><i class="bi bi-database"></i> {{ $t('Welcome.nodes.connect') }}</span>
+        <span class="node node-b"><i class="bi bi-command"></i> {{ $t('Welcome.nodes.query') }}</span>
+        <span class="node node-c"><i class="bi bi-graph-up"></i> {{ $t('Welcome.nodes.visualize') }}</span>
+        <span class="node node-d"><i class="bi bi-braces"></i> {{ $t('Welcome.nodes.publish') }}</span>
       </div>
     </div>
     <div class="welcome-grid">
-      <article><span>01</span><i class="bi bi-cloud-arrow-down"></i><div><b>Load a source</b><small>Files, URLs, S3 or PostgreSQL</small></div></article>
-      <article><span>02</span><i class="bi bi-filetype-sql"></i><div><b>Explore with SQL</b><small>DuckDB speed with AI assistance</small></div></article>
-      <article><span>03</span><i class="bi bi-boxes"></i><div><b>Publish an API</b><small>Turn saved queries into endpoints</small></div></article>
+      <article><span>01</span><i class="bi bi-cloud-arrow-down"></i><div><b>{{ $t('Welcome.steps.load.title') }}</b><small>{{ $t('Welcome.steps.load.text') }}</small></div></article>
+      <article><span>02</span><i class="bi bi-filetype-sql"></i><div><b>{{ $t('Welcome.steps.explore.title') }}</b><small>{{ $t('Welcome.steps.explore.text') }}</small></div></article>
+      <article><span>03</span><i class="bi bi-boxes"></i><div><b>{{ $t('Welcome.steps.publish.title') }}</b><small>{{ $t('Welcome.steps.publish.text') }}</small></div></article>
     </div>
   </section>
 </template>
@@ -37,10 +37,12 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import { toast } from 'vue3-toastify';
+import { useI18n } from 'vue-i18n';
 import { useEngine } from '../engine';
 
 const emit = defineEmits(['tableCreated', 'openTables']);
 const engine = useEngine();
+const { t } = useI18n();
 
 // Served with the app (scripts/build-samples.mjs): the browser loads it without CORS or third parties
 const sample = { file: 'samples/nyc_taxi_2024_01.parquet', table: 'nyc_taxi', rows: '198k', size: '3 MB' };
@@ -61,11 +63,11 @@ async function loadSample() {
   loadingSample.value = true;
   try {
     await engine.loadFile({ url: sampleUrl, tableName: sample.table });
-    toast.success(`Table ${sample.table} is ready: pick it in the Table explorer`);
+    toast.success(t('Welcome.sample.ready', { table: sample.table }));
     emit('tableCreated');
     emit('openTables');
   } catch (error) {
-    toast.error(`Error loading the sample: ${error.message}`);
+    toast.error(t('Welcome.sample.error', { detail: error.message }));
   } finally {
     loadingSample.value = false;
   }

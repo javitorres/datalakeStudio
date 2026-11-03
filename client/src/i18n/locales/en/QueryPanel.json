@@ -1,0 +1,101 @@
+{
+  "kicker": "DuckDB query environment",
+  "title": "SQL workspace",
+  "intro": "Write, test and reuse queries across six independent buffers.",
+  "tablesWord": "tables | table | tables",
+  "status": {
+    "failed": "Query failed",
+    "succeeded": "Last run succeeded",
+    "ready": "Ready"
+  },
+  "buffersLabel": "SQL query buffers",
+  "tabs": {
+    "main": "Main query",
+    "aux": "Aux {n}",
+    "fallback": "Query"
+  },
+  "tokens": "{n} tokens | {n} token | {n} tokens",
+  "schema": {
+    "loading": "Loading schema",
+    "unavailable": "Autocomplete unavailable",
+    "indexed": "{n} tables indexed | {n} table indexed | {n} tables indexed"
+  },
+  "clearTitle": "Clear current query",
+  "clear": "Clear",
+  "run": "Run Query",
+  "executionFailed": "Query execution failed",
+  "dismissError": "Dismiss error",
+  "poweredBy": "Powered by DuckDB",
+  "tabSize": "Tab size: {n}",
+  "toolsKicker": "Query tools",
+  "actions": "Actions",
+  "toolTabs": {
+    "newTable": "New table",
+    "saveSql": "Save SQL",
+    "library": "Library",
+    "askAi": "Ask AI"
+  },
+  "newTable": {
+    "title": "Create from result",
+    "help": "Persist the current result as a local table.",
+    "nameLabel": "Table name",
+    "namePlaceholder": "New table name",
+    "create": "Create table",
+    "runFirst": "Run a query before creating a table."
+  },
+  "save": {
+    "title": "Save query",
+    "help": "Add the active SQL buffer to your library.",
+    "nameLabel": "Query name",
+    "namePlaceholder": "Monthly revenue",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What does this query return?",
+    "button": "Save SQL query"
+  },
+  "library": {
+    "title": "Query library",
+    "help": "Search and restore saved SQL.",
+    "searchPlaceholder": "Search query...",
+    "deleteTitle": "Delete query",
+    "noResults": "No saved queries found."
+  },
+  "ai": {
+    "title": "AI SQL assistant",
+    "help": "Describe the result you need in plain language.",
+    "placeholder": "Show average asking price by city...",
+    "generate": "Generate SQL",
+    "generated": "Generated query",
+    "runIt": "Run this query"
+  },
+  "results": {
+    "kicker": "Execution output",
+    "title": "Query results",
+    "success": "Success",
+    "storedIn": "Stored in {name}",
+    "emptyTitle": "No results yet",
+    "emptyHelp": "Run the active SQL query to inspect its output here."
+  },
+  "noTables": "No tables available",
+  "noTablesHelp": "Load some data before opening the SQL workspace.",
+  "toast": {
+    "running": "Running query, please wait...",
+    "executed": "Query executed",
+    "runError": "Error running query",
+    "creatingTable": "Creating table from query, please wait...",
+    "tableCreated": "Table created",
+    "createTableError": "Error creating table from query",
+    "asking": "Asking the AI assistant, please wait...",
+    "answered": "AI assistant answered",
+    "askError": "Error asking the AI assistant",
+    "saving": "Saving SQL query, please wait...",
+    "saved": "SQL query saved",
+    "saveError": "Error saving SQL query",
+    "searching": "Searching SQL queries, please wait...",
+    "loaded": "SQL queries loaded",
+    "loadError": "Error loading SQL queries",
+    "deleting": "Deleting SQL query, please wait...",
+    "deleted": "SQL query deleted",
+    "deleteError": "Error deleting SQL query",
+    "errorDetail": "Error: {detail}"
+  }
+}

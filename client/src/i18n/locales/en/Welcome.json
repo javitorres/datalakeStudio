@@ -1,0 +1,35 @@
+{
+  "kicker": "LOCAL DATA WORKSPACE",
+  "titleLine1": "Explore freely.",
+  "titleLine2": "Ship confidently.",
+  "intro": "Bring your data into one fast workspace, ask better questions and turn the answers into something useful.",
+  "docs": "Read the documentation",
+  "logoAlt": "Datalake Studio logo",
+  "nodes": {
+    "connect": "Connect",
+    "query": "Query",
+    "visualize": "Visualize",
+    "publish": "Publish"
+  },
+  "steps": {
+    "load": {
+      "title": "Load a source",
+      "text": "Files, URLs, S3 or PostgreSQL"
+    },
+    "explore": {
+      "title": "Explore with SQL",
+      "text": "DuckDB speed with AI assistance"
+    },
+    "publish": {
+      "title": "Publish an API",
+      "text": "Turn saved queries into endpoints"
+    }
+  },
+  "sample": {
+    "title": "New here? Try it with real data",
+    "text": "NYC yellow taxi trips, January 2024: {rows} trips with pickup zones and coordinates ({size}).",
+    "load": "Load sample data",
+    "ready": "Table {table} is ready: pick it in the Table explorer",
+    "error": "Error loading the sample: {detail}"
+  }
+}
