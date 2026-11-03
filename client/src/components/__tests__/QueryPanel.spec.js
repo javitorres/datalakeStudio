@@ -69,6 +69,25 @@ describe('QueryPanel', () => {
     expect(wrapper.find('[data-test="table-inspector"]').exists()).toBe(true)
   })
 
+  it('reopens the view the user picked when the query runs again', async () => {
+    const TableInspector = {
+      props: ['view'],
+      emits: ['update:view'],
+      template: '<div data-test="table-inspector" :data-view="view" @click="$emit(\'update:view\', \'map\')"></div>'
+    }
+    const wrapper = mount(QueryPanel, { props: { tables: ['iris'] }, global: { stubs: { TableInspector } } })
+    const run = async () => {
+      await wrapper.findAll('button').find((b) => b.text().includes('Run Query')).trigger('click')
+      await flushPromises()
+    }
+
+    await run()
+    expect(wrapper.find('[data-test="table-inspector"]').attributes('data-view')).toBe('data')
+    await wrapper.find('[data-test="table-inspector"]').trigger('click')
+    await run()
+    expect(wrapper.find('[data-test="table-inspector"]').attributes('data-view')).toBe('map')
+  })
+
   it('creates table from query and emits tableCreated', async () => {
 
     const wrapper = mount(QueryPanel, {
