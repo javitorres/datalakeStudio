@@ -33,5 +33,14 @@
   "tableDeleted": "Tabla borrada",
   "tableRenamed": "Tabla renombrada a {name}",
   "errorRenaming": "Error al renombrar la tabla: {detail}",
-  "errorDeleting": "Error al borrar la tabla: {detail}"
+  "errorDeleting": "Error al borrar la tabla: {detail}",
+  "engine": {
+    "where": "Dónde se ejecutan las consultas",
+    "server": "Servidor",
+    "serverHelp": "Ejecutar en el servidor de Datalake Studio",
+    "browser": "Navegador",
+    "browserHelp": "Ejecutar en este navegador: los datos no salen de tu equipo",
+    "badge": "Tus datos se quedan en este navegador",
+    "badgeHelp": "DuckDB se ejecuta en este navegador: tus datos no salen de tu equipo"
+  }
 }

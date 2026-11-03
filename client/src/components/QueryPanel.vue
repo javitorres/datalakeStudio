@@ -83,7 +83,7 @@
           <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>{{ t('QueryPanel.toolTabs.newTable') }}</span></a>
           <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>{{ t('QueryPanel.toolTabs.saveSql') }}</span></a>
           <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>{{ t('QueryPanel.toolTabs.library') }}</span></a>
-          <a href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>{{ t('QueryPanel.toolTabs.askAi') }}</span></a>
+          <a v-if="engine.capabilities.serverAi || engine.capabilities.ownAi" href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>{{ t('QueryPanel.toolTabs.askAi') }}</span></a>
         </nav>
 
         <div class="tool-content">
@@ -123,6 +123,7 @@
 
           <section v-if="activeTab === 'askGpt'" class="tool-section ai-section">
             <div class="tool-title"><i class="bi bi-stars"></i><div><h4>{{ t('QueryPanel.ai.title') }}</h4><p>{{ t('QueryPanel.ai.help') }}</p></div></div>
+            <AiKeySettings v-if="usesOwnKey()" />
             <div class="ai-prompt">
               <textarea id="chatGPTInput" v-model="chatGPTInput" rows="5" :placeholder="t('QueryPanel.ai.placeholder')"></textarea>
               <button :disabled="!chatGPTInput.trim()" @click="askChatGPT"><i class="bi bi-send"></i> {{ t('QueryPanel.ai.generate') }}</button>
@@ -168,11 +169,15 @@ import { useI18n } from 'vue-i18n';
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
-import api from '../services/api';
+import { useEngine } from '../engine';
+import { createTableFromQuery, getDatabaseSchema, runUserQuery } from '../data/tables';
+import { deleteQuery as removeSavedQuery, saveQuery, searchQueries } from '../data/queries';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 import TableInspector from './TableInspector.vue';
+import AiKeySettings from './AiKeySettings.vue';
+import { askSql, usesOwnKey } from '../ai';
 
 const props = defineProps({
   tables: Object,
@@ -181,6 +186,7 @@ const props = defineProps({
 
 const emit = defineEmits(['tableCreated']);
 const { t } = useI18n();
+const engine = useEngine();
 
 const completionSchema = ref({});
 const schemaStatus = ref('loading');
@@ -255,9 +261,9 @@ async function loadDatabaseSchema() {
   schemaStatus.value = 'loading';
 
   try {
-    const response = await api.get('/database/getDatabaseSchema');
+    const databaseSchema = await getDatabaseSchema(engine);
     if (requestId !== schemaRequestId) return;
-    completionSchema.value = toCompletionSchema(response.data);
+    completionSchema.value = toCompletionSchema(databaseSchema);
     schemaStatus.value = 'ready';
   } catch (_) {
     if (requestId !== schemaRequestId) return;
@@ -275,38 +281,28 @@ async function runQuery() {
 
   queryRunning.value = true;
   const queryToRun = currentQuery.value;
-  const fetchData = () => api.post(`/database/runQuery`, {
-    query: queryToRun,
-  });
-
   toast.promise(
-    fetchData(),
+    runUserQuery(engine, queryToRun),
     {
       pending: t('QueryPanel.toast.running'),
       success: t('QueryPanel.toast.executed'),
       error: t('QueryPanel.toast.runError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    sampleData.value = response.data;
+  ).then(() => {
+    // Only the flag matters: TableInspector reads the result from __lastQuery
+    sampleData.value = true;
     querySuccesful.value = true;
   }).catch((error) => {
-    queryError.value = error.response?.data?.message || error.response?.data || error.message;
+    queryError.value = error.message;
   }).finally(() => {
     queryRunning.value = false;
   });
 }
 
 async function createTable() {
-  const fetchData = () => api.get(`/database/createTableFromQuery`, {
-    params: {
-      query: currentQuery.value,
-      tableName: tableFromQuery.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    createTableFromQuery(engine, tableFromQuery.value, currentQuery.value),
     {
       pending: t('QueryPanel.toast.creatingTable'),
       success: t('QueryPanel.toast.tableCreated'),
@@ -316,37 +312,23 @@ async function createTable() {
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('QueryPanel.toast.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
 async function askChatGPT() {
-  const fetchData = () => api.get(`/gpt/askGPT`, {
-    params: {
-      question: chatGPTInput.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    askSql(chatGPTInput.value),
     {
       pending: t('QueryPanel.toast.asking'),
       success: t('QueryPanel.toast.answered'),
       error: t('QueryPanel.toast.askError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    chatGPTOutput.value = response.data;
+  ).then((sql) => {
+    chatGPTOutput.value = sql;
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('QueryPanel.toast.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -356,14 +338,12 @@ async function useChatGPTAnswer() {
 }
 
 async function saveSqlQuery() {
-  const fetchData = () => api.post(`/queries/saveSqlQuery`, {
-    query: currentQuery.value,
-    sqlQueryName: sqlQueryName.value,
-    description: sqlQueryDescription.value
-  });
-
   toast.promise(
-    fetchData(),
+    saveQuery(engine, {
+      name: sqlQueryName.value,
+      query: currentQuery.value,
+      description: sqlQueryDescription.value,
+    }),
     {
       pending: t('QueryPanel.toast.saving'),
       success: t('QueryPanel.toast.saved'),
@@ -371,37 +351,23 @@ async function saveSqlQuery() {
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('QueryPanel.toast.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
 async function searchQuery() {
-  const fetchData = () => api.get(`/queries/searchQuery`, {
-    params: {
-      query: sqlSearchQuery.value,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    searchQueries(engine, sqlSearchQuery.value),
     {
       pending: t('QueryPanel.toast.searching'),
       success: t('QueryPanel.toast.loaded'),
       error: t('QueryPanel.toast.loadError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    queries.value = response.data;
+  ).then((rows) => {
+    queries.value = rows;
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('QueryPanel.toast.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -412,14 +378,8 @@ async function selectQuery(queryCandidate) {
 }
 
 async function deleteQuery(queryCandidate) {
-  const fetchData = () => api.get(`/queries/deleteQuery`, {
-    params: {
-      id_query: queryCandidate.id_query,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    removeSavedQuery(engine, queryCandidate.id_query),
     {
       pending: t('QueryPanel.toast.deleting'),
       success: t('QueryPanel.toast.deleted'),
@@ -429,11 +389,7 @@ async function deleteQuery(queryCandidate) {
   ).then(() => {
     searchQuery();
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('QueryPanel.toast.errorDetail', { detail: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 </script>

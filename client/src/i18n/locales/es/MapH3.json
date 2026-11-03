@@ -56,7 +56,8 @@
     "noPoints": "No hay puntos en la zona visible.",
     "pointsLoad": "No se ha podido cargar la capa de puntos.",
     "config": "No se ha podido cargar la configuración del mapa.",
-    "basemap": "No se ha podido cargar el mapa base."
+    "basemap": "No se ha podido cargar el mapa base.",
+    "selectColumns": "Elige las columnas de latitud y longitud o una columna de geometría"
   },
   "popup": {
     "h3": "Propiedades H3",

@@ -18,6 +18,7 @@
   },
   "textQuestion": "Question",
   "placeholder": "Ask anything about your data…",
+  "needsKey": "Add your OpenAI API key above to ask",
   "ask": "Send",
   "disclaimer": "The assistant can make mistakes: check the SQL before using it.",
   "copy": "Copy",

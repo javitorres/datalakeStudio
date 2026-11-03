@@ -9,7 +9,7 @@
       </li>
 
       <!-- Load from S3  -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.s3">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadS3' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadS3'">{{ t('LoadDataPanel.tabs.s3') }}</a>
       </li>
@@ -21,7 +21,7 @@
       </li>
 
       <!-- Load from Path -->
-      <li class="nav-item">
+      <li class="nav-item" v-if="engine.capabilities.serverPath">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadPath' }" aria-current="page" href="#"
           @click.prevent="activeTab = 'loadPath'">{{ t('LoadDataPanel.tabs.path') }}</a>
       </li>
@@ -110,12 +110,16 @@
         <ul>
           <li>https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv</li>
         </ul>
+        <p v-if="engine.mode === 'local'" class="text-muted small">
+          <i class="bi bi-info-circle"></i> Your browser downloads the file directly, so its server must allow it (CORS).
+          If it doesn't, download the file and use Upload file.
+        </p>
 
         <div class="input-group mb-3 compact-input-group">
           <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.urlToLoad') }}</span>
           <input id="fileInputUrl" type="text" class="form-control"
-            :placeholder="t('LoadDataPanel.pathPlaceholder')" :aria-label="t('LoadDataPanel.file')"
-            aria-describedby="basic-addon1" v-model="fileInputUrl">
+            :placeholder="engine.mode === 'local' ? t('LoadDataPanel.urlPlaceholder') : t('LoadDataPanel.pathPlaceholder')"
+            :aria-label="t('LoadDataPanel.file')" aria-describedby="basic-addon1" v-model="fileInputUrl">
 
         </div>
 
@@ -179,11 +183,13 @@
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import api from '../services/api';
+import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['tableCreated']);
 const { t } = useI18n();
+const engine = useEngine();
 
 const activeTab = ref('uploadFile');
 const bucket = ref('');
@@ -203,37 +209,18 @@ function uploadFile() {
     return;
   }
 
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('tableName', tableNameInputUpload.value);
-
-  const fetchData = () => api.post(`/database/uploadFile`, formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data'
-    }
-  });
-
   toast.promise(
-    fetchData(),
+    engine.loadFile({ file, tableName: tableNameInputUpload.value }),
     {
       pending: t('LoadDataPanel.uploading'),
       success: t('LoadDataPanel.uploadDone'),
       error: t('LoadDataPanel.uploadError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
-  ).then((response) => {
-    if (response.status == 'error') {
-      toast.error(t('LoadDataPanel.couldNotLoad', { status: response.data.status }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      emit('tableCreated');
-    }
+  ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('LoadDataPanel.errorDetail', { message: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('LoadDataPanel.errorDetail', { message: String(error.response.data) }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('LoadDataPanel.errorDetail', { message: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -286,15 +273,8 @@ function clickS3File(S3File) {
 }
 
 async function loadFile(tableNameInput, fileInput) {
-  const fetchData = () => api.get(`/database/loadFile`, {
-    params: {
-      tableName: tableNameInput,
-      fileName: fileInput,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    engine.loadFile({ url: fileInput, tableName: tableNameInput }),
     {
       pending: t('LoadDataPanel.creatingTable'),
       success: t('LoadDataPanel.tableCreated'),
@@ -304,11 +284,7 @@ async function loadFile(tableNameInput, fileInput) {
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    if (error.response.data.message) {
-      toast.error(t('LoadDataPanel.errorDetail', { message: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
-    } else {
-      toast.error(t('LoadDataPanel.errorDetail', { message: String(error.response.data) }), { position: toast.POSITION.BOTTOM_RIGHT });
-    }
+    toast.error(t('LoadDataPanel.errorDetail', { message: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 

@@ -18,6 +18,9 @@
     </div>
 
     <h2 class="compact-title mt-4">{{ t('SettingsPanel.model') }}</h2>
+    <!-- DuckDB in the browser: the assistant uses the user's own key and model -->
+    <AiKeySettings v-if="!onServer" class="settings-key" sends-rows />
+    <template v-else>
     <p class="compact-muted mb-2">{{ t('SettingsPanel.modelHelp') }}</p>
     <select
       id="aiModelSelect"
@@ -51,7 +54,10 @@
       <i :class="preferencesError ? 'bi bi-cloud-slash' : 'bi bi-cloud-check'"></i>
       {{ preferencesError ? t('SettingsPanel.saveError') : t('SettingsPanel.savedOnServer') }}
     </p>
+    </template>
+    <p v-if="!onServer" class="compact-muted mt-3 mb-0"><i class="bi bi-laptop"></i> {{ t('SettingsPanel.savedInBrowser') }}</p>
 
+    <template v-if="onServer">
     <h2 class="compact-title mt-4">{{ t('SettingsPanel.integrations') }}</h2>
     <p class="compact-muted mb-2">{{ t('SettingsPanel.integrationsHelp') }}</p>
     <p v-if="error" class="text-danger">{{ t('SettingsPanel.statusError') }}</p>
@@ -78,6 +84,7 @@
         </span>
       </li>
     </ul>
+    </template>
   </div>
 </template>
 
@@ -87,10 +94,14 @@ import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 import { LANGUAGES, setLocale } from '../i18n';
 import { aiModel, preferencesError, voiceProvider } from '../lib/preferences';
+import { useEngine } from '../engine';
+import AiKeySettings from './AiKeySettings.vue';
 
 const { t, locale } = useI18n();
 const status = ref(null);
 const error = ref(false);
+// With the backend: its model, voices and integrations. With DuckDB in the browser there is no server.
+const onServer = useEngine().mode === 'remote';
 const models = ref(null);
 
 // The chosen model stays in the list even if the key no longer lists it
@@ -104,6 +115,9 @@ const elevenLabsConfigured = computed(
 );
 
 onMounted(async () => {
+  if (!onServer) {
+    return;
+  }
   api.get('/settings/models')
     .then((response) => { models.value = response.data; })
     .catch(() => { models.value = { configured: null, models: [], error: t('SettingsPanel.unknownError') }; });
@@ -119,6 +133,7 @@ onMounted(async () => {
 .settings-options { display:flex; gap:8px; }
 .settings-option { min-width:120px; border:1px solid var(--ds-line); background:#fff; font-size:12px; font-weight:600; }
 .settings-option-active { border-color:var(--ds-teal); color:var(--ds-teal-dark); background:#e4f4ef; }
+.settings-key { max-width:560px; }
 .settings-model { max-width:360px; font-size:13px; }
 .settings-files { display:flex; gap:18px; }
 .settings-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:8px; }

@@ -34,11 +34,16 @@ export const i18n = createI18n({
   fallbackLocale: 'en',
   messages,
 });
-document.documentElement.lang = i18n.global.locale.value;
+// The data tests run in Node, without a document
+if (typeof document !== 'undefined') {
+  document.documentElement.lang = i18n.global.locale.value;
+}
 
 export function setLocale(code) {
   i18n.global.locale.value = code;
-  document.documentElement.lang = code;
+  if (typeof document !== 'undefined') {
+    document.documentElement.lang = code;
+  }
   try {
     localStorage.setItem(STORAGE_KEY, code);
   } catch { /* storage blocked */ }

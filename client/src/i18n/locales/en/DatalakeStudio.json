@@ -33,5 +33,14 @@
   "tableDeleted": "Table deleted",
   "tableRenamed": "Table renamed to {name}",
   "errorRenaming": "Error renaming the table: {detail}",
-  "errorDeleting": "Error deleting the table: {detail}"
+  "errorDeleting": "Error deleting the table: {detail}",
+  "engine": {
+    "where": "Where queries run",
+    "server": "Server",
+    "serverHelp": "Run on the Datalake Studio server",
+    "browser": "Browser",
+    "browserHelp": "Run in this browser: the data never leaves your machine",
+    "badge": "Your data stays in this browser",
+    "badgeHelp": "DuckDB runs in this browser: your data never leaves your machine"
+  }
 }

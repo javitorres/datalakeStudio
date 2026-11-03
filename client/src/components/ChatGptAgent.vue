@@ -125,6 +125,11 @@
       </div>
     </header>
 
+    <!-- DuckDB in the browser: the user's own OpenAI key, and what is sent to OpenAI -->
+    <div v-if="ownKey" class="assistant-key">
+      <AiKeySettings sends-rows @change="ready = aiReady()" />
+    </div>
+
     <div ref="feed" class="assistant-feed">
       <div class="assistant-column">
         <!-- Blind mode: the conversation is hidden, only what the assistant is doing shows -->
@@ -145,6 +150,7 @@
               :key="suggestion"
               type="button"
               class="assistant-suggestion"
+              :disabled="!ready"
               @click="ask(suggestion)"
             >
               <i class="bi bi-arrow-return-right"></i>{{ suggestion }}
@@ -212,9 +218,9 @@
                     </table>
                   </div>
                   <p class="assistant-result-foot">
-                    {{ message.result.rows.length > RESULT_ROWS
-                      ? t('ChatGptAgent.rowsShown', { shown: RESULT_ROWS, total: message.result.rows.length })
-                      : t('ChatGptAgent.rows', message.result.rows.length) }}
+                    {{ resultTotal(message.result) > RESULT_ROWS
+                      ? t('ChatGptAgent.rowsShown', { shown: RESULT_ROWS, total: resultTotal(message.result) })
+                      : t('ChatGptAgent.rows', resultTotal(message.result)) }}
                   </p>
                 </div>
 
@@ -252,17 +258,18 @@
           ref="input"
           v-model="draft"
           rows="1"
-          :placeholder="t('ChatGptAgent.placeholder')"
+          :placeholder="ready ? t('ChatGptAgent.placeholder') : t('ChatGptAgent.needsKey')"
+          :disabled="!ready"
           :aria-label="t('ChatGptAgent.textQuestion')"
           @input="autoGrow"
           @keydown.enter.exact.prevent="ask(draft)"
         ></textarea>
         <div class="assistant-composer-actions">
-          <recorder-widget compact :time="2" :disabled="busy" @newRecording="processRecording" />
+          <recorder-widget compact :time="2" :disabled="busy || !ready" @newRecording="processRecording" />
           <button
             type="submit"
             class="assistant-send"
-            :disabled="!draft.trim() || busy"
+            :disabled="!draft.trim() || busy || !ready"
             :title="t('ChatGptAgent.ask')"
             :aria-label="t('ChatGptAgent.ask')"
           >
@@ -279,9 +286,14 @@
 <script setup>
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import api from '../services/api';
 import { currentLanguage } from '../i18n';
-import { voiceProvider } from '../lib/preferences';
+import { useEngine } from '../engine';
+import { getTableSchema, rowCount, runUserQuery, sample } from '../data/tables';
+import { aiReady, askSql, conversationTitle, explainResult, speak as speakText, transcribe, usesOwnKey } from '../ai';
+import {
+  deleteConversation, getConversation, listConversations, renameConversation, saveConversation as storeConversation,
+} from '../lib/conversations';
+import AiKeySettings from './AiKeySettings.vue';
 import RecorderWidget from './RecorderWidget.vue';
 import VChart from 'vue-echarts';
 import { use } from 'echarts/core';
@@ -290,6 +302,11 @@ import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/compon
 import { CanvasRenderer } from 'echarts/renderers';
 
 use([BarChart, LineChart, PieChart, ScatterChart, GridComponent, LegendComponent, TooltipComponent, CanvasRenderer]);
+
+const engine = useEngine();
+// With DuckDB in the browser the assistant uses the user's own OpenAI key
+const ownKey = usesOwnKey();
+const ready = ref(aiReady());
 
 const props = defineProps({
   tables: { type: Array, default: () => [] }
@@ -366,7 +383,7 @@ onMounted(loadConversations);
 
 async function loadConversations() {
   try {
-    const list = (await api.get('/conversations')).data;
+    const list = await listConversations();
     conversations.value = list.map((c) => ({ ...c, saved: true }));
     historyError.value = false;
   } catch {
@@ -395,13 +412,13 @@ function startConversation(question) {
 // The AI names the conversation after its first question, unless the user renamed it meanwhile
 async function nameConversation(conversation, question) {
   try {
-    const { title } = (await api.get('/gpt/conversationTitle', { params: { question, language: currentLanguage() } })).data;
+    const title = await conversationTitle(question, currentLanguage());
     if (!title || conversation.renamed) {
       return;
     }
     conversation.title = title;
     if (conversation.saved) {
-      await api.patch(`/conversations/${conversation.id}`, { title });
+      await renameConversation(conversation.id, title);
     }
   } catch { /* keeps the question as its title */ }
 }
@@ -414,11 +431,11 @@ function storedMessage({ role, text, sql, result, chart, error }) {
 async function saveConversation(conversation) {
   const title = conversation.title;
   try {
-    const saved = (await api.put(`/conversations/${conversation.id}`, { title, messages: messages.value.map(storedMessage) })).data;
+    const saved = await storeConversation(conversation.id, { title, messages: messages.value.map(storedMessage) });
     Object.assign(conversation, { updated: saved.updated, database: saved.database, saved: true });
     // Renamed (by the AI or the user) while it was being saved
     if (conversation.title !== title) {
-      await api.patch(`/conversations/${conversation.id}`, { title: conversation.title });
+      await renameConversation(conversation.id, conversation.title);
     }
     // The most recent goes first
     conversations.value = [conversation, ...conversations.value.filter((c) => c.id !== conversation.id)];
@@ -433,7 +450,7 @@ async function openConversation(conversation) {
     return;
   }
   try {
-    const { messages: stored } = (await api.get(`/conversations/${conversation.id}`)).data;
+    const { messages: stored } = await getConversation(conversation.id);
     messages.value = stored.map((message) => ({ ...message, id: nextId++ }));
     currentId.value = conversation.id;
     draft.value = '';
@@ -464,7 +481,7 @@ async function finishRename(conversation) {
   conversation.renamed = true;
   if (conversation.saved) {
     try {
-      await api.patch(`/conversations/${conversation.id}`, { title });
+      await renameConversation(conversation.id, title);
     } catch {
       saveError.value = true;
     }
@@ -475,7 +492,7 @@ async function removeConversation(conversation) {
   deletingId.value = null;
   try {
     if (conversation.saved) {
-      await api.delete(`/conversations/${conversation.id}`);
+      await deleteConversation(conversation.id);
     }
     conversations.value = conversations.value.filter((c) => c.id !== conversation.id);
     if (conversation.id === currentId.value) {
@@ -494,9 +511,26 @@ const suggestions = computed(() => {
   return ['rowCount', 'describe', 'sample'].map((key) => t(`ChatGptAgent.suggestions.${key}`, { table }));
 });
 
+// The AI layer and the engines throw plain Errors with a message for the user
 function errorDetail(error) {
-  return error.response?.data?.message || (typeof error.response?.data === 'string' && error.response.data)
-    || error.message || t('ChatGptAgent.unknownError');
+  return error?.message || t('ChatGptAgent.unknownError');
+}
+
+// Rows of the result, also beyond the ones it keeps
+function resultTotal(result) {
+  return result.total ?? result.rows.length;
+}
+
+// The last query result (__lastQuery) as { columns, rows of strings, total }: its first QUERY_ROWS rows
+async function readResult() {
+  const [schema, rows, total] = await Promise.all([
+    getTableSchema(engine, '__lastQuery'),
+    sample(engine, '__lastQuery', { records: QUERY_ROWS }),
+    rowCount(engine, '__lastQuery'),
+  ]);
+  const columns = Object.keys(schema);
+  const text = (value) => (value == null ? '' : typeof value === 'object' ? JSON.stringify(value) : String(value));
+  return { columns, rows: rows.map((row) => columns.map((column) => text(row[column]))), total };
 }
 
 async function scrollToEnd() {
@@ -520,23 +554,18 @@ function newChat() {
 }
 
 async function processRecording(recordedBlob) {
-  const formData = new FormData();
-  formData.append('file', recordedBlob, 'audio.wav');
   busy.value = true;
   pendingStatus.value = 'transcribing';
   await scrollToEnd();
   try {
-    const response = await api.post('/gpt/askGPTWhisper', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-      params: { language: currentLanguage() },
-    });
+    const transcription = await transcribe(recordedBlob, currentLanguage());
     pendingStatus.value = null;
     busy.value = false;
-    if (response.data.transcription === 'EMPTY_AUDIO') {
+    if (!transcription) {
       messages.value.push({ id: nextId++, role: 'assistant', error: t('ChatGptAgent.emptyAudio') });
       return;
     }
-    await ask(response.data.transcription);
+    await ask(transcription);
   } catch (error) {
     pendingStatus.value = null;
     busy.value = false;
@@ -547,7 +576,7 @@ async function processRecording(recordedBlob) {
 // One turn: the question becomes SQL, the SQL runs, and the result is explained
 async function ask(text) {
   const question = String(text || '').trim();
-  if (!question || busy.value) {
+  if (!question || busy.value || !ready.value) {
     return;
   }
   draft.value = '';
@@ -562,24 +591,26 @@ async function ask(text) {
   await scrollToEnd();
 
   try {
-    const sql = (await api.get('/gpt/askGPT', { params: { question } })).data;
+    const sql = await askSql(question);
     answer.sql = sql;
     answer.status = 'running';
     await scrollToEnd();
 
-    let csv;
+    let result;
     try {
-      csv = (await api.post('/database/runQuery', { query: sql, rows: QUERY_ROWS })).data;
+      // On the active engine: the backend, or DuckDB in the browser
+      await runUserQuery(engine, sql);
+      result = await readResult();
     } catch (error) {
       answer.error = t('ChatGptAgent.queryFailed', { detail: errorDetail(error) });
       return;
     }
-    answer.result = parseCsv(csv);
+    answer.result = result;
     answer.status = 'explaining';
     await scrollToEnd();
 
     // The explanation, and the chart the AI chose for the result (if any)
-    const explained = (await api.post('/gpt/explainResult', { question, sql, csv, language: currentLanguage() })).data;
+    const explained = await explainResult({ question, sql, result, language: currentLanguage() });
     answer.chart = explained.chart || undefined;
     answer.text = explained.answer;
     answer.status = null;
@@ -599,21 +630,12 @@ async function ask(text) {
 async function speak(message) {
   message.speaking = true;
   try {
-    const response = await api.get('/gpt/text2speech', {
-      params: { text: message.text, language: currentLanguage(), provider: voiceProvider.value },
-      responseType: 'blob',
-    });
-    const audio = new Audio(window.URL.createObjectURL(new Blob([response.data])));
+    const audio = new Audio(window.URL.createObjectURL(await speakText(message.text, currentLanguage())));
     audio.addEventListener('ended', () => { message.speaking = false; });
     await audio.play();
   } catch (error) {
-    // The response is a blob, also when it carries the JSON error
-    let detail = t('ChatGptAgent.unknownError');
-    try {
-      detail = JSON.parse(await error.response.data.text()).message || detail;
-    } catch { /* not JSON */ }
     message.speaking = false;
-    message.error = t('ChatGptAgent.speechError', { detail });
+    message.error = t('ChatGptAgent.speechError', { detail: errorDetail(error) });
   }
 }
 
@@ -623,31 +645,6 @@ async function copySql(message) {
     message.copied = true;
     setTimeout(() => { message.copied = false; }, 1500);
   } catch { /* clipboard blocked */ }
-}
-
-// CSV from /database/runQuery (RFC 4180: quoted fields may hold commas, quotes and newlines)
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') { quoted = false; }
-      else { field += c; }
-    } else if (c === '"') { quoted = true; }
-    else if (c === ',') { row.push(field); field = ''; }
-    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (c !== '\r') { field += c; }
-  }
-  if (field || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
-  const [columns = [], ...data] = rows;
-  return { columns, rows: data };
 }
 
 // Charts of the results: the AI picks the type and the columns, the user can switch the type
@@ -844,6 +841,9 @@ function renderMarkdown(text) {
 }
 .assistant-avatar.small { width: 28px; height: 28px; border-radius: 9px; font-size: .8rem; }
 
+.assistant-key { padding: 12px 20px 0; background: var(--ds-canvas); }
+.assistant-key :deep(.ai-key) { max-width: 860px; margin: 0 auto; }
+
 /* Conversation */
 .assistant-feed { flex: 1; overflow-y: auto; padding: 24px 20px 12px; background: var(--ds-canvas); }
 .assistant-column { max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
@@ -864,7 +864,8 @@ function renderMarkdown(text) {
   transition: border-color .15s, box-shadow .15s, transform .15s;
 }
 .assistant-suggestion i { color: var(--ds-teal); margin-top: 1px; }
-.assistant-suggestion:hover { border-color: #9fd3c3; box-shadow: 0 6px 18px rgba(28, 58, 51, .08); transform: translateY(-1px); }
+.assistant-suggestion:hover:not(:disabled) { border-color: #9fd3c3; box-shadow: 0 6px 18px rgba(28, 58, 51, .08); transform: translateY(-1px); }
+.assistant-suggestion:disabled { opacity: .5; cursor: not-allowed; }
 
 .assistant-message { display: flex; gap: 12px; }
 .assistant-message.from-user { justify-content: flex-end; }

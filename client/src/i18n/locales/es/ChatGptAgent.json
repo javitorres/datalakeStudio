@@ -18,6 +18,7 @@
   },
   "textQuestion": "Pregunta",
   "placeholder": "Pregunta lo que quieras sobre tus datos…",
+  "needsKey": "Añade arriba tu clave de OpenAI para preguntar",
   "ask": "Enviar",
   "disclaimer": "El asistente puede equivocarse: revisa el SQL antes de usarlo.",
   "copy": "Copiar",

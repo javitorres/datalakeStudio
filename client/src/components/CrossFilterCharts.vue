@@ -43,7 +43,8 @@ import {
   LegendComponent,
 } from 'echarts/components';
 import { CanvasRenderer } from 'echarts/renderers';
-import api from '../services/api';
+import { useEngine } from '../engine';
+import { uiType } from '../data/types';
 
 use([
   BarChart,
@@ -66,6 +67,7 @@ const props = defineProps({
 
 const emit = defineEmits(['removeField', 'filterChange']);
 const { t, locale } = useI18n();
+const engine = useEngine();
 
 // Emit the current cross-filter both as a SQL predicate (no WHERE keyword, for
 // querying) and as a human-readable list (for display in the Data/Map tabs).
@@ -112,11 +114,10 @@ function classifyFields() {
   const numeric = [];
   const categorical = [];
   for (const field of props.selectedFields) {
-    const type = props.schema[field];
-    if (!type) continue;
-    if (type.startsWith('int') || type.startsWith('float') || type === 'double' || type === 'bigint') {
+    const type = uiType(props.schema[field]);
+    if (type === 'numeric') {
       numeric.push(field);
-    } else if (type === 'varchar' || type === 'string' || type === 'object') {
+    } else if (type === 'text' || type === 'boolean') {
       categorical.push(field);
     }
   }
@@ -131,8 +132,7 @@ async function fetchInitialRange(field) {
       approx_quantile("${field}", 0.98) AS mx
     FROM "${props.table}"
   `;
-  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
-  const row = res.data[0];
+  const [row] = await engine.query(sql);
   const mn = Number(row.mn);
   const mx = Number(row.mx);
   fieldRanges.value[field] = { mn, mx };
@@ -162,8 +162,7 @@ async function fetchHistogram(field, excludeField) {
     GROUP BY b.bin_start, b.bin_end
     ORDER BY b.bin_start
   `;
-  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
-  return res.data;
+  return engine.query(sql);
 }
 
 async function fetchCategoryCounts(field, excludeField) {
@@ -175,8 +174,7 @@ async function fetchCategoryCounts(field, excludeField) {
     ORDER BY cnt DESC
     LIMIT 50
   `;
-  const res = await api.post(`/database/restConnector`, { type: 'json', sql });
-  return res.data;
+  return engine.query(sql);
 }
 
 function buildWhereClause(excludeField) {

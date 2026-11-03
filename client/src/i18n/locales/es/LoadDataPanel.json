@@ -18,6 +18,7 @@
   "urlToLoad": "URL que cargar",
   "pathToLoad": "Ruta o fichero que cargar",
   "pathPlaceholder": "Ruta del fichero. Empieza por 's3 ' para buscar en tu bucket mientras escribes",
+  "urlPlaceholder": "https://… (un fichero en la web)",
   "uploading": "Subiendo fichero, espera...",
   "uploadDone": "Fichero subido",
   "uploadError": "Error al subir el fichero",

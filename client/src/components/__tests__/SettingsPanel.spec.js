@@ -4,6 +4,9 @@ import SettingsPanel from '../SettingsPanel.vue'
 import { server } from '../../test/msw/server'
 import { i18n, setLocale } from '../../i18n'
 import { aiModel, loadPreferences, voiceProvider } from '../../lib/preferences'
+import { setEngine } from '../../engine'
+import { capabilities } from '../../engine/engine'
+import { fakeEngine } from '../../test/fakeEngine'
 
 const STATUS = {
   files: { config: true, secrets: true },
@@ -36,6 +39,7 @@ function serveStatus(status, preferences = {}) {
 describe('SettingsPanel', () => {
   beforeEach(() => {
     patches = []
+    setEngine(fakeEngine())
   })
 
   afterEach(() => {
@@ -131,5 +135,25 @@ describe('SettingsPanel', () => {
     expect(aiModel.value).toBe('gpt-5.4')
     // Only what the server did not have: what it sent is not saved back
     expect(patches).toEqual([{ voiceProvider: 'openai' }])
+  })
+
+  it('keeps everything in the browser with DuckDB in the browser', async () => {
+    const requests = []
+    server.events.on('request:start', ({ request }) => requests.push(request.url))
+    setEngine({ ...fakeEngine(), mode: 'local', capabilities: capabilities({ ownAi: true }) })
+
+    const wrapper = mount(SettingsPanel)
+    await flushPromises()
+    await wrapper.findAll('.settings-option').find((b) => b.text() === 'Español').trigger('click')
+    await loadPreferences()
+    await flushPromises()
+    server.events.removeAllListeners()
+
+    expect(requests).toEqual([])
+    expect(wrapper.find('.ai-key').exists()).toBe(true)
+    expect(wrapper.find('#aiModelSelect').exists()).toBe(false)
+    expect(wrapper.find('#elevenLabsSwitch').exists()).toBe(false)
+    expect(wrapper.find('.settings-list').exists()).toBe(false)
+    expect(wrapper.text()).toContain('solo en este navegador')
   })
 })

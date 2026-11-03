@@ -45,6 +45,8 @@ h1,h2,h3{font-weight:680}
 .hero h1 em{color:var(--brand);font:inherit}
 .lead{max-width:610px;margin:28px 0;color:var(--ink-soft);font-size:clamp(1rem,1.35vw,1.2rem);line-height:1.75}
 .actions{display:flex;flex-wrap:wrap;gap:11px}
+.browser-note{margin:14px 0 0;font-size:14px;color:var(--ink-soft)}
+.closing-actions{justify-content:center}
 .button{display:inline-flex;align-items:center;justify-content:center;gap:14px;padding:14px 20px;border-radius:9px;font-weight:700;transition:.2s}
 .button:hover{transform:translateY(-2px)}
 .primary{background:var(--ink);color:#fff;box-shadow:0 10px 25px #17211f2b}
@@ -225,7 +227,8 @@ footer a:hover{color:#fff}
     <a href="#workflow">Workflow</a>
     <a href="#sql-api">SQL → API</a>
     <a href="#features">Features</a>
-    <a class="nav-cta" href="https://github.com/javitorres/datalakeStudio">View on GitHub ↗</a>
+    <a href="https://github.com/javitorres/datalakeStudio">GitHub ↗</a>
+    <a class="nav-cta" href="/app/">Open the app →</a>
   </nav>
 </header>
 
@@ -236,9 +239,10 @@ footer a:hover{color:#fff}
     <h1>From raw data to <em>ready-to-use APIs.</em></h1>
     <p class="lead">Load data from files, S3, PostgreSQL or a URL. Explore millions of rows with DuckDB, write SQL or just ask the AI assistant, map it, and publish any query as a live REST API — all in one workspace.</p>
     <div class="actions">
-      <a class="button primary" href="https://github.com/javitorres/datalakeStudio">Get Datalake Studio →</a>
-      <a class="button secondary" href="#sql-api">See it in action ↓</a>
+      <a class="button primary" href="/app/">Try it in your browser →</a>
+      <a class="button secondary" href="https://github.com/javitorres/datalakeStudio">Get Datalake Studio ↗</a>
     </div>
+    <p class="browser-note">No install, no sign-up: DuckDB runs in your browser and your data never leaves your machine.</p>
     <div class="proof"><span>Runs locally</span><span>Powered by DuckDB</span><span>No vendor lock-in</span></div>
   </div>
 
@@ -355,7 +359,10 @@ footer a:hover{color:#fff}
   <small>◉ DATALAKE STUDIO</small>
   <h2>Your data is already telling a story.</h2>
   <p>Open a source and start listening.</p>
-  <a class="button light" href="https://github.com/javitorres/datalakeStudio">Explore the project →</a>
+  <div class="actions closing-actions">
+    <a class="button light" href="/app/">Open the app →</a>
+    <a class="button light" href="https://github.com/javitorres/datalakeStudio">Explore the project ↗</a>
+  </div>
 </section>
 </main>
 

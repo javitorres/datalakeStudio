@@ -1,8 +1,10 @@
-// Preferences set on the Settings page. They are saved on the server for each user, so they follow them to any
-// browser; the browser keeps a copy to start with them before the server answers.
+// Preferences set on the Settings page. With the backend they are saved on the server for each user, so they
+// follow them to any browser; the browser keeps a copy to start with them before the server answers. With DuckDB
+// in the browser they are only kept in this browser.
 import { ref, watch } from 'vue';
 import api from '../services/api';
 import { i18n, setLocale } from '../i18n';
+import { useEngine } from '../engine';
 
 const VOICE_KEY = 'voiceProvider';
 
@@ -33,8 +35,10 @@ function current() {
 
 let applying = false;
 
+const onServer = () => useEngine().mode === 'remote';
+
 async function save(changes) {
-  if (applying) {
+  if (applying || !onServer()) {
     return;
   }
   try {
@@ -52,6 +56,9 @@ watch(aiModel, (value) => save({ aiModel: value }), { flush: 'sync' });
 
 // After login: the user's saved preferences win; the ones they never saved are taken from this browser
 export async function loadPreferences() {
+  if (!onServer()) {
+    return;
+  }
   let saved;
   try {
     saved = (await api.get('/settings/preferences')).data;

@@ -2,6 +2,10 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { http, HttpResponse } from 'msw'
 import ChatGptAgent from '../ChatGptAgent.vue'
 import { server } from '../../test/msw/server'
+import { setEngine } from '../../engine'
+import { fakeEngine, schemaRows } from '../../test/fakeEngine'
+import { capabilities } from '../../engine/engine'
+import { saveAiSettings } from '../../ai'
 
 const API = 'http://localhost:8000'
 
@@ -30,6 +34,25 @@ function serveConversations() {
   )
 }
 
+// The engine runs the SQL and answers with this result as __lastQuery (or fails with `error`)
+function serveResult(columns, rows, { error } = {}) {
+  const engine = fakeEngine({
+    runUserQuery: async (sql) => {
+      engine.ran.push(sql)
+      if (error) throw new Error(error)
+    },
+    query: (sql) => {
+      if (sql.includes('information_schema')) return schemaRows({ t: { zone: 'VARCHAR', trips: 'INTEGER' } })
+      if (sql.startsWith('DESCRIBE')) return columns.map((name) => ({ column_name: name, column_type: 'VARCHAR' }))
+      if (sql.includes('COUNT(*)')) return [{ total: rows.length }]
+      return rows.map((row) => Object.fromEntries(columns.map((name, i) => [name, row[i]])))
+    },
+  })
+  engine.ran = []
+  setEngine(engine)
+  return engine
+}
+
 // vue-echarts needs a canvas: the stub keeps the option it gets
 const ChartStub = { name: 'ChartStub', props: ['option'], template: '<div class="chart-stub"></div>' }
 
@@ -49,6 +72,7 @@ describe('ChatGptAgent', () => {
   beforeEach(() => {
     saved = {}
     serveConversations()
+    serveResult(['n'], [[1]])
   })
 
   it('suggests questions about the user tables', () => {
@@ -66,8 +90,6 @@ describe('ChatGptAgent', () => {
         calls.push(new URL(request.url).searchParams.get('question'))
         return HttpResponse.json('SELECT species, avg(petal_length) AS avg_len FROM iris GROUP BY species')
       }),
-      http.post(`${API}/database/runQuery`, () => new HttpResponse(
-        'species,avg_len\nIris-setosa,1.464\n"Iris, virginica",5.552\n', { headers: { 'Content-Type': 'text/csv' } })),
       http.post(`${API}/gpt/explainResult`, async ({ request }) => {
         calls.push((await request.json()).language)
         return HttpResponse.json({ answer: 'The longest petals:\n\n- **Iris virginica**: 5.552\n- <b>setosa</b>: 1.464', chart: null })
@@ -77,6 +99,7 @@ describe('ChatGptAgent', () => {
         return new HttpResponse('mp3')
       }),
     )
+    const engine = serveResult(['species', 'avg_len'], [['Iris-setosa', 1.464], ['Iris, virginica', 5.552]])
     const wrapper = mountAgent()
 
     await wrapper.find('textarea').setValue('Average petal length per species?')
@@ -84,6 +107,8 @@ describe('ChatGptAgent', () => {
     await flushPromises()
 
     expect(calls).toEqual(['Average petal length per species?', 'en'])
+    // The SQL runs on the active engine
+    expect(engine.ran).toEqual(['SELECT species, avg(petal_length) AS avg_len FROM iris GROUP BY species'])
     expect(wrapper.find('.user-bubble').text()).toBe('Average petal length per species?')
     expect(wrapper.find('.assistant-sql pre').text()).toContain('GROUP BY species')
     expect(wrapper.findAll('.assistant-result th').map((th) => th.text())).toEqual(['species', 'avg_len'])
@@ -101,7 +126,6 @@ describe('ChatGptAgent', () => {
   it('saves a new conversation with an AI title, and renames and deletes it', async () => {
     server.use(
       http.get(`${API}/gpt/askGPT`, () => HttpResponse.json('SELECT 1 AS n')),
-      http.post(`${API}/database/runQuery`, () => new HttpResponse('n\n1\n', { headers: { 'Content-Type': 'text/csv' } })),
       http.post(`${API}/gpt/explainResult`, () => HttpResponse.json({ answer: 'One', chart: null })),
     )
     const wrapper = mountAgent()
@@ -116,7 +140,7 @@ describe('ChatGptAgent', () => {
     expect(conversation.title).toBe('Petal length by species')
     expect(conversation.messages).toEqual([
       { role: 'user', text: 'How long are the petals of each species?' },
-      { role: 'assistant', sql: 'SELECT 1 AS n', result: { columns: ['n'], rows: [['1']] }, text: 'One' },
+      { role: 'assistant', sql: 'SELECT 1 AS n', result: { columns: ['n'], rows: [['1']], total: 1 }, text: 'One' },
     ])
     expect(wrapper.find('.assistant-history-group').text()).toBe('Today')
     expect(wrapper.find('.assistant-history-item.is-active').text()).toContain('Petal length by species')
@@ -140,12 +164,11 @@ describe('ChatGptAgent', () => {
   it('draws the chart the AI chose, and switches its type', async () => {
     server.use(
       http.get(`${API}/gpt/askGPT`, () => HttpResponse.json('SELECT zone, trips, fare FROM t')),
-      http.post(`${API}/database/runQuery`, () => new HttpResponse(
-        'zone,trips,fare\nBronx,3,10.5\nQueens,5,12\n', { headers: { 'Content-Type': 'text/csv' } })),
       http.post(`${API}/gpt/explainResult`, () => HttpResponse.json({
         answer: 'Queens leads', chart: { type: 'pie', title: 'Trips per zone', x: 'zone', y: ['trips'] },
       })),
     )
+    serveResult(['zone', 'trips', 'fare'], [['Bronx', 3, 10.5], ['Queens', 5, 12]])
     const wrapper = mountAgent()
     await wrapper.find('textarea').setValue('Pie chart of trips per zone')
     await wrapper.find('form').trigger('submit')
@@ -195,9 +218,8 @@ describe('ChatGptAgent', () => {
   it('shows a failed query in the conversation', async () => {
     server.use(
       http.get(`${API}/gpt/askGPT`, () => HttpResponse.json('SELECT * FROM nope')),
-      http.post(`${API}/database/runQuery`, () => HttpResponse.json(
-        { status: 'error', message: 'Table nope does not exist' }, { status: 400 })),
     )
+    serveResult([], [], { error: 'Table nope does not exist' })
     const wrapper = mountAgent()
 
     await wrapper.find('textarea').setValue('broken question')
@@ -207,5 +229,64 @@ describe('ChatGptAgent', () => {
     expect(wrapper.find('.assistant-error').text()).toContain('Table nope does not exist')
     expect(wrapper.find('.assistant-status').exists()).toBe(false)
     expect(wrapper.find('.assistant-send').attributes('disabled')).toBeDefined()   // empty draft, not busy
+  })
+
+  describe('with DuckDB in the browser', () => {
+    const OPENAI = 'https://api.openai.com/v1'
+
+    function useBrowserEngine() {
+      const engine = serveResult(['zone', 'trips'], [['Bronx', 3], ['Queens', 5]])
+      engine.mode = 'local'
+      engine.capabilities = capabilities({ ownAi: true })
+      return engine
+    }
+
+    afterEach(() => {
+      localStorage.clear()
+    })
+
+    it('asks for the user key before anything else', () => {
+      useBrowserEngine()
+      const wrapper = mountAgent()
+
+      expect(wrapper.find('.ai-key').text()).toContain('Use your own OpenAI API key')
+      expect(wrapper.find('textarea').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('textarea').attributes('placeholder')).toBe('Add your OpenAI API key above to ask')
+    })
+
+    it('asks OpenAI with the key and keeps the conversation in this browser', async () => {
+      const serverCalls = []
+      server.use(
+        http.all(`${API}/*`, ({ request }) => {
+          serverCalls.push(request.url)
+          return HttpResponse.json({})
+        }),
+        http.post(`${OPENAI}/chat/completions`, async ({ request }) => {
+          const body = await request.json()
+          const system = body.messages[0].content
+          const content = body.response_format
+            ? JSON.stringify({ answer: 'Queens leads', chart: { type: 'bar', title: 'Trips', x: 'zone', y: ['trips'] } })
+            : system.startsWith('Give a short title') ? 'Trips per zone' : 'SELECT zone, trips FROM t'
+          return HttpResponse.json({ choices: [{ message: { content } }] })
+        }),
+      )
+      useBrowserEngine()
+      saveAiSettings({ key: 'sk-test' })
+      const wrapper = mountAgent()
+      await flushPromises()
+
+      await wrapper.find('textarea').setValue('Trips per zone?')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      expect(wrapper.find('.assistant-sql pre').text()).toBe('SELECT zone, trips FROM t')
+      expect(wrapper.find('.assistant-text').text()).toBe('Queens leads')
+      expect(wrapper.findComponent(ChartStub).props('option').series[0].data).toEqual([3, 5])
+      const stored = Object.values(JSON.parse(localStorage.getItem('datalakeStudio.conversations')))
+      expect(stored.map((c) => [c.title, c.messages.length])).toEqual([['Trips per zone', 2]])
+      expect(wrapper.find('.assistant-history-open').text()).toBe('Trips per zone')
+      // Nothing goes to the Datalake Studio server
+      expect(serverCalls).toEqual([])
+    })
   })
 })

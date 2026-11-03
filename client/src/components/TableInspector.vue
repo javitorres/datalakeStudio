@@ -47,7 +47,7 @@
         <button :class="{ active: showMosaic }" @click="toggleMosaic()">
           <i class="bi bi-bar-chart"></i><span>{{ t('TableInspector.views.charts') }}</span><small>{{ t('TableInspector.views.chartsHint') }}</small>
         </button>
-        <button :class="{ active: showMap }" @click="mapData(tableName)">
+        <button v-if="engine.capabilities.maps" :class="{ active: showMap }" @click="mapData(tableName)">
           <i class="bi bi-map"></i><span>{{ t('TableInspector.views.map') }}</span><small>{{ t('TableInspector.views.mapHint') }}</small>
         </button>
       </nav>
@@ -151,7 +151,9 @@
 <script setup>
 import { onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import api from '../services/api';
+import { useEngine } from '../engine';
+import { getTableSchema as fetchTableSchema, profile, rowCount, sample } from '../data/tables';
+import { uiType } from '../data/types';
 import { TabulatorFull as Tabulator } from 'tabulator-tables';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
@@ -167,7 +169,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
-
+const engine = useEngine();
 let myTabulator = null;
 
 const selectedFields = ref(null);
@@ -270,9 +272,10 @@ function setRecords(newRecords) {
 }
 
 async function load() {
-  await getSampleData(props.tableName);
-  await getRowcount();
+  // The schema first: the data table takes its columns from it once it's built
   await getTableSchema(props.tableName);
+  await getRowcount();
+  await getSampleData(props.tableName);
 }
 
 function imageSrc(typeInput) {
@@ -286,44 +289,24 @@ function imageSrc(typeInput) {
 }
 
 async function getRowcount() {
-  await api.get(`/database/getRowCount`, {
-    params: {
-      tableName: props.tableName,
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      rowcount.value = response.data.rows;
-    } else {
-      toast.error(t('TableInspector.httpError', { detail: response.message }));
-    }
-  }).catch(() => {
+  try {
+    rowcount.value = await rowCount(engine, props.tableName);
+  } catch (error) {
     toast.error(t('TableInspector.rowcountError'));
-  }).finally(() => {
+  } finally {
     loading.value = false;
-  });
+  }
 }
 
 async function getTableSchema(tableName) {
-  await api.get(`/database/getTableSchema`, {
-    params: {
-      tableName: tableName,
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      tableSchema.value = response.data;
-
-      selectedFields.value = [];
-      for (var key in tableSchema.value) {
-        selectedFields.value.push(key).field;
-      }
-    } else {
-      toast.error(t('TableInspector.httpError', { detail: response.message }));
-    }
-  }).catch(() => {
+  try {
+    tableSchema.value = await fetchTableSchema(engine, tableName);
+    selectedFields.value = Object.keys(tableSchema.value);
+  } catch (error) {
     toast.error(t('TableInspector.schemaError'));
-  }).finally(() => {
+  } finally {
     loading.value = false;
-  });
+  }
 }
 
 async function getSampleData(tableName) {
@@ -333,40 +316,33 @@ async function getSampleData(tableName) {
   showMap.value = false;
   showMosaic.value = false;
 
-  await api.get(`/database/getSampleData`, {
-    params: {
-      tableName: tableName,
+  try {
+    sampleData.value = await sample(engine, tableName, {
       type: type.value,
       records: records.value,
       filter: dataShowFiltered.value ? activeFilter.value : '',
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      sampleData.value = response.data;
+    });
 
-      myTabulator = new Tabulator(table.value, {
-        data: sampleData.value,
-        importFormat: 'csv',
-        autoColumns: true,
-        layout: 'fitDataTable',
-        columnDefaults: {
-          headerTooltip: true,
-          tooltip: true,
-        },
-        persistence: true,
-      });
-    } else {
-      toast.error(t('TableInspector.httpError', { detail: response.message }));
-    }
-  }).catch((error) => {
+    myTabulator = new Tabulator(table.value, {
+      data: sampleData.value,
+      autoColumns: true,
+      // Column names are used as they are: a dot in one doesn't mean a nested field
+      nestedFieldSeparator: false,
+      layout: 'fitDataTable',
+      columnDefaults: {
+        headerTooltip: true,
+        tooltip: true,
+      },
+      persistence: true,
+    });
+    myTabulator.on('tableBuilt', () => {
+      updateTable();
+    });
+  } catch (error) {
     toast.error(t('TableInspector.httpError', { detail: error.message }));
-  }).finally(() => {
+  } finally {
     loading.value = false;
-  });
-
-  myTabulator.on('tableBuilt', () => {
-    updateTable();
-  });
+  }
 }
 
 async function getTableProfile(tableName) {
@@ -376,14 +352,8 @@ async function getTableProfile(tableName) {
   showMap.value = false;
   showMosaic.value = false;
 
-  const fetchData = () => api.get(`/database/getTableProfile`, {
-    params: {
-      tableName: tableName,
-    },
-  });
-
   toast.promise(
-    fetchData(),
+    profile(engine, tableName),
     {
       pending: t('TableInspector.profileLoading'),
       success: t('TableInspector.profileLoaded'),
@@ -392,22 +362,20 @@ async function getTableProfile(tableName) {
     {
       position: toast.POSITION.BOTTOM_RIGHT,
     }
-  ).then((response) => {
-    if (response.status === 200) {
-      tableProfile.value = response.data;
+  ).then((rows) => {
+    tableProfile.value = rows;
 
-      new Tabulator(tableProfileEl.value, {
-        data: tableProfile.value,
-        reactiveData: true,
-        layout: 'fitDataTable',
-        importFormat: 'csv',
-        autoColumns: true,
-        columnDefaults: {
-          headerTooltip: true,
-          tooltip: true,
-        },
-      });
-    }
+    new Tabulator(tableProfileEl.value, {
+      data: tableProfile.value,
+      reactiveData: true,
+      layout: 'fitDataTable',
+      autoColumns: true,
+      nestedFieldSeparator: false,
+      columnDefaults: {
+        headerTooltip: true,
+        tooltip: true,
+      },
+    });
   }).catch((error) => {
     console.error('Error: ', error.message);
   });
@@ -457,18 +425,9 @@ function generateCharts() {
     if (selectedFields.value.includes(key)) {
       var chart = {
         title: key,
-        type: tableSchema.value[key],
+        type: { numeric: 'numerical', temporal: 'date' }[uiType(tableSchema.value[key])] || 'categorical',
         fields: key
       };
-      if (chart.type === 'object' || chart.type === 'bool') {
-        chart.type = 'categorical';
-      } else if (chart.type === 'int64' || chart.type === 'float64') {
-        chart.type = 'numerical';
-      } else if (chart.type === 'datetime64[ns]') {
-        chart.type = 'date';
-      } else {
-        chart.type = 'categorical';
-      }
       charts.push(chart);
     }
   }

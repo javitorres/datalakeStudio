@@ -6,6 +6,16 @@
         <h2>{{ $t('Welcome.titleLine1') }}<br><em>{{ $t('Welcome.titleLine2') }}</em></h2>
         <p>{{ $t('Welcome.intro') }}</p>
         <a href="https://github.com/javitorres/datalakeStudio" target="_blank">{{ $t('Welcome.docs') }} <i class="bi bi-arrow-up-right"></i></a>
+        <div v-if="sampleAvailable" class="sample-box">
+          <div>
+            <b><i class="bi bi-taxi-front"></i> {{ $t('Welcome.sample.title') }}</b>
+            <small>{{ $t('Welcome.sample.text', { rows: sample.rows, size: sample.size }) }}</small>
+          </div>
+          <button :disabled="loadingSample" @click="loadSample">
+            <span v-if="loadingSample" class="spinner-border spinner-border-sm"></span>
+            <i v-else class="bi bi-download"></i> {{ $t('Welcome.sample.load') }}
+          </button>
+        </div>
       </div>
       <div class="welcome-visual">
         <div class="visual-orbit orbit-one"></div><div class="visual-orbit orbit-two"></div>
@@ -24,10 +34,51 @@
   </section>
 </template>
 
+<script setup>
+import { onMounted, ref } from 'vue';
+import { toast } from 'vue3-toastify';
+import { useI18n } from 'vue-i18n';
+import { useEngine } from '../engine';
+
+const emit = defineEmits(['tableCreated', 'openTables']);
+const engine = useEngine();
+const { t } = useI18n();
+
+// Served with the app (scripts/build-samples.mjs): the browser loads it without CORS or third parties
+const sample = { file: 'samples/nyc_taxi_2024_01.parquet', table: 'nyc_taxi', rows: '198k', size: '3 MB' };
+const sampleUrl = new URL(sample.file, document.baseURI).href;
+const sampleAvailable = ref(false);
+const loadingSample = ref(false);
+
+onMounted(async () => {
+  try {
+    const response = await fetch(sampleUrl, { method: 'HEAD' });
+    sampleAvailable.value = response.ok;
+  } catch (_) {
+    sampleAvailable.value = false;
+  }
+});
+
+async function loadSample() {
+  loadingSample.value = true;
+  try {
+    await engine.loadFile({ url: sampleUrl, tableName: sample.table });
+    toast.success(t('Welcome.sample.ready', { table: sample.table }));
+    emit('tableCreated');
+    emit('openTables');
+  } catch (error) {
+    toast.error(t('Welcome.sample.error', { detail: error.message }));
+  } finally {
+    loadingSample.value = false;
+  }
+}
+</script>
+
 <style scoped>
 .welcome-shell{display:grid;gap:13px;min-height:calc(100vh - 110px)}
 .welcome-card{min-height:480px;display:grid;grid-template-columns:1fr 1fr;align-items:center;overflow:hidden;position:relative;padding:clamp(35px,6vw,85px);border:1px solid var(--ds-line);border-radius:16px;background:radial-gradient(circle at 80% 20%,rgba(116,202,181,.25),transparent 28%),linear-gradient(135deg,#fff,#f1f8f5);box-shadow:var(--ds-shadow)}
 .welcome-card::before{content:'';position:absolute;inset:0;opacity:.25;background-image:linear-gradient(#dce8e4 1px,transparent 1px),linear-gradient(90deg,#dce8e4 1px,transparent 1px);background-size:44px 44px;mask-image:linear-gradient(to right,transparent 30%,#000 80%)}
 .welcome-copy,.welcome-visual{position:relative;z-index:1}.welcome-kicker{display:inline-flex;align-items:center;gap:8px;color:#4d625d;font-size:9px;font-weight:800;letter-spacing:.16em}.welcome-kicker i{width:7px;height:7px;border-radius:50%;background:var(--ds-teal);box-shadow:0 0 0 4px rgba(13,132,111,.1)}h2{margin:18px 0;font-size:clamp(2.7rem,5vw,5.4rem);line-height:.94;letter-spacing:-.065em;font-weight:680;color:var(--ds-ink)}h2 em{font:inherit;color:var(--ds-teal)}.welcome-copy p{max-width:530px;color:var(--ds-muted);font-size:15px;line-height:1.75}.welcome-copy a{display:inline-flex;align-items:center;gap:10px;margin-top:10px;padding:11px 15px;border-radius:8px;background:var(--ds-ink);color:#fff;font-size:11px;font-weight:700}.welcome-visual{min-height:320px;display:grid;place-items:center}.welcome-visual>img{width:100px;height:100px;padding:23px;border:1px solid #cce1db;border-radius:27px;background:#fff;box-shadow:0 20px 50px rgba(34,74,64,.16)}.visual-orbit{position:absolute;border:1px dashed #91bdb1;border-radius:50%}.orbit-one{width:250px;height:250px}.orbit-two{width:340px;height:340px;opacity:.55}.node{position:absolute;display:flex;align-items:center;gap:7px;padding:8px 11px;border:1px solid #d6e4e0;border-radius:8px;background:#fffffff2;box-shadow:0 8px 20px rgba(35,70,61,.1);color:#52635f;font-size:9px;font-weight:700}.node i{color:var(--ds-teal);font-size:12px}.node-a{top:8%;left:18%}.node-b{top:24%;right:8%}.node-c{bottom:13%;right:15%}.node-d{bottom:5%;left:12%}.welcome-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:13px}.welcome-grid article{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--ds-line);border-radius:12px;background:#fff}.welcome-grid article>span{align-self:flex-start;color:#9ca8a5;font-size:8px;font-weight:800}.welcome-grid article>i{width:37px;height:37px;display:grid;place-items:center;border-radius:9px;background:var(--ds-mint);color:var(--ds-teal);font-size:15px}.welcome-grid div{display:grid}.welcome-grid b{font-size:11px}.welcome-grid small{color:var(--ds-muted);font-size:9px}
+.sample-box{display:flex;align-items:center;gap:14px;max-width:560px;margin-top:22px;padding:13px 15px;border:1px solid #cfe3dd;border-radius:12px;background:#fffffff0}.sample-box div{display:grid;gap:3px}.sample-box b{font-size:12px;color:var(--ds-ink)}.sample-box b i{color:var(--ds-teal)}.sample-box small{color:var(--ds-muted);font-size:10.5px;line-height:1.45}.sample-box button{flex:none;display:inline-flex;align-items:center;gap:7px;padding:9px 13px;border:0;border-radius:8px;background:var(--ds-teal);color:#fff;font-size:11px;font-weight:700}.sample-box button:disabled{opacity:.7}
 @media(max-width:850px){.welcome-card{grid-template-columns:1fr}.welcome-visual{display:none}.welcome-grid{grid-template-columns:1fr}.welcome-card{min-height:430px}h2{font-size:clamp(2.8rem,13vw,4.4rem)}}
 </style>

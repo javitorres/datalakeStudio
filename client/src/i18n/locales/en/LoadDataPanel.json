@@ -18,6 +18,7 @@
   "urlToLoad": "URL to load",
   "pathToLoad": "Path or file to load",
   "pathPlaceholder": "Path to the file. Start with 's3 ' to search your bucket while you type",
+  "urlPlaceholder": "https://… (a file on the web)",
   "uploading": "Uploading file, please wait...",
   "uploadDone": "Upload finished",
   "uploadError": "Error uploading file",

@@ -12,6 +12,7 @@
   "elevenLabsMissing": "Añade elevenlabs_api_key a server/secrets.yml para activarlo.",
   "savedOnServer": "Tus preferencias (idioma, modelo y voz) se guardan en el servidor y te siguen en cualquier navegador.",
   "saveError": "No se han podido guardar tus preferencias en el servidor.",
+  "savedInBrowser": "Con DuckDB en el navegador no hay servidor: el idioma, tu clave de OpenAI y el modelo se guardan solo en este navegador.",
   "integrations": "Integraciones",
   "integrationsHelp": "Lo que el servidor ha leído de config.yml y secrets.yml. Nunca se muestran los valores.",
   "statusError": "No se ha podido leer la configuración del servidor.",

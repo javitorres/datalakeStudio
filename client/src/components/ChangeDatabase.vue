@@ -39,11 +39,12 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
-import api from '../services/api';
+import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const { t } = useI18n();
+const engine = useEngine();
 const databases = ref(null);
 const activeDatabase = ref(null);
 const newDatabaseName = ref('newdatabase.db');
@@ -56,14 +57,9 @@ const emit = defineEmits(['changedDatabase']);
 
 const getDatabaseList = async () => {
   try {
-    const response = await api.get(`/database/getDatabaseList`);
-    databases.value = response.data;
-    // Preferred source: explicit header from backend.
-    activeDatabase.value = response.headers['x-current-database'] || null;
-    if (!activeDatabase.value && Array.isArray(databases.value) && databases.value.length > 0) {
-      // Backward compatibility fallback.
-      activeDatabase.value = databases.value[0];
-    }
+    const { databases: names, current } = await engine.listDatabases();
+    databases.value = names;
+    activeDatabase.value = current;
   } catch (error) {
     toast.error(t('ChangeDatabase.listError'));
   }
@@ -75,17 +71,13 @@ function isActiveDatabase(db) {
 
 const changeDatabase = async (databaseName) => {
   try {
-    await api.get(`/database/changeDatabase`, {
-      params: {
-        databaseName: databaseName
-      }
-    });
+    await engine.useDatabase(databaseName);
     toast.success(t('ChangeDatabase.changed'));
     activeDatabase.value = databaseName;
     getDatabaseList();
     emit('changedDatabase', databaseName);
   } catch (error) {
-    toast.error(t('ChangeDatabase.changeError', { error: String(error) }));
+    toast.error(t('ChangeDatabase.changeError', { error: error.message }));
   }
 };
 
@@ -95,11 +87,7 @@ const createDatabase = async () => {
     return;
   }
   try {
-    await api.get(`/database/createDatabase`, {
-      params: {
-        databaseName: newDatabaseName.value
-      }
-    });
+    await engine.createDatabase(newDatabaseName.value);
     toast.success(t('ChangeDatabase.created'));
     newDatabaseName.value = '';
     getDatabaseList();

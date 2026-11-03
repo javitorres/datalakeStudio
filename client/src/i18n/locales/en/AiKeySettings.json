@@ -1,0 +1,13 @@
+{
+  "using": "Using your OpenAI key",
+  "change": "Change",
+  "forget": "Forget key",
+  "title": "Use your own OpenAI API key",
+  "privacy": "It's kept only in this browser and sent only to OpenAI. To answer, the assistant sends OpenAI your question and the names and types of your tables' columns. Your tables themselves never leave this browser.",
+  "privacyWithRows": "It's kept only in this browser and sent only to OpenAI. To answer, the assistant sends OpenAI your question, the names and types of your tables' columns, and the first rows of each query result to explain it. Your tables themselves never leave this browser.",
+  "key": "API key",
+  "model": "Model",
+  "save": "Save in this browser",
+  "cancel": "Cancel",
+  "getKey": "Get a key"
+}

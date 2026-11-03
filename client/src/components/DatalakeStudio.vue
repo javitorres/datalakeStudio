@@ -30,7 +30,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.remoteDb">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'remoteDb' }"
               @click.prevent="activeMenu = 'remoteDb'" :title="t('DatalakeStudio.tooltips.remoteDb')" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -52,7 +52,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.apiEnrichment">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiRetriever' }"
               @click.prevent="activeMenu = 'apiRetriever'" :title="t('DatalakeStudio.tooltips.apiRetriever')" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -60,7 +60,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.publishApi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'apiServer' }"
               @click.prevent="activeMenu = 'apiServer'" :title="t('DatalakeStudio.tooltips.apiServer')" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -68,7 +68,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.s3">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 's3' }"
               @click.prevent="activeMenu = 's3'" :title="t('DatalakeStudio.tooltips.s3')" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -76,7 +76,7 @@
             </a>
           </li>
 
-          <li>
+          <li v-if="caps.serverAi || caps.ownAi">
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'chatgpt' }"
               @click.prevent="activeMenu = 'chatgpt'" :title="t('DatalakeStudio.tooltips.chatgpt')" data-bs-toggle="tooltip"
               data-bs-placement="right">
@@ -139,6 +139,16 @@
           <div><span class="workspace-kicker">Datalake Studio</span><h1>{{ t(`DatalakeStudio.sections.${activeMenuMeta.key}`) }}</h1></div>
         </div>
         <div class="workspace-status">
+          <div v-if="canChooseEngine" class="engine-switch" role="group" :aria-label="t('DatalakeStudio.engine.where')">
+            <button :class="{ active: engine.mode === 'remote' }" @click="chooseEngine('remote')"
+              :title="t('DatalakeStudio.engine.serverHelp')"><i class="bi bi-hdd-network"></i> {{ t('DatalakeStudio.engine.server') }}</button>
+            <button :class="{ active: engine.mode === 'local' }" @click="chooseEngine('local')"
+              :title="t('DatalakeStudio.engine.browserHelp')"><i class="bi bi-laptop"></i> {{ t('DatalakeStudio.engine.browser') }}</button>
+          </div>
+          <span v-else-if="engine.mode === 'local'" class="engine-badge"
+            :title="t('DatalakeStudio.engine.badgeHelp')">
+            <i class="bi bi-shield-lock"></i> {{ t('DatalakeStudio.engine.badge') }}
+          </span>
           <span class="status-dot"></span>
           <span>{{ t('DatalakeStudio.tables', tables.length) }}</span>
           <span v-if="username && username !== 'default'" class="workspace-user">{{ username }}</span>
@@ -154,7 +164,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import api from '../services/api';
+import { canChooseEngine, switchEngine, useEngine } from '../engine';
+import { dropTable, listTables, renameTable as renameTableIn } from '../data/tables';
 
 import Welcome from './Welcome.vue';
 import LoadDataPanel from './LoadDataPanel.vue';
@@ -177,6 +188,8 @@ const props = defineProps({
   username: { type: String, default: '' }
 });
 
+const engine = useEngine();
+const caps = engine.capabilities;
 const activeMenu = ref('welcome');
 const tables = ref([]);
 const showUserMenu = ref(false);
@@ -265,6 +278,8 @@ const currentProps = computed(() => {
 
 const currentListeners = computed(() => {
   switch (activeMenu.value) {
+    case 'welcome':
+      return { tableCreated, openTables: () => { activeMenu.value = 'showTables'; } };
     case 'loadData':
       return { tableCreated };
     case 'remoteDb':
@@ -285,48 +300,39 @@ const currentListeners = computed(() => {
 });
 
 async function getTables() {
-  await api.get(`/database/getTables`, {
-    params: {},
-  }).then((response) => {
-    tables.value = response.data;
-  }).catch(() => {
+  try {
+    tables.value = await listTables(engine);
+    const notice = engine.takeNotice?.();
+    if (notice) toast.warning(notice, { autoClose: false });
+  } catch (error) {
     toast.error(t('DatalakeStudio.errorLoadingTables'));
-  });
+  }
 }
 
 async function deleteTable(table) {
-  await api.get(`/database/deleteTable`, {
-    params: {
-      tableName: table,
-    },
-  }).then((response) => {
-    if (response.status === 200) {
-      toast.success(t('DatalakeStudio.tableDeleted'));
-      getTables();
-    } else {
-      toast.error(t('DatalakeStudio.errorDeleting', { detail: response.message }));
-    }
-  }).catch((error) => {
+  try {
+    await dropTable(engine, table);
+    toast.success(t('DatalakeStudio.tableDeleted'));
+    getTables();
+  } catch (error) {
     toast.error(t('DatalakeStudio.errorDeleting', { detail: error.message }));
-  });
+  }
 }
 
 async function renameTable({ from, to, onResult }) {
   try {
-    await api.get(`/database/renameTable`, {
-      params: {
-        tableName: from,
-        newName: to,
-      },
-    });
+    await renameTableIn(engine, from, to);
     toast.success(t('DatalakeStudio.tableRenamed', { name: to }));
     onResult?.(true);
     getTables();
   } catch (error) {
-    const detail = error.response?.data?.message || error.message;
-    toast.error(t('DatalakeStudio.errorRenaming', { detail }));
+    toast.error(t('DatalakeStudio.errorRenaming', { detail: error.message }));
     onResult?.(false);
   }
+}
+
+function chooseEngine(mode) {
+  if (mode !== engine.mode) switchEngine(mode);
 }
 
 async function tableCreated() {
@@ -491,6 +497,10 @@ async function changedDatabase(id) {
 .workspace-kicker { display:block; color:#86938f; font-size:9px; font-weight:750; letter-spacing:.13em; text-transform:uppercase; }
 .workspace-heading h1 { margin:1px 0 0; color:var(--ds-ink); font-size:1.03rem; font-weight:750; letter-spacing:-.02em; }
 .workspace-status { display:flex; align-items:center; gap:8px; color:#72807c; font-size:11px; }
+.engine-switch { display:inline-flex; padding:2px; margin-right:6px; border:1px solid #d9e5e1; border-radius:8px; background:#f3f7f5; }
+.engine-switch button { border:0; background:transparent; color:#72807c; font-size:11px; padding:3px 9px; border-radius:6px; }
+.engine-switch button.active { background:#fff; color:#0d846f; font-weight:600; box-shadow:0 1px 2px rgba(23,33,31,.08); }
+.engine-badge { display:inline-flex; align-items:center; gap:5px; margin-right:6px; padding:3px 9px; border-radius:999px; background:#e6f4f0; color:#0d846f; font-weight:600; }
 .status-dot { width:7px; height:7px; border-radius:50%; background:#1aa382; box-shadow:0 0 0 4px rgba(26,163,130,.11); }
 .workspace-user { margin-left:7px; padding:5px 9px; border-radius:20px; background:#edf3f1; color:#485955; font-weight:650; }
 .user-menu-wrapper { bottom:24px; left:26px; }

@@ -56,7 +56,8 @@
     "noPoints": "No points were found in the visible area.",
     "pointsLoad": "The point layer could not be loaded.",
     "config": "Map configuration could not be loaded.",
-    "basemap": "The base map could not be loaded."
+    "basemap": "The base map could not be loaded.",
+    "selectColumns": "Select latitude and longitude columns or a geometry column"
   },
   "popup": {
     "h3": "H3 properties",

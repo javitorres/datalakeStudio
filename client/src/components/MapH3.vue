@@ -292,7 +292,6 @@
       <div v-if="geometadata" class="alert alert-light" role="alert">
         <strong><b>{{ $t('MapH3.metadata.h3Layer') }}</b></strong><br>
         <strong>{{ $t('MapH3.metadata.records') }}</strong> {{ geometadata.records }}<br>
-        <strong>{{ $t('MapH3.metadata.dfSize') }}</strong> {{ $t('MapH3.metadata.megabytes', { value: geometadata.dfsize }) }}<br>
         <strong>{{ $t('MapH3.metadata.payloadSize') }}</strong> {{ $t('MapH3.metadata.megabytes', { value: geometadata.objectSize }) }}<br>
         <strong>{{ $t('MapH3.metadata.time') }}</strong> {{ $t('MapH3.metadata.seconds', { value: geometadata.time }) }}<br>
         <strong>{{ $t('MapH3.metadata.h3Radix') }}</strong> {{ $t('MapH3.metadata.meters', { value: h3Radix }) }}<br>
@@ -312,11 +311,13 @@
 
 <script>
 import "mapbox-gl/dist/mapbox-gl.css";
+import "maplibre-gl/dist/maplibre-gl.css";
 import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
+import { useEngine } from '../engine';
+import { dataExtent, mapCells, mapGeometries, mapPoints } from '../data/maps';
+import { uiType } from '../data/types';
 import { toast } from 'vue3-toastify';
-import qs from 'qs';
-import csv2geojson from 'csv2geojson';
 import DataSelector from './DataSelector.vue';
 
 const rasterStyle = (tiles, attribution) => ({
@@ -392,7 +393,6 @@ export default {
       minPoints: 0,
       maxPoints: 100,
       limitsPointsSetedManually: false,
-      csvData: null,
       pointsGeojson: null,
       pointSize: 5,
       mapError: null,
@@ -400,6 +400,7 @@ export default {
       activeRequests: 0,
       h3RequestId: 0,
       pointsRequestId: 0,
+      extentRequestId: 0,
       popupHandlersBound: false,
 
     };
@@ -414,6 +415,9 @@ export default {
     },
     canRenderH3() {
       return Boolean(this.mapLoaded && this.hasLocation);
+    },
+    locationKey() {
+      return [this.table, this.latitudeField, this.longitudeField, this.geomField].join("|");
     },
     canRenderPoints() {
       return Boolean(this.mapLoaded && this.hasCoordinates);
@@ -474,6 +478,10 @@ export default {
       deep: true,
       immediate: true
     },
+    // Another table or other location columns: show the area where their data is
+    locationKey() {
+      this.fitToData();
+    },
     filter() {
       // Cross-filter changed: drop cached layers and reload with the new predicate.
       this.geojson = null;
@@ -507,7 +515,7 @@ export default {
       };
       this.selectedStyle = this.mapStyles.light;
     }
-    this.initMap();
+    await this.initMap();
   },
   beforeUnmount() {
     this.h3RequestId += 1;
@@ -521,6 +529,10 @@ export default {
     // so tell Mapbox to recompute its size when the Map tab becomes visible again.
     this.$nextTick(() => {
       if (this.map) this.map.resize();
+      if (this.pendingFit) {
+        this.pendingFit = false;
+        this.fitToData();
+      }
       // The cross-filter may have changed while the map was hidden (deactivated
       // components don't reliably run watchers), so reload if it no longer matches.
       if (this.filter !== this.appliedFilter) {
@@ -536,8 +548,7 @@ export default {
       const schema = this.schema || {};
       const selected = new Set(this.selectedFields || Object.keys(schema));
       this.numericFields = Object.keys(schema).filter((field) => {
-        const type = String(schema[field] || "");
-        return selected.has(field) && /(int|float|double|decimal|numeric|real)/i.test(type);
+        return selected.has(field) && uiType(schema[field]) === "numeric";
       });
 
       if (!this.selectedFieldForH3 ||
@@ -609,10 +620,14 @@ export default {
       await Promise.all(tasks);
     },
     ////////////////////////////
-    async reloadMap(layer, reloadData = false, reloadLimits = false) {
+    async reloadMap(layer, reloadData = false, reloadLimits = false, refitted = false) {
       if (layer === "H3") {
         if (!this.canRenderH3) return;
         if (reloadData || !this.geojson) this.geojson = await this.fetchGeojsonData();
+        // Nothing in the visible area: move to where the data is and ask again
+        if (!this.geojson?.features?.length && !refitted && await this.fitToData()) {
+          return this.reloadMap(layer, true, reloadLimits, true);
+        }
         if (!this.geojson) return;
         if (reloadLimits || !this.percentilesH3) {
           this.limitsSetedManually = false;
@@ -621,6 +636,9 @@ export default {
       } else if (layer === "POINTS") {
         if (!this.canRenderPoints) return;
         if (reloadData || !this.pointsGeojson) this.pointsGeojson = await this.fetchPointsData();
+        if (!this.pointsGeojson?.features?.length && !refitted && await this.fitToData()) {
+          return this.reloadMap(layer, true, reloadLimits, true);
+        }
         if (!this.pointsGeojson) return;
         if (reloadLimits) {
           this.limitsPointsSetedManually = false;
@@ -639,31 +657,55 @@ export default {
       this.mapError = null;
 
       try {
-        const response = await api.get("/maps/geojson", {
-          params: {
-            table: this.table,
-            latitudeField: this.latitudeField || "",
-            longitudeField: this.longitudeField || "",
-            geomField: this.geomField || "",
-            fields: this.numericFields,
-            level: Number(this.h3Level),
-            bbox,
-            filter: this.filter || ""
-          },
-          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
-        });
+        const options = { table: this.table, fields: this.numericFields, bbox, filter: this.filter || "" };
+        let response;
+        if (this.latitudeField && this.longitudeField) {
+          response = await mapCells(useEngine(), {
+            ...options, latitudeField: this.latitudeField, longitudeField: this.longitudeField, level: Number(this.h3Level)
+          });
+        } else if (this.geomField) {
+          response = await mapGeometries(useEngine(), { ...options, geomField: this.geomField });
+        } else {
+          throw new Error(this.$t("MapH3.errors.selectColumns"));
+        }
         if (requestId !== this.h3RequestId) return null;
-        this.geometadata = response.data.metadata;
-        const result = response.data.geojson;
+        this.geometadata = response.metadata;
+        const result = response.geojson;
         if (!result?.features?.length) this.mapError = { key: "MapH3.errors.noSpatialRecords" };
         return result;
       } catch (error) {
         if (requestId !== this.h3RequestId) return null;
-        this.mapError = this.errorFrom(error.response?.data?.detail, "MapH3.errors.h3Load");
+        this.mapError = this.errorFrom(error.message, "MapH3.errors.h3Load");
         toast.error(this.mapErrorText);
         return null;
       } finally {
         this.endRequest();
+      }
+    },
+    // Moves the map to the area where the data is (the map opens over Spain). Returns whether it moved.
+    async fitToData() {
+      if (!this.map || !this.mapLoaded || !this.hasLocation) return false;
+      const requestId = ++this.extentRequestId;
+      try {
+        const extent = await dataExtent(useEngine(), {
+          table: this.table,
+          latitudeField: this.hasCoordinates ? this.latitudeField : null,
+          longitudeField: this.hasCoordinates ? this.longitudeField : null,
+          geomField: this.geomField,
+          filter: this.filter || ""
+        });
+        if (!extent || requestId !== this.extentRequestId) return false;
+        // Hidden (another tab of the explorer): it has no size to fit to yet, so do it when shown
+        if (!this.map.getContainer().offsetWidth) {
+          this.pendingFit = true;
+          return false;
+        }
+        this.map.fitBounds([[extent.west, extent.south], [extent.east, extent.north]],
+          { padding: 40, maxZoom: 14, duration: 0 });
+        return true;
+      } catch (error) {
+        // The map just stays where it is
+        return false;
       }
     },
     currentBbox() {
@@ -684,27 +726,13 @@ export default {
       this.mapError = null;
 
       try {
-        const response = await api.get("/maps/csv", {
-          params: {
-            table: this.table,
-            latitudeField: this.latitudeField,
-            longitudeField: this.longitudeField,
-            fields: this.numericFields,
-            bbox: this.currentBbox(),
-            filter: this.filter || ""
-          },
-          paramsSerializer: params => qs.stringify(params, { arrayFormat: "comma" })
-        });
-        if (requestId !== this.pointsRequestId) return null;
-
-        this.csvData = response.data;
-        const pointsGeojson = await new Promise((resolve, reject) => {
-          csv2geojson.csv2geojson(response.data, {
-            latfield: "latitude",
-            lonfield: "longitude",
-            delimiter: ",",
-            numericFields: this.numericFields.join(",")
-          }, (error, data) => error ? reject(error) : resolve(data));
+        const pointsGeojson = await mapPoints(useEngine(), {
+          table: this.table,
+          latitudeField: this.latitudeField,
+          longitudeField: this.longitudeField,
+          fields: this.numericFields,
+          bbox: this.currentBbox(),
+          filter: this.filter || ""
         });
         if (requestId !== this.pointsRequestId) return null;
         this.totalPoints = pointsGeojson?.features?.length || 0;
@@ -712,7 +740,7 @@ export default {
         return pointsGeojson;
       } catch (error) {
         if (requestId !== this.pointsRequestId) return null;
-        this.mapError = this.errorFrom(error.response?.data?.detail, "MapH3.errors.pointsLoad");
+        this.mapError = this.errorFrom(error.message, "MapH3.errors.pointsLoad");
         toast.error(this.mapErrorText);
         return null;
       } finally {
@@ -722,6 +750,8 @@ export default {
 
     ////////////////////////////
     async getToken() {
+      // Only the backend has a Mapbox token: in the browser the map uses the OSM/Carto basemaps
+      if (useEngine().mode !== "remote") return null;
       try {
         const response = await api.get('/maps/mapbox_token');
         return response.data.token;
@@ -738,23 +768,31 @@ export default {
     },
 
     ////////////////////////////
-    initMap() {
-      mapboxgl.accessToken = this.token || '';
+    async initMap() {
+      // Mapbox GL won't draw any map without a token: the open basemaps go through MapLibre, its
+      // open-source fork with the same API
+      if (this.token) {
+        mapboxgl.accessToken = this.token;
+        this.gl = mapboxgl;
+      } else {
+        this.gl = (await import('maplibre-gl')).default;
+      }
 
-      this.map = new mapboxgl.Map({
+      this.map = new this.gl.Map({
         container: 'map',
         style: this.selectedStyle,
         center: [-3.6844602977537817, 40.37148838867168],
         zoom: 5
       });
 
-      this.map.addControl(new mapboxgl.NavigationControl(), "top-right");
+      this.map.addControl(new this.gl.NavigationControl(), "top-right");
       this.map.on("load", () => {
         this.mapLoaded = true;
         this.mapError = null;
         this.reloadLayers();
         this.addPopup();
         this.applyLayerVisibility();
+        this.fitToData();
       });
       this.map.on("error", (event) => {
         this.mapError = this.errorFrom(event?.error?.message, "MapH3.errors.basemap");
@@ -993,7 +1031,7 @@ export default {
     addPopup() {
       if (this.popupHandlersBound) return;
       this.popupHandlersBound = true;
-      this.popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+      this.popup = new this.gl.Popup({ closeButton: false, closeOnClick: false });
 
       const showPopup = (titleKey) => (event) => {
         const feature = event.features?.[0];

@@ -12,8 +12,24 @@
     "publish": "Publica"
   },
   "steps": {
-    "load": { "title": "Carga una fuente", "text": "Ficheros, URLs, S3 o PostgreSQL" },
-    "explore": { "title": "Explora con SQL", "text": "La velocidad de DuckDB con ayuda de la IA" },
-    "publish": { "title": "Publica una API", "text": "Convierte consultas guardadas en endpoints" }
+    "load": {
+      "title": "Carga una fuente",
+      "text": "Ficheros, URLs, S3 o PostgreSQL"
+    },
+    "explore": {
+      "title": "Explora con SQL",
+      "text": "La velocidad de DuckDB con ayuda de la IA"
+    },
+    "publish": {
+      "title": "Publica una API",
+      "text": "Convierte consultas guardadas en endpoints"
+    }
+  },
+  "sample": {
+    "title": "¿Eres nuevo? Pruébalo con datos reales",
+    "text": "Viajes en taxi amarillo de Nueva York, enero de 2024: {rows} viajes con zonas y coordenadas de recogida ({size}).",
+    "load": "Cargar datos de ejemplo",
+    "ready": "La tabla {table} está lista: elígela en el Explorador de tablas",
+    "error": "Error al cargar el ejemplo: {detail}"
   }
 }
