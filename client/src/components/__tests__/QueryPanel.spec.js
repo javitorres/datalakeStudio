@@ -180,7 +180,8 @@ describe('QueryPanel', () => {
       expect(context.numericFields).toEqual(['population', 'lat_coord', 'longitude'])
       expect(context.latitudeField).toBe('lat_coord')
       expect(context.longitudeField).toBe('longitude')
-      expect(context.selectedFieldForH3).toBe('population')
+      expect(context.selectedFieldForH3).toBe('count')
+      expect(context.selectedFieldForPoints).toBeNull()
     })
 
     it('calculates finite percentiles and histograms for zero and string values', () => {
@@ -199,9 +200,8 @@ describe('QueryPanel', () => {
       expect(MapH3.methods.getPercentiles.call({}, { features: [] }, 'value')).toBeNull()
     })
 
-    it('escapes popup values and handles degenerate ranges', () => {
+    it('escapes popup values', () => {
       expect(MapH3.methods.escapeHtml('<img onerror="x">')).toBe('&lt;img onerror=&quot;x&quot;&gt;')
-      expect(MapH3.methods.highlightStyle(5, 5, 5, 5)).toEqual({ left: '0%', width: '100%' })
     })
   })
 })

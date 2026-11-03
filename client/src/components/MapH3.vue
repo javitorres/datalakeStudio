@@ -1,312 +1,176 @@
 <template>
-  <div class="map-h3-shell">
-    <section class="map-setup-card">
-      <div>
-        <span class="map-kicker">{{ $t('MapH3.kicker') }}</span>
-        <h4>{{ $t('MapH3.heading') }}</h4>
-        <p>{{ mapStatusText }}</p>
-      </div>
-      <button class="map-refresh" :disabled="!hasLocation || loading || !mapLoaded" @click="refreshVisibleLayers">
-        <i class="bi bi-arrow-clockwise"></i> {{ $t('MapH3.refresh') }}
-      </button>
-    </section>
-    <div v-if="mapError" class="map-message map-message-error" role="alert">
-      <i class="bi bi-exclamation-triangle"></i><span>{{ mapErrorText }}</span>
-    </div>
-    <div v-else-if="!hasLocation" class="map-message">
-      <i class="bi bi-geo-alt"></i><span>{{ $t('MapH3.noLocation') }}</span>
-    </div>
-    <!-- General controls  -->
-    <div class="row">
-      <div class="col-2">
-        <!-- Tile dark or light button -->
-        <div class="col-2">
-          <div class="btn-group" role="group" :aria-label="$t('MapH3.mapStyle')">
-            <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off">
-            <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">{{ $t('MapH3.dark') }}</label>
-            <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off" checked>
-            <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">{{ $t('MapH3.light') }}</label>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-3">
-        <!-- Selectors for latitude, longitude and geom fields -->
-        <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">{{ $t('MapH3.latitude') }}</span>
-          <select class="form-select" v-model="latitudeField" @change="coordinatesChanged">
-            <option :value="null">{{ $t('MapH3.selectLatitude') }}</option>
-            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="col-3">
-        <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">{{ $t('MapH3.longitude') }}</span>
-          <select class="form-select" v-model="longitudeField" @change="coordinatesChanged">
-            <option :value="null">{{ $t('MapH3.selectLongitude') }}</option>
-            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="col-3">
-        <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">{{ $t('MapH3.geom') }}</span>
-          <select class="form-select" v-model="geomField" @change="coordinatesChanged">
-            <option :value="null">{{ $t('MapH3.noGeom') }}</option>
-            <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-      </div>
-
-    </div>
-    <hr /><br />
-
-    <!-- H3 Layer  controls  -->
-    <div class="row">
-      <div class="col-5">
-        <div class="form-check form-switch">
-          <label class="form-check-label">{{ $t('MapH3.h3Toggle') }}</label>
-          <input class="form-check-input" type="checkbox" v-model="showData" :disabled="!canRenderH3 || loading" @change="updateVisibility()">
-        </div>
-        <br />
-        <!-- Selector del campo a mostrar (de selectedFields) -->
-        <div class="input-group">
-          <span class="input-group-text">{{ $t('MapH3.showField') }}</span>
-          <select class="form-select" v-model="selectedFieldForH3" @change="showField('H3')">
-            <option value="count">{{ $t('MapH3.recordCount') }}</option>
-            <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-      </div>
-      <!-- Show data toggle -->
-
-      <!-- Selector for H3 level, from 1 to 10 -->
-      <div class="col-2">
-        <div class="row">
-          <div class="input-group">
-            <span class="input-group-text">{{ $t('MapH3.h3Level') }}</span>
-            <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true, true)">
-              <option v-for="i in 12" :key="i" :value="i">{{ i }}</option>
+  <div class="geo">
+    <!-- Controls: where the data is, then each layer with its own switch -->
+    <aside class="geo-panel">
+      <section class="geo-section">
+        <header class="section-head">
+          <h5><i class="bi bi-geo-alt"></i> {{ $t('MapH3.location.title') }}</h5>
+          <span v-if="hasLocation" class="section-ok"><i class="bi bi-check-circle-fill"></i> {{ $t('MapH3.location.ready') }}</span>
+        </header>
+        <div class="field-grid">
+          <label class="field">
+            <span>{{ $t('MapH3.location.latitude') }}</span>
+            <select class="form-select form-select-sm" v-model="latitudeField" @change="coordinatesChanged">
+              <option :value="null">{{ $t('MapH3.location.none') }}</option>
+              <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
             </select>
-          </div>
-        </div>
-        <br />
-
-        <div class="row">
-          <!-- H3 Opacity -->
-          <div class="col-6">
-            <label for="customRange1" class="form-label">{{ $t('MapH3.opacity', { value: h3Opacity }) }}</label>
-          </div>
-          <div class="col-6">
-            <input type="range" class="form-range" min="0" max="1" step="0.05" v-model="h3Opacity"
-              @change="changeH3Opacity()">
-          </div>
-        </div>
-        <br />
-
-        <div class="row">
-          <div class="col-6">
-            <div class="form-check form-switch">
-              <input class="form-check-input" type="checkbox" v-model="outline" @change="toggleOutline()">
-              <label class="form-check-label">{{ $t('MapH3.lines') }}</label>
-            </div>
-          </div>
-
-          <!-- Disable 3D -->
-          <div class="col-6">
-            <div class="col-3">
-              <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" v-model="show3D" @change="reloadLayers()">
-                <label class="form-check-label">{{ $t('MapH3.threeD') }}</label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Editor for min and max values in H3 map-->
-      <div class="col-5">
-        <div class="row">
-          <div class="col-3">
-            <div class="input-group">
-              <span class="input-group-text">{{ $t('MapH3.low') }}</span>
-              <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerH3Low" :title="$t('MapH3.chooseColor')" @change="reloadLayers('H3')">
-            </div>
-          </div>
-          <div class="col-6"></div>
-          <div class="col-3">
-            <div class="input-group">
-              <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerH3High" :title="$t('MapH3.chooseColor')" @change="reloadLayers('H3')">
-              <span class="input-group-text">{{ $t('MapH3.high') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-12">
-            <div class="range-container">
-              <div class="range-track"></div>
-              <div class="range-highlight" :style="highlightStyle(minValue, maxValue, min, max)"></div>
-              <input type="range" class="form-range" v-model="minValue" :min="min" :max="max"
-                @change="changeLimits('H3')">
-              <input type="range" class="form-range" v-model="maxValue" :min="min" :max="max"
-                @change="changeLimits('H3')">
-            </div>
-            <div class="value-display">
-              <span>{{ $t('MapH3.absoluteMin') }}<br />{{ min }}</span>
-              <span>{{ $t('MapH3.selectedMin') }}<br />{{ minValue }}</span>
-              <span>{{ $t('MapH3.selectedMax') }}<br />{{ maxValue }}</span>
-              <span>{{ $t('MapH3.absoluteMax') }}<br />{{ max }}</span>
-            </div>
-          </div>
-
-          <div v-if="percentilesH3">
-
-            <DataSelector :values="percentilesH3.percentiles" :count="percentilesH3.histogram">
-
-            </DataSelector>
-          </div>
-        </div>
-        <!-- Blue button if limits are seted manually , gray if not -->
-        <!--
-        <button class="btn m-1 opcion-style" :class="limitsSetedManually ? 'btn-primary' : 'btn-secondary'"
-          @click="reloadH3Map(false, true)">Refresh
-        </button>
-        -->
-      </div>
-    </div> <!-- End of H3 map controls -->
-
-    <hr /><br />
-
-    <!-- Points control  -->
-    <div class="row">
-      <div class="col-5">
-        <div class="form-check form-switch">
-          <label class="form-check-label">{{ $t('MapH3.points') }}</label>
-          <input class="form-check-input" type="checkbox" v-model="showDataPoints" :disabled="!canRenderPoints || loading" @change="updateVisibility()">
-        </div>
-        <br />
-
-        <!-- Selector del campo a mostrar (de selectedFields) -->
-        <div class="input-group" v-if="showDataPoints">
-          <span class="input-group-text">{{ $t('MapH3.showField') }}</span>
-          <select class="form-select" v-model="selectedFieldForPoints" @change="showField('POINTS')">
-            <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
-          </select>
-        </div>
-
-      </div>
-
-
-      <div class="col-2">
-        <div class="row">
-          <!-- Bar seelctor for point size -->
-          <div class="input-group">
-            <span class="input-group-text">{{ $t('MapH3.pointSize') }}</span>
-            <select class="form-select" v-model="pointSize" @change="reloadMap('POINTS', false)">
-              <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
+          </label>
+          <label class="field">
+            <span>{{ $t('MapH3.location.longitude') }}</span>
+            <select class="form-select form-select-sm" v-model="longitudeField" @change="coordinatesChanged">
+              <option :value="null">{{ $t('MapH3.location.none') }}</option>
+              <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
             </select>
+          </label>
+          <label class="field field-wide">
+            <span>{{ $t('MapH3.location.geometry') }} <small>{{ $t('MapH3.location.geometryHelp') }}</small></span>
+            <select class="form-select form-select-sm" v-model="geomField" @change="coordinatesChanged">
+              <option :value="null">{{ $t('MapH3.location.none') }}</option>
+              <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <!-- Areas: H3 hexagons from latitude/longitude, or the shapes of the geometry column -->
+      <section class="layer-card" :class="{ on: showData, off: !hasLocation }">
+        <header class="layer-head">
+          <span class="layer-icon layer-icon-h3"><i :class="hasCoordinates || !geomField ? 'bi bi-hexagon-fill' : 'bi bi-pentagon-fill'"></i></span>
+          <div class="layer-title">
+            <strong>{{ hasCoordinates || !geomField ? $t('MapH3.h3.title') : $t('MapH3.h3.geomTitle') }}</strong>
+            <small>{{ !hasLocation ? $t('MapH3.needsLocation') : hasCoordinates ? $t('MapH3.h3.summary') : $t('MapH3.h3.geomSummary') }}</small>
+          </div>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" role="switch" v-model="showData" :disabled="!canRenderH3"
+              :aria-label="$t('MapH3.h3.title')" @change="updateVisibility()">
+          </div>
+        </header>
+        <div v-if="showData && hasLocation" class="layer-body">
+          <label class="field">
+            <span>{{ $t('MapH3.colorBy') }}</span>
+            <select class="form-select form-select-sm" v-model="selectedFieldForH3" @change="showField('H3')">
+              <option value="count">{{ $t('MapH3.recordCount') }}</option>
+              <option v-for="field in numericFields" :key="field" :value="field">{{ $t('MapH3.average', { field }) }}</option>
+            </select>
+          </label>
+          <MapColorScale v-model:low="minValue" v-model:high="maxValue" v-model:colorLow="colorPickerH3Low"
+            v-model:colorHigh="colorPickerH3High" :min="min" :max="max" :histogram="percentilesH3?.histogram"
+            :disabled="!percentilesH3" @change="changeLimits('H3')" @reset="resetLimits('H3')" />
+          <label v-if="hasCoordinates" class="field">
+            <span>
+              {{ $t('MapH3.resolution') }}
+              <span class="resolution-value">
+                <b>{{ $t('MapH3.resolutionValue', { level: h3Level, size: h3SizeLabel }) }}</b>
+                <button type="button" class="chip" :class="{ active: !levelChosen }" :title="$t('MapH3.autoLevelHelp')" @click="autoLevel">{{ $t('MapH3.autoLevel') }}</button>
+              </span>
+            </span>
+            <input type="range" class="form-range" min="1" max="12" step="1" v-model.number="h3Level" @change="levelChosen = true; reloadMap('H3', true, true)">
+            <span class="range-ends"><small>{{ $t('MapH3.coarse') }}</small><small>{{ $t('MapH3.fine') }}</small></span>
+          </label>
+          <label class="field">
+            <span>{{ $t('MapH3.opacity') }} <b>{{ Math.round(h3Opacity * 100) }}%</b></span>
+            <input type="range" class="form-range" min="0" max="1" step="0.05" v-model.number="h3Opacity" @input="changeH3Opacity()">
+          </label>
+          <div class="field-row">
+            <div class="segmented" role="group" :aria-label="$t('MapH3.style')">
+              <button type="button" :class="{ active: !show3D }" @click="setShow3D(false)">{{ $t('MapH3.flat') }}</button>
+              <button type="button" :class="{ active: show3D }" :title="$t('MapH3.extrudedHelp')" @click="setShow3D(true)">{{ $t('MapH3.extruded') }}</button>
+            </div>
+            <div class="form-check form-switch m-0">
+              <input class="form-check-input" type="checkbox" role="switch" id="h3Borders" v-model="outline" @change="toggleOutline()">
+              <label class="form-check-label" for="h3Borders">{{ $t('MapH3.borders') }}</label>
+            </div>
           </div>
         </div>
-        <br />
+      </section>
 
-        <!-- Points Opacity -->
-        <div class="row">
-          <div class="col-6">
-            <label for="customRange1" class="form-label">{{ $t('MapH3.opacity', { value: pointsOpacity }) }}</label>
+      <section class="layer-card" :class="{ on: showDataPoints, off: !hasCoordinates }">
+        <header class="layer-head">
+          <span class="layer-icon layer-icon-points"><i class="bi bi-circle-fill"></i></span>
+          <div class="layer-title">
+            <strong>{{ $t('MapH3.points.title') }}</strong>
+            <small>{{ hasCoordinates ? $t('MapH3.points.summary') : $t('MapH3.needsCoordinates') }}</small>
           </div>
+          <div class="form-check form-switch m-0">
+            <input class="form-check-input" type="checkbox" role="switch" v-model="showDataPoints" :disabled="!canRenderPoints"
+              :aria-label="$t('MapH3.points.title')" @change="updateVisibility()">
+          </div>
+        </header>
+        <div v-if="showDataPoints && hasCoordinates" class="layer-body">
+          <label class="field">
+            <span>{{ $t('MapH3.colorBy') }}</span>
+            <select class="form-select form-select-sm" v-model="selectedFieldForPoints" @change="showField('POINTS')">
+              <option :value="null">{{ $t('MapH3.singleColor') }}</option>
+              <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
+            </select>
+          </label>
+          <MapColorScale v-if="selectedFieldForPoints" v-model:low="minValuePoints" v-model:high="maxValuePoints"
+            v-model:colorLow="colorPickerPointsLow" v-model:colorHigh="colorPickerPointsHigh" :min="minPoints" :max="maxPoints"
+            :histogram="percentilesPoints?.histogram" :disabled="!percentilesPoints"
+            @change="changeLimits('POINTS')" @reset="resetLimits('POINTS')" />
+          <label v-else class="field field-inline">
+            <span>{{ $t('MapH3.color') }}</span>
+            <input type="color" class="form-control form-control-color" v-model="colorPickerPointsHigh" @change="reloadLayers('POINTS')">
+          </label>
+          <label class="field">
+            <span>{{ $t('MapH3.pointSize') }} <b>{{ pointSize }} px</b></span>
+            <input type="range" class="form-range" min="1" max="10" step="1" v-model.number="pointSize" @input="changePointSize()">
+          </label>
+          <label class="field">
+            <span>{{ $t('MapH3.opacity') }} <b>{{ Math.round(pointsOpacity * 100) }}%</b></span>
+            <input type="range" class="form-range" min="0" max="1" step="0.05" v-model.number="pointsOpacity" @input="changePointsOpacity()">
+          </label>
+        </div>
+      </section>
+    </aside>
 
-          <div class="col-6">
-            <input type="range" class="form-range" min="0" max="1" step="0.05" v-model="pointsOpacity"
-              @change="changePointsOpacity()">
-          </div>
+    <!-- The map, with what explains it on top -->
+    <div class="geo-stage">
+      <div ref="map" class="geo-map"></div>
+
+      <div class="map-overlay map-overlay-top-left">
+        <div class="segmented segmented-floating" role="group" :aria-label="$t('MapH3.basemap')">
+          <button type="button" :class="{ active: basemap === 'light' }" @click="changeTile('light')"><i class="bi bi-sun"></i> {{ $t('MapH3.light') }}</button>
+          <button type="button" :class="{ active: basemap === 'dark' }" @click="changeTile('dark')"><i class="bi bi-moon"></i> {{ $t('MapH3.dark') }}</button>
         </div>
       </div>
 
-      <!-- Editor for min and max POINT values -->
-      <div class="col-5">
-        <div class="row">
-          <div class="col-3">
-            <div class="input-group">
-              <span class="input-group-text">{{ $t('MapH3.low') }}</span>
-              <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerPointsLow" :title="$t('MapH3.chooseColor')" @change="reloadLayers('POINTS')">
-            </div>
-          </div>
-          <div class="col-6"></div>
-          <div class="col-3">
-            <div class="input-group">
-
-              <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerPointsHigh" :title="$t('MapH3.chooseColor')" @change="reloadLayers('POINTS')">
-              <span class="input-group-text">{{ $t('MapH3.high') }}</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="row">
-          <div class="col-12">
-            <div class="range-container">
-              <div class="range-track"></div>
-              <div class="range-highlight" :style="highlightStyle(minValuePoints, maxValuePoints, minPoints, maxPoints)"></div>
-              <input type="range" class="form-range" v-model="minValuePoints" :min="minPoints" :max="maxPoints"
-                @change="changeLimits('POINTS')">
-              <input type="range" class="form-range" v-model="maxValuePoints" :min="minPoints" :max="maxPoints"
-                @change="changeLimits('POINTS')">
-            </div>
-            <div class="value-display">
-              <span>{{ $t('MapH3.absoluteMin') }}<br />{{ minPoints }}</span>
-              <span>{{ $t('MapH3.selectedMin') }}<br /> {{ minValuePoints }}</span>
-              <span>{{ $t('MapH3.selectedMax') }}<br /> {{ maxValuePoints }}</span>
-              <span>{{ $t('MapH3.absoluteMax') }}<br />{{ maxPoints }}</span>
-            </div>
-            <!--<button class="btn m-1 opcion-style" :class="limitsPointsSetedManually ? 'btn-primary' : 'btn-secondary'"
-          @click="reloadPointsMap(false, true)">Refresh
+      <div class="map-overlay map-overlay-top">
+        <div v-if="loading" class="map-pill"><span class="spinner-border spinner-border-sm"></span> {{ mapStatusText }}</div>
+        <button v-else-if="stale" type="button" class="map-pill map-pill-action" @click="refreshVisibleLayers">
+          <i class="bi bi-arrow-repeat"></i> {{ $t('MapH3.searchArea') }}
         </button>
-        -->
-          </div>
+      </div>
+
+      <div class="map-overlay map-overlay-messages">
+        <div v-if="mapError" class="map-banner map-banner-error" role="alert">
+          <i class="bi bi-exclamation-triangle"></i><span>{{ mapErrorText }}</span>
+        </div>
+        <div v-else-if="!loading && mapLoaded && !hasLocation" class="map-banner">
+          <i class="bi bi-geo-alt"></i><span>{{ $t('MapH3.noLocation') }}</span>
+        </div>
+        <div v-else-if="!loading && mapLoaded && !showData && !showDataPoints" class="map-banner">
+          <i class="bi bi-layers"></i><span>{{ $t('MapH3.nothingOn') }}</span>
         </div>
       </div>
-    </div>
-  </div> <!-- End of points controls -->
 
-  <br />
-  <div v-if="loading" class="loading-overlay">
-    <div class="spinner"></div>
-  </div>
-
-  <div class="row">
-    <div class="col-12">
-      <div id="map" style="height: 620px; width: 100%"></div>
-    </div>
-  </div>
-  <br />
-
-  <div class="row">
-    <div class="col-6">
-      <div v-if="geometadata" class="alert alert-light" role="alert">
-        <strong><b>{{ $t('MapH3.metadata.h3Layer') }}</b></strong><br>
-        <strong>{{ $t('MapH3.metadata.records') }}</strong> {{ geometadata.records }}<br>
-        <strong>{{ $t('MapH3.metadata.payloadSize') }}</strong> {{ $t('MapH3.metadata.megabytes', { value: geometadata.objectSize }) }}<br>
-        <strong>{{ $t('MapH3.metadata.time') }}</strong> {{ $t('MapH3.metadata.seconds', { value: geometadata.time }) }}<br>
-        <strong>{{ $t('MapH3.metadata.h3Radix') }}</strong> {{ $t('MapH3.metadata.meters', { value: h3Radix }) }}<br>
+      <div v-if="legend.length" class="map-overlay map-overlay-bottom-left map-legend">
+        <div v-for="entry in legend" :key="entry.layer" class="legend-entry">
+          <span class="legend-name">{{ entry.title }}</span>
+          <template v-if="entry.field">
+            <span class="legend-field">{{ entry.field }}</span>
+            <span class="legend-ramp" :style="{ background: `linear-gradient(90deg, ${entry.colorLow}, ${entry.colorHigh})` }"></span>
+            <span class="legend-values"><span>≤ {{ formatNumber(entry.low) }}</span><span>≥ {{ formatNumber(entry.high) }}</span></span>
+          </template>
+          <span v-else class="legend-single"><i :style="{ background: entry.colorHigh }"></i></span>
+        </div>
       </div>
-    </div>
 
-    <div class="col-6">
-      <div v-if="geometadata" class="alert alert-light" role="alert">
-        <strong><b>{{ $t('MapH3.metadata.pointsLayer') }}</b></strong><br>
-        <strong>{{ $t('MapH3.metadata.points') }}</strong> {{ totalPoints }}<br>
-
+      <div v-if="stats.length" class="map-overlay map-overlay-bottom-right map-stats">
+        <span v-for="stat in stats" :key="stat">{{ stat }}</span>
       </div>
     </div>
   </div>
-
 </template>
 
 <script>
@@ -317,26 +181,32 @@ import api from '../services/api';
 import { useEngine } from '../engine';
 import { dataExtent, mapCells, mapGeometries, mapPoints } from '../data/maps';
 import { uiType } from '../data/types';
-import { toast } from 'vue3-toastify';
-import DataSelector from './DataSelector.vue';
+import MapColorScale from './MapColorScale.vue';
 
-const rasterStyle = (tiles, attribution) => ({
+// The average edge of an H3 hexagon, in km, by level
+const H3_EDGE_KM = [1281.256, 483.056, 182.512, 68.979, 26.071, 9.8540, 3.7245, 1.4064, 0.5314, 0.2007, 0.0758, 0.0286, 0.0108, 0.0040, 0.0015, 0.0005];
+
+const rasterStyle = (tiles, attribution, paint = {}) => ({
   version: 8,
   sources: {
     basemap: { type: 'raster', tiles: [tiles], tileSize: 256, attribution }
   },
-  layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }]
+  layers: [{ id: 'basemap', type: 'raster', source: 'basemap', paint }]
 });
 
+const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
+const OSM_ATTRIBUTION = '© OpenStreetMap contributors';
 const openMapStyles = {
-  light: rasterStyle(
-    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-    '© OpenStreetMap contributors'
-  ),
-  dark: rasterStyle(
-    'https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
-    '© OpenStreetMap contributors © CARTO'
-  )
+  light: rasterStyle(OSM_TILES, OSM_ATTRIBUTION),
+  // The same tiles inverted (CARTO's dark tiles now need an API key): light streets on a dark ground,
+  // with the hues turned back so water stays blue
+  dark: rasterStyle(OSM_TILES, OSM_ATTRIBUTION, {
+    'raster-brightness-min': 0.85,
+    'raster-brightness-max': 0.08,
+    'raster-hue-rotate': 180,
+    'raster-saturation': -0.5,
+    'raster-contrast': 0.1
+  })
 };
 
 export default {
@@ -349,7 +219,7 @@ export default {
     filter: { type: String, default: '' },
   },
   components: {
-    DataSelector
+    MapColorScale
   },
 
   data() {
@@ -361,19 +231,27 @@ export default {
       longitudeField: null,
       geomField: null,
       percentilesH3: null,
+      percentilesPoints: null,
       geojson: null,
       token: null,
-      h3Opacity: 0.5,
-      pointsOpacity: 0.5,
+      h3Opacity: 0.7,
+      pointsOpacity: 0.8,
       totalPoints: 0,
-      colorPickerH3Low: '#0000ff',
-      colorPickerH3High: '#ff0000',
-      colorPickerPointsLow: '#000000',
-      colorPickerPointsHigh: '#00ff00',
+      colorPickerH3Low: '#ffeda0',
+      colorPickerH3High: '#e31a1c',
+      colorPickerPointsLow: '#c7e9b4',
+      colorPickerPointsHigh: '#0d846f',
       show3D: true,
       outline: false,
-      showData: false,
+      // The hexagons show as soon as there is a location: the map has something to say at once
+      showData: true,
       showDataPoints: false,
+      basemap: 'dark',
+      // Until the user picks a cell size, it follows the zoom
+      levelChosen: false,
+      // The map moved since the layers were loaded: they may miss what is now in view
+      stale: false,
+      loadedBbox: null,
       popup: null,
       h3Level: 5,
       mapStyles: openMapStyles,
@@ -394,7 +272,7 @@ export default {
       maxPoints: 100,
       limitsPointsSetedManually: false,
       pointsGeojson: null,
-      pointSize: 5,
+      pointSize: 4,
       mapError: null,
       mapLoaded: false,
       activeRequests: 0,
@@ -424,13 +302,56 @@ export default {
     },
     mapStatusText() {
       if (!this.mapLoaded) return this.$t('MapH3.status.loadingBasemap');
-      if (this.loading) return this.$t('MapH3.status.loadingData');
-      if (!this.token) return this.hasLocation
-        ? this.$t('MapH3.status.openBasemapReady')
-        : this.$t('MapH3.status.openBasemapNoLocation');
-      if (!this.hasLocation) return this.$t('MapH3.status.noCoordinates');
-      if (this.showData || this.showDataPoints) return this.$t('MapH3.status.moveAndRefresh');
-      return this.$t('MapH3.status.ready');
+      return this.$t('MapH3.status.loadingData');
+    },
+    // The color scale of each visible layer, for the legend on the map
+    legend() {
+      const entries = [];
+      if (this.showData && this.geojson?.features?.length) {
+        entries.push({
+          layer: 'H3',
+          title: this.hasCoordinates || !this.geomField ? this.$t('MapH3.h3.title') : this.$t('MapH3.h3.geomTitle'),
+          field: this.selectedFieldForH3 === 'count' ? this.$t('MapH3.recordCount') : this.$t('MapH3.average', { field: this.selectedFieldForH3 }),
+          low: this.minValue, high: this.maxValue,
+          colorLow: this.colorPickerH3Low, colorHigh: this.colorPickerH3High,
+        });
+      }
+      if (this.showDataPoints && this.pointsGeojson?.features?.length) {
+        entries.push({
+          layer: 'POINTS',
+          title: this.$t('MapH3.points.title'),
+          field: this.selectedFieldForPoints,
+          low: this.minValuePoints, high: this.maxValuePoints,
+          colorLow: this.colorPickerPointsLow, colorHigh: this.colorPickerPointsHigh,
+        });
+      }
+      return entries;
+    },
+    stats() {
+      const stats = [];
+      if (this.showData && this.geojson) {
+        const features = this.geojson.features || [];
+        if (this.hasCoordinates) {
+          const rows = features.reduce((sum, feature) => sum + (Number(feature.properties?.count) || 0), 0);
+          stats.push(this.$t('MapH3.stats.cells', { n: this.formatNumber(features.length), rows: this.formatNumber(rows) }));
+        } else {
+          stats.push(this.$t('MapH3.stats.geometries', { n: this.formatNumber(features.length) }));
+        }
+      }
+      if (this.showDataPoints && this.pointsGeojson) {
+        stats.push(this.$t('MapH3.stats.points', { n: this.formatNumber(this.totalPoints) }));
+      }
+      if (this.showData && this.geometadata?.time != null) {
+        stats.push(this.$t('MapH3.stats.time', { value: this.geometadata.time }));
+      }
+      return stats;
+    },
+    // The size of the hexagons of the chosen level
+    h3SizeLabel() {
+      const meters = this.h3Radix;
+      return meters >= 1000
+        ? this.$t('MapH3.units.km', { value: this.formatNumber(meters / 1000, meters >= 10000 ? 0 : 1) })
+        : this.$t('MapH3.units.m', { value: this.formatNumber(meters, 0) });
     },
     // mapError holds either a server/Mapbox message (text) or a translation key, so the
     // message follows the language selector.
@@ -440,10 +361,8 @@ export default {
     },
 
     h3Radix() {
-      const h3RadixValues = [1281.256, 483.056, 182.512, 68.979, 26.071, 9.8540, 3.7245, 1.4064, 0.5314, 0.2007, 0.0758, 0.0286, 0.0108, 0.0040, 0.0015, 0.0005];
-
       if (this.h3Level >= 0 && this.h3Level <= 15) {
-        var meters = h3RadixValues[this.h3Level] * 1000;
+        var meters = H3_EDGE_KM[this.h3Level] * 1000;
         meters = Math.round(meters * 100) / 100;
         return meters;
       } else {
@@ -504,7 +423,7 @@ export default {
 
   ////////////////////////////
   async mounted() {
-    this.selectedStyle = this.mapStyles.light;
+    this.selectedStyle = this.mapStyles[this.basemap];
     this.setNumericFields();
     this.guessLatitudeLongitude();
     this.token = await this.getToken();
@@ -513,13 +432,14 @@ export default {
         light: 'mapbox://styles/mapbox/light-v10',
         dark: 'mapbox://styles/mapbox/dark-v10'
       };
-      this.selectedStyle = this.mapStyles.light;
+      this.selectedStyle = this.mapStyles[this.basemap];
     }
     await this.initMap();
   },
   beforeUnmount() {
     this.h3RequestId += 1;
     this.pointsRequestId += 1;
+    this.resizeObserver?.disconnect();
     if (this.popup) this.popup.remove();
     if (this.map) this.map.remove();
     this.map = null;
@@ -551,13 +471,18 @@ export default {
         return selected.has(field) && uiType(schema[field]) === "numeric";
       });
 
-      if (!this.selectedFieldForH3 ||
-          (this.selectedFieldForH3 !== "count" && !this.numericFields.includes(this.selectedFieldForH3))) {
-        this.selectedFieldForH3 = this.numericFields[0] || "count";
+      // The hexagons start colored by how many rows they hold, the points with a single color
+      if (!this.numericFields.includes(this.selectedFieldForH3)) {
+        this.selectedFieldForH3 = "count";
       }
       if (!this.numericFields.includes(this.selectedFieldForPoints)) {
-        this.selectedFieldForPoints = this.numericFields[0] || null;
+        this.selectedFieldForPoints = null;
       }
+    },
+    formatNumber(value, digits = 2) {
+      const number = Number(value);
+      if (!Number.isFinite(number)) return "";
+      return number.toLocaleString(this.$i18n?.locale, { maximumFractionDigits: digits });
     },
     ////////////////////////////
     guessLatitudeLongitude() {
@@ -582,13 +507,6 @@ export default {
       }
     },
     ////////////////////////////
-    highlightStyle(minValue, maxValue, min, max) {
-      const range = Number(max) - Number(min);
-      if (!Number.isFinite(range) || range <= 0) return { left: "0%", width: "100%" };
-      const minPercent = Math.max(0, Math.min(100, ((Number(minValue) - Number(min)) / range) * 100));
-      const maxPercent = Math.max(minPercent, Math.min(100, ((Number(maxValue) - Number(min)) / range) * 100));
-      return { left: minPercent + "%", width: (maxPercent - minPercent) + "%" };
-    },
     errorFrom(text, key) {
       return text ? { text: String(text) } : { key };
     },
@@ -607,17 +525,24 @@ export default {
       this.pointsGeojson = null;
       this.geometadata = null;
       this.percentilesH3 = null;
+      this.percentilesPoints = null;
+      this.limitsSetedManually = false;
+      this.limitsPointsSetedManually = false;
       this.mapError = null;
       if (!this.hasCoordinates) this.showDataPoints = false;
+      // The layers of the previous columns go away until the new ones load
+      this.applyLayerVisibility();
       await this.refreshVisibleLayers();
     },
+    // Loads the visible layers for the area in view, keeping the color ranges the user chose
     async refreshVisibleLayers() {
       if (!this.hasLocation || !this.mapLoaded) return;
       this.appliedFilter = this.filter;
-      const tasks = [];
-      if (this.showData) tasks.push(this.reloadMap("H3", true, true));
-      if (this.showDataPoints && this.hasCoordinates) tasks.push(this.reloadMap("POINTS", true, true));
-      await Promise.all(tasks);
+      if (!this.levelChosen) this.h3Level = this.levelForView();
+      // One after the other: a layer with nothing in view moves the map to the data, and the next
+      // one then loads that area instead of racing it
+      if (this.showData) await this.reloadMap("H3", true, !this.limitsSetedManually);
+      if (this.showDataPoints && this.hasCoordinates) await this.reloadMap("POINTS", true, !this.limitsPointsSetedManually);
     },
     ////////////////////////////
     async reloadMap(layer, reloadData = false, reloadLimits = false, refitted = false) {
@@ -640,7 +565,7 @@ export default {
           return this.reloadMap(layer, true, reloadLimits, true);
         }
         if (!this.pointsGeojson) return;
-        if (reloadLimits) {
+        if (reloadLimits || !this.percentilesPoints) {
           this.limitsPointsSetedManually = false;
           this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
         }
@@ -653,6 +578,8 @@ export default {
     async fetchGeojsonData() {
       const requestId = ++this.h3RequestId;
       const bbox = this.currentBbox();
+      this.loadedBbox = bbox.split(",").map(Number);
+      this.stale = false;
       this.beginRequest();
       this.mapError = null;
 
@@ -676,7 +603,6 @@ export default {
       } catch (error) {
         if (requestId !== this.h3RequestId) return null;
         this.mapError = this.errorFrom(error.message, "MapH3.errors.h3Load");
-        toast.error(this.mapErrorText);
         return null;
       } finally {
         this.endRequest();
@@ -719,9 +645,48 @@ export default {
       else if (layer === 'POINTS') this.limitsPointsSetedManually = true;
       this.reloadLayers(layer);
     },
+    // The H3 level whose hexagons look about 30 pixels wide at the current zoom
+    levelForView() {
+      if (!this.map) return this.h3Level;
+      const latitude = this.map.getCenter().lat * Math.PI / 180;
+      // MapLibre and Mapbox GL use 512-pixel tiles
+      const metersPerPixel = 78271.517 * Math.cos(latitude) / Math.pow(2, this.map.getZoom());
+      let best = this.h3Level;
+      let bestDistance = Infinity;
+      for (let level = 1; level <= 12; level++) {
+        const pixels = H3_EDGE_KM[level] * 1000 / metersPerPixel;
+        const distance = Math.abs(Math.log(pixels / 30));
+        if (distance < bestDistance) {
+          best = level;
+          bestDistance = distance;
+        }
+      }
+      return best;
+    },
+    async autoLevel() {
+      this.levelChosen = false;
+      const level = this.levelForView();
+      if (level === this.h3Level) return;
+      this.h3Level = level;
+      await this.reloadMap('H3', true, true);
+    },
+    // Back to the range taken from the data
+    resetLimits(layer) {
+      if (layer === 'H3' && this.geojson) {
+        this.limitsSetedManually = false;
+        this.setMinMaxH3(this.geojson, this.selectedFieldForH3);
+      } else if (layer === 'POINTS' && this.pointsGeojson) {
+        this.limitsPointsSetedManually = false;
+        this.setMinMaxPoints(this.pointsGeojson, this.selectedFieldForPoints);
+      }
+      this.reloadLayers(layer);
+    },
     ////////////////////////////
     async fetchPointsData() {
       const requestId = ++this.pointsRequestId;
+      const bbox = this.currentBbox();
+      this.loadedBbox = bbox.split(",").map(Number);
+      this.stale = false;
       this.beginRequest();
       this.mapError = null;
 
@@ -731,7 +696,7 @@ export default {
           latitudeField: this.latitudeField,
           longitudeField: this.longitudeField,
           fields: this.numericFields,
-          bbox: this.currentBbox(),
+          bbox,
           filter: this.filter || ""
         });
         if (requestId !== this.pointsRequestId) return null;
@@ -741,7 +706,6 @@ export default {
       } catch (error) {
         if (requestId !== this.pointsRequestId) return null;
         this.mapError = this.errorFrom(error.message, "MapH3.errors.pointsLoad");
-        toast.error(this.mapErrorText);
         return null;
       } finally {
         this.endRequest();
@@ -779,20 +743,39 @@ export default {
       }
 
       this.map = new this.gl.Map({
-        container: 'map',
+        container: this.$refs.map,
         style: this.selectedStyle,
         center: [-3.6844602977537817, 40.37148838867168],
-        zoom: 5
+        zoom: 5,
+        // 3D needs a tilted map to be seen
+        pitch: this.show3D ? 50 : 0
       });
 
       this.map.addControl(new this.gl.NavigationControl(), "top-right");
-      this.map.on("load", () => {
+      // The map follows its box, which also changes without a window resize (the filters beside it)
+      if (typeof ResizeObserver !== "undefined") {
+        this.resizeObserver = new ResizeObserver(() => this.map?.resize());
+        this.resizeObserver.observe(this.$refs.map);
+      }
+      this.map.on("load", async () => {
         this.mapLoaded = true;
         this.mapError = null;
         this.reloadLayers();
         this.addPopup();
         this.applyLayerVisibility();
-        this.fitToData();
+        await this.fitToData();
+        await this.refreshVisibleLayers();
+      });
+      // Layers hold only what was in view when they loaded: offer to load the new area
+      this.map.on("moveend", () => {
+        const loaded = (this.showData && this.geojson) || (this.showDataPoints && this.pointsGeojson);
+        if (!loaded || this.loading) return;
+        const [west, south, east, north] = this.currentBbox().split(",").map(Number);
+        const [loadedWest, loadedSouth, loadedEast, loadedNorth] = this.loadedBbox || [];
+        const outside = !this.loadedBbox || west < loadedWest || south < loadedSouth || east > loadedEast || north > loadedNorth;
+        // Zooming in keeps the data, but the automatic cell size would change
+        const otherLevel = this.showData && this.hasCoordinates && !this.levelChosen && this.levelForView() !== this.h3Level;
+        this.stale = outside || otherLevel;
       });
       this.map.on("error", (event) => {
         this.mapError = this.errorFrom(event?.error?.message, "MapH3.errors.basemap");
@@ -812,8 +795,9 @@ export default {
       }
       this.min = this.roundValue(percentiles.p0);
       this.max = this.roundValue(percentiles.p100);
-      this.minValue = this.roundValue(percentiles.p25);
-      this.maxValue = this.roundValue(percentiles.p75);
+      // The extremes would wash out the colors of everything else
+      this.minValue = this.roundValue(percentiles.percentiles[5]);
+      this.maxValue = this.roundValue(percentiles.percentiles[95]);
       this.maxCount = this.getMaxCount(geojson);
       this.percentilesH3 = percentiles;
     },
@@ -821,6 +805,7 @@ export default {
     setMinMaxPoints(geojson, field) {
       const percentiles = this.getPercentiles(geojson, field);
       if (!percentiles) {
+        this.percentilesPoints = null;
         this.minPoints = 0;
         this.maxPoints = 1;
         this.minValuePoints = 0;
@@ -829,8 +814,9 @@ export default {
       }
       this.minPoints = this.roundValue(percentiles.p0);
       this.maxPoints = this.roundValue(percentiles.p100);
-      this.minValuePoints = this.roundValue(percentiles.p25);
-      this.maxValuePoints = this.roundValue(percentiles.p75);
+      this.minValuePoints = this.roundValue(percentiles.percentiles[5]);
+      this.maxValuePoints = this.roundValue(percentiles.percentiles[95]);
+      this.percentilesPoints = percentiles;
     },
     roundValue(value) {
       return Math.round(Number(value) * 100) / 100;
@@ -881,8 +867,9 @@ export default {
       min = Number(min);
       max = Number(max);
 
+      // Not colored by a field: all in the high color
       if (field == null || !Number.isFinite(min) || !Number.isFinite(max)) {
-        return ['literal', '#FF0000'];
+        return ['literal', this.interpolateColor(1, layer)];
       }
       if (min === max) return ['literal', this.interpolateColor(0.5, layer)];
 
@@ -925,7 +912,9 @@ export default {
     },
     ////////////////////////////
     reloadLayers(reloadLayersParam) {
-      if (!this.map || !this.mapLoaded || !this.map.isStyleLoaded()) return;
+      // mapLoaded follows the load and style.load events: isStyleLoaded() is still false inside
+      // style.load and while tiles load, and the layers were silently skipped
+      if (!this.map || !this.mapLoaded) return;
       // if ALL in reloadLayersParam or H3 in reloadLayersParam
       if (this.geojson && (!reloadLayersParam || reloadLayersParam === 'H3')) {
         // H3 Layers
@@ -944,7 +933,10 @@ export default {
         });
 
         const colorScaleH3 = this.generateColorScale(this.minValue, this.maxValue, this.selectedFieldForH3, 'h3');
-        const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, 500000];
+        // The fullest cell rises a few times its own edge, whatever the level
+        const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, this.h3Radix * 3];
+        // The points stay on top of the areas
+        const beforePoints = this.map.getLayer('points') ? 'points' : undefined;
 
         if (this.show3D) {
           this.map.addLayer({
@@ -957,7 +949,7 @@ export default {
               'fill-extrusion-height': heightScaleH3,
               'fill-extrusion-opacity': Number(this.h3Opacity)
             }
-          });
+          }, beforePoints);
         } else {
           this.map.addLayer({
             'id': 'h3',
@@ -968,7 +960,7 @@ export default {
               'fill-color': colorScaleH3,
               'fill-opacity': Number(this.h3Opacity)
             }
-          });
+          }, beforePoints);
         }
 
         this.map.addLayer({
@@ -982,7 +974,7 @@ export default {
             'line-color': '#000',
             'line-width': 1
           }
-        });
+        }, beforePoints);
       }
 
       // Points Layer
@@ -1008,7 +1000,11 @@ export default {
           'paint': {
             'circle-color': colorScalePoints,
             'circle-radius': this.pointSize,
-            'circle-opacity': Number(this.pointsOpacity)
+            'circle-opacity': Number(this.pointsOpacity),
+            // A white edge sets each point apart from the areas and the base map
+            'circle-stroke-width': 0.6,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-opacity': Number(this.pointsOpacity)
           }
         });
       }
@@ -1054,11 +1050,14 @@ export default {
     },
     ////////////////////////////
     changeTile(style) {
+      if (style === this.basemap) return;
+      this.basemap = style;
       const styleUrl = style === 'dark' ? this.mapStyles.dark : this.mapStyles.light;
       this.selectedStyle = styleUrl;
       if (this.map) {
         this.mapLoaded = false;
-        this.map.setStyle(styleUrl);
+        // A full reload: MapLibre diffs two style objects without firing style.load
+        this.map.setStyle(styleUrl, { diff: false });
         this.map.once("style.load", () => {
           this.mapLoaded = true;
           this.reloadLayers();
@@ -1092,15 +1091,15 @@ export default {
       this.applyLayerVisibility();
     },
     applyLayerVisibility() {
-      if (!this.map || !this.mapLoaded || !this.map.isStyleLoaded()) return;
+      if (!this.map || !this.mapLoaded) return;
       if (this.map.getLayer("h3")) {
-        this.map.setLayoutProperty("h3", "visibility", this.showData ? "visible" : "none");
+        this.map.setLayoutProperty("h3", "visibility", this.showData && this.geojson ? "visible" : "none");
       }
       if (this.map.getLayer("outline")) {
-        this.map.setLayoutProperty("outline", "visibility", this.showData && this.outline ? "visible" : "none");
+        this.map.setLayoutProperty("outline", "visibility", this.showData && this.geojson && this.outline ? "visible" : "none");
       }
       if (this.map.getLayer("points")) {
-        this.map.setLayoutProperty("points", "visibility", this.showDataPoints ? "visible" : "none");
+        this.map.setLayoutProperty("points", "visibility", this.showDataPoints && this.pointsGeojson ? "visible" : "none");
       }
     },
     ////////////////////////////
@@ -1110,9 +1109,22 @@ export default {
       this.map.setPaintProperty("h3", property, Number(this.h3Opacity));
     },
     ////////////////////////////
+    changePointSize() {
+      if (!this.map?.getLayer("points")) return;
+      this.map.setPaintProperty("points", "circle-radius", Number(this.pointSize));
+    },
+    // 3D needs a tilted map to be seen
+    setShow3D(value) {
+      this.show3D = value;
+      this.reloadLayers('H3');
+      this.applyLayerVisibility();
+      this.map?.easeTo({ pitch: value ? 50 : 0, duration: 600 });
+    },
+    ////////////////////////////
     changePointsOpacity() {
       if (!this.map?.getLayer("points")) return;
       this.map.setPaintProperty("points", "circle-opacity", Number(this.pointsOpacity));
+      this.map.setPaintProperty("points", "circle-stroke-opacity", Number(this.pointsOpacity));
     },
     ////////////////////////////
   }
@@ -1120,88 +1132,87 @@ export default {
 </script>
 
 <style scoped>
-#map {
-  height: 100%;
-  width: 100%;
+.geo { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 12px; height: max(560px, calc(100vh - 230px)); padding: 0 14px 14px; }
+
+/* Controls */
+.geo-panel > * { flex-shrink: 0; }
+.geo-panel { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; padding-right: 2px; }
+.geo-section, .layer-card { border: 1px solid var(--ds-line); border-radius: 12px; background: var(--ds-surface); }
+.geo-section { padding: 12px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.section-head h5 { margin: 0; font-size: 13px; font-weight: 750; }
+.section-head h5 i { color: var(--ds-teal); }
+.section-ok { color: var(--ds-teal-dark); font-size: 11px; font-weight: 700; }
+.field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.field { display: grid; gap: 4px; margin: 0; }
+.field-wide { grid-column: 1 / -1; }
+.field > span { display: flex; justify-content: space-between; gap: 6px; color: var(--ds-muted); font-size: 11px; font-weight: 700; }
+.field > span small { font-weight: 500; }
+.field > span b { color: var(--ds-ink); font-weight: 700; font-variant-numeric: tabular-nums; }
+.field-inline { grid-template-columns: 1fr auto; align-items: center; }
+.field .form-select { font-size: 12px; }
+.field .form-range { height: 1rem; }
+.resolution-value { display: inline-flex; align-items: center; gap: 6px; }
+.chip { padding: 0 7px; border: 1px solid var(--ds-line); border-radius: 999px; background: #fff; color: var(--ds-muted); font-size: 10px; font-weight: 700; line-height: 16px; }
+.chip.active { border-color: var(--ds-teal); background: var(--ds-mint); color: var(--ds-teal-dark); }
+.field .form-range::-webkit-slider-thumb { background: var(--ds-teal); }
+.field .form-range::-moz-range-thumb { background: var(--ds-teal); }
+.range-ends { display: flex; justify-content: space-between; margin-top: -4px; color: #98a5a1; font-size: 10px; }
+.field-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.field-row .form-check-label { color: var(--ds-muted); font-size: 12px; font-weight: 700; }
+
+.layer-card { overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.layer-card.on { border-color: #9ccfc1; box-shadow: 0 6px 18px rgba(13, 132, 111, .08); }
+.layer-card.off .layer-head { opacity: .6; }
+.layer-head { display: grid; grid-template-columns: 32px 1fr auto; align-items: center; gap: 10px; padding: 11px 12px; }
+.layer-icon { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px; font-size: 14px; }
+.layer-icon-h3 { background: #fff1e6; color: #e8590c; }
+.layer-icon-points { background: var(--ds-mint); color: var(--ds-teal); font-size: 9px; }
+.layer-title { display: grid; min-width: 0; }
+.layer-title strong { font-size: 13px; font-weight: 750; }
+.layer-title small { overflow: hidden; color: var(--ds-muted); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.layer-head .form-check-input { width: 2.2em; height: 1.2em; cursor: pointer; }
+.layer-head .form-check-input:checked { border-color: var(--ds-teal); background-color: var(--ds-teal); }
+.layer-body { display: grid; gap: 12px; padding: 12px; border-top: 1px solid var(--ds-line); background: var(--ds-surface-muted); }
+
+.segmented { display: inline-flex; padding: 2px; border: 1px solid var(--ds-line); border-radius: 8px; background: #fff; }
+.segmented button { padding: 3px 10px; border: 0; border-radius: 6px; background: transparent; color: var(--ds-muted); font-size: 12px; font-weight: 700; }
+.segmented button.active { background: var(--ds-teal); color: #fff; }
+
+/* Map */
+.geo-stage { position: relative; min-height: 0; overflow: hidden; border: 1px solid var(--ds-line); border-radius: 12px; background: #e9eeec; }
+.geo-map { position: absolute; inset: 0; }
+.map-overlay { position: absolute; z-index: 2; pointer-events: none; }
+.map-overlay > * { pointer-events: auto; }
+.map-overlay-top-left { top: 10px; left: 10px; }
+.map-overlay-top { top: 10px; left: 50%; transform: translateX(-50%); }
+/* Below the base map switch and clear of the zoom buttons */
+.map-overlay-messages { top: 54px; left: 10px; right: 52px; display: grid; justify-items: start; }
+.map-overlay-messages .map-banner { max-width: 440px; }
+.map-overlay-bottom-left { bottom: 28px; left: 10px; }
+.map-overlay-bottom-right { right: 10px; bottom: 28px; }
+.segmented-floating { box-shadow: 0 4px 14px rgba(23, 33, 31, .14); }
+.map-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px; border: 0; border-radius: 999px; background: #fff; box-shadow: 0 4px 14px rgba(23, 33, 31, .18); color: var(--ds-ink); font-size: 12px; font-weight: 700; }
+.map-pill .spinner-border { width: 14px; height: 14px; border-width: 2px; color: var(--ds-teal); }
+.map-pill-action { background: var(--ds-teal); color: #fff; }
+.map-pill-action:hover { background: var(--ds-teal-dark); }
+.map-banner { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--ds-line); border-radius: 10px; background: rgba(255, 255, 255, .95); box-shadow: 0 4px 14px rgba(23, 33, 31, .12); color: var(--ds-ink-soft); font-size: 12px; }
+.map-banner i { color: var(--ds-teal); }
+.map-banner-error { border-color: #efc9cd; background: #fff4f5; color: #a9404d; }
+.map-banner-error i { color: inherit; }
+.map-legend { display: grid; gap: 10px; min-width: 190px; max-width: 240px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 255, 255, .95); box-shadow: 0 4px 14px rgba(23, 33, 31, .14); }
+.legend-entry { display: grid; gap: 3px; }
+.legend-name { color: var(--ds-muted); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.legend-field { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.legend-ramp { height: 8px; border-radius: 4px; }
+.legend-values { display: flex; justify-content: space-between; color: var(--ds-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.legend-single i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
+.map-stats { display: flex; gap: 10px; padding: 5px 10px; border-radius: 999px; background: rgba(23, 33, 31, .78); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
+
+@media (max-width: 900px) {
+  .geo { grid-template-columns: 1fr; height: auto; }
+  .geo-panel { overflow: visible; }
+  /* The map first: the controls follow it */
+  .geo-stage { order: -1; height: 60vh; min-height: 380px; }
 }
-
-.loading-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(255, 255, 255, 0.7);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.spinner {
-  border: 16px solid #f3f3f3;
-  border-top: 16px solid #3498db;
-  border-radius: 50%;
-  width: 120px;
-  height: 120px;
-  animation: spin 2s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.range-container {
-  position: relative;
-  width: 100%;
-}
-
-.range-track {
-  position: absolute;
-  height: 5px;
-  background-color: #ccc;
-  top: 50%;
-  left: 0;
-  transform: translateY(-50%);
-  width: 100%;
-  z-index: 1;
-}
-
-.range-highlight {
-  position: absolute;
-  height: 5px;
-  background-color: #007bff;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 2;
-}
-
-input[type="range"] {
-  position: relative;
-  z-index: 3;
-  width: 100%;
-  background: transparent;
-}
-
-.value-display {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-}
-
-
-.map-h3-shell{position:relative;padding:0 14px 14px;background:#fff}
-.map-setup-card{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 10px;padding:13px 14px;border:1px solid var(--ds-line);border-radius:11px;background:linear-gradient(120deg,#f8fbfa,#edf7f4)}.map-kicker{color:#81908b;font-size:7px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.map-setup-card h4{margin:2px 0;font-size:.86rem;font-weight:760}.map-setup-card p{margin:0;color:#788681;font-size:8px}.map-refresh{display:flex;align-items:center;gap:6px;padding:7px 10px;border:1px solid #9bcbbc;border-radius:7px;background:#fff;color:var(--ds-teal-dark);font-size:8px;font-weight:750}.map-refresh:disabled{cursor:not-allowed;opacity:.45}.map-message{display:flex;align-items:center;gap:7px;margin:8px 0;padding:8px 10px;border:1px solid #d9e5e1;border-radius:8px;background:#f6faf8;color:#64746f;font-size:8px}.map-message-error{border-color:#efc9cd;background:#fff4f5;color:#a9404d}
-.map-h3-shell>div>.row,.map-h3-shell>.row{margin:10px 0;padding:13px;border:1px solid var(--ds-line);border-radius:11px;background:#f8faf9}
-.map-h3-shell hr{margin:14px 0;border-color:var(--ds-line);opacity:1}.map-h3-shell .input-group-text{font-size:9px}.map-h3-shell .form-select,.map-h3-shell .form-control{font-size:10px}.map-h3-shell .form-check-label,.map-h3-shell .form-label{color:#53635f;font-size:9px;font-weight:700}
-.map-h3-shell #map{overflow:hidden;border:1px solid var(--ds-line);border-radius:12px;box-shadow:0 8px 25px rgba(28,62,53,.08)}
-.loading-overlay{background:rgba(244,249,247,.82);backdrop-filter:blur(4px)}.spinner{width:58px;height:58px;border:6px solid #dce9e5;border-top-color:var(--ds-teal);animation:spin .8s linear infinite}
-.range-track{background:#d5e1dd}.range-highlight{background:var(--ds-teal)}.value-display{color:#778581;font-size:8px}
-@media(max-width:900px){.map-h3-shell .row>[class*=col-]{width:100%;margin-bottom:10px}}
 </style>
