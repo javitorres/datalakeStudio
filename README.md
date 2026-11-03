@@ -23,6 +23,8 @@ Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
 <img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
 
+![Geospatial explorer with linked cross-filter charts and a 3D H3 map of New York taxi trips](landing/assets/geospatial-explorer.png)
+
 ## Table of contents
 
 - [Key features](#key-features)
