@@ -12,6 +12,8 @@ from routes import apiserver_controller
 from routes import api_controller
 from routes import maps_controller
 from routes import auth_controller
+from routes import settings_controller
+from routes import conversations_controller
 
 import logging as log
 
@@ -44,6 +46,8 @@ app.include_router(queries_controller.router, dependencies=auth_dep)
 app.include_router(apiserver_controller.router, dependencies=auth_dep)
 app.include_router(api_controller.router, dependencies=auth_dep)
 app.include_router(maps_controller.router, dependencies=auth_dep)
+app.include_router(settings_controller.router, dependencies=auth_dep)
+app.include_router(conversations_controller.router, dependencies=auth_dep)
 
 
 if __name__ == "__main__":
