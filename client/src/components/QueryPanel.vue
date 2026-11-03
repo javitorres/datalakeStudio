@@ -2,22 +2,22 @@
   <section class="query-workspace" v-if="tables && tables.length > 0" @keydown.ctrl.enter.prevent="runQuery" @keydown.meta.enter.prevent="runQuery">
     <header class="query-header">
       <div>
-        <span class="page-kicker">DuckDB query environment</span>
-        <h2>SQL workspace</h2>
-        <p>Write, test and reuse queries across six independent buffers.</p>
+        <span class="page-kicker">{{ t('QueryPanel.kicker') }}</span>
+        <h2>{{ t('QueryPanel.title') }}</h2>
+        <p>{{ t('QueryPanel.intro') }}</p>
       </div>
       <div class="workspace-summary">
-        <span><i class="bi bi-database"></i><b>{{ tables.length }}</b> tables</span>
+        <span><i class="bi bi-database"></i><b>{{ tables.length }}</b> {{ t('QueryPanel.tablesWord', tables.length) }}</span>
         <span :class="{ success: querySuccesful, error: queryError }">
           <i class="bi" :class="queryError ? 'bi-exclamation-triangle' : (querySuccesful ? 'bi-check-circle' : 'bi-circle')"></i>
-          {{ queryError ? 'Query failed' : (querySuccesful ? 'Last run succeeded' : 'Ready') }}
+          {{ queryError ? t('QueryPanel.status.failed') : (querySuccesful ? t('QueryPanel.status.succeeded') : t('QueryPanel.status.ready')) }}
         </span>
       </div>
     </header>
 
     <div class="query-layout">
       <main class="editor-panel">
-        <nav class="query-tabs" aria-label="SQL query buffers">
+        <nav class="query-tabs" :aria-label="t('QueryPanel.buffersLabel')">
           <button
             v-for="tab in queryTabs"
             :key="tab.id"
@@ -36,15 +36,15 @@
           <div class="editor-context">
             <span class="context-dot"></span>
             <span>{{ activeQueryLabel }}</span>
-            <small>{{ currentQuery.trim() ? currentQuery.trim().split(/\s+/).length : 0 }} tokens</small>
+            <small>{{ t('QueryPanel.tokens', currentQuery.trim() ? currentQuery.trim().split(/\s+/).length : 0) }}</small>
             <small class="schema-status" :class="`schema-${schemaStatus}`">{{ schemaStatusText }}</small>
           </div>
           <div class="editor-actions">
-            <button title="Clear current query" @click="currentQuery = ''"><i class="bi bi-eraser"></i> Clear</button>
+            <button :title="t('QueryPanel.clearTitle')" @click="currentQuery = ''"><i class="bi bi-eraser"></i> {{ t('QueryPanel.clear') }}</button>
             <button class="run-query" :disabled="queryRunning || !currentQuery.trim()" @click="runQuery">
               <span v-if="queryRunning" class="spinner-border spinner-border-sm"></span>
               <i v-else class="bi bi-play-fill"></i>
-              Run Query
+              {{ t('QueryPanel.run') }}
               <kbd>⌘ ↵</kbd>
             </button>
           </div>
@@ -64,73 +64,73 @@
 
         <div v-if="queryError" class="query-error">
           <i class="bi bi-exclamation-octagon"></i>
-          <div><b>Query execution failed</b><pre>{{ queryError }}</pre></div>
-          <button @click="queryError = null" aria-label="Dismiss error"><i class="bi bi-x-lg"></i></button>
+          <div><b>{{ t('QueryPanel.executionFailed') }}</b><pre>{{ queryError }}</pre></div>
+          <button @click="queryError = null" :aria-label="t('QueryPanel.dismissError')"><i class="bi bi-x-lg"></i></button>
         </div>
 
         <footer class="editor-footer">
-          <span><i class="bi bi-lightning-charge"></i> Powered by DuckDB</span>
-          <span>Tab size: 4</span>
+          <span><i class="bi bi-lightning-charge"></i> {{ t('QueryPanel.poweredBy') }}</span>
+          <span>{{ t('QueryPanel.tabSize', { n: 4 }) }}</span>
           <span>SQL</span>
         </footer>
       </main>
 
       <aside class="tools-panel">
         <header class="tools-header">
-          <div><span class="page-kicker">Query tools</span><h3>Actions</h3></div>
+          <div><span class="page-kicker">{{ t('QueryPanel.toolsKicker') }}</span><h3>{{ t('QueryPanel.actions') }}</h3></div>
         </header>
         <nav class="tool-tabs">
-          <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>New table</span></a>
-          <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>Save SQL</span></a>
-          <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>Library</span></a>
-          <a href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>Ask AI</span></a>
+          <a href="#" :class="{ active: activeTab === 'newTable' }" @click.prevent="activeTab = 'newTable'"><i class="bi bi-table"></i><span>{{ t('QueryPanel.toolTabs.newTable') }}</span></a>
+          <a href="#" :class="{ active: activeTab === 'saveSql' }" @click.prevent="activeTab = 'saveSql'"><i class="bi bi-bookmark"></i><span>{{ t('QueryPanel.toolTabs.saveSql') }}</span></a>
+          <a href="#" :class="{ active: activeTab === 'loadSql' }" @click.prevent="activeTab = 'loadSql'"><i class="bi bi-folder2-open"></i><span>{{ t('QueryPanel.toolTabs.library') }}</span></a>
+          <a href="#" :class="{ active: activeTab === 'askGpt' }" @click.prevent="activeTab = 'askGpt'"><i class="bi bi-stars"></i><span>{{ t('QueryPanel.toolTabs.askAi') }}</span></a>
         </nav>
 
         <div class="tool-content">
           <section v-if="activeTab === 'newTable'" class="tool-section">
-            <div class="tool-title"><i class="bi bi-table"></i><div><h4>Create from result</h4><p>Persist the current result as a local table.</p></div></div>
+            <div class="tool-title"><i class="bi bi-table"></i><div><h4>{{ t('QueryPanel.newTable.title') }}</h4><p>{{ t('QueryPanel.newTable.help') }}</p></div></div>
             <div v-if="sampleData" class="tool-form">
-              <label for="tableNameInput">Table name</label>
-              <input id="tableNameInput" v-model="tableFromQuery" type="text" placeholder="New table name">
-              <button v-if="tableFromQuery" @click="createTable"><i class="bi bi-plus-lg"></i> Create table</button>
+              <label for="tableNameInput">{{ t('QueryPanel.newTable.nameLabel') }}</label>
+              <input id="tableNameInput" v-model="tableFromQuery" type="text" :placeholder="t('QueryPanel.newTable.namePlaceholder')">
+              <button v-if="tableFromQuery" @click="createTable"><i class="bi bi-plus-lg"></i> {{ t('QueryPanel.newTable.create') }}</button>
             </div>
-            <div v-else class="tool-empty"><i class="bi bi-play-circle"></i><p>Run a query before creating a table.</p></div>
+            <div v-else class="tool-empty"><i class="bi bi-play-circle"></i><p>{{ t('QueryPanel.newTable.runFirst') }}</p></div>
           </section>
 
           <section v-if="activeTab === 'saveSql'" class="tool-section">
-            <div class="tool-title"><i class="bi bi-bookmark"></i><div><h4>Save query</h4><p>Add the active SQL buffer to your library.</p></div></div>
+            <div class="tool-title"><i class="bi bi-bookmark"></i><div><h4>{{ t('QueryPanel.save.title') }}</h4><p>{{ t('QueryPanel.save.help') }}</p></div></div>
             <div class="tool-form">
-              <label for="sqlQueryName">Query name</label>
-              <input id="sqlQueryName" v-model="sqlQueryName" placeholder="Monthly revenue">
-              <label for="sqlQueryDescription">Description</label>
-              <textarea id="sqlQueryDescription" v-model="sqlQueryDescription" rows="3" placeholder="What does this query return?"></textarea>
-              <button v-if="sqlQueryName && sqlQueryDescription" @click="saveSqlQuery"><i class="bi bi-check2"></i> Save SQL query</button>
+              <label for="sqlQueryName">{{ t('QueryPanel.save.nameLabel') }}</label>
+              <input id="sqlQueryName" v-model="sqlQueryName" :placeholder="t('QueryPanel.save.namePlaceholder')">
+              <label for="sqlQueryDescription">{{ t('QueryPanel.save.descriptionLabel') }}</label>
+              <textarea id="sqlQueryDescription" v-model="sqlQueryDescription" rows="3" :placeholder="t('QueryPanel.save.descriptionPlaceholder')"></textarea>
+              <button v-if="sqlQueryName && sqlQueryDescription" @click="saveSqlQuery"><i class="bi bi-check2"></i> {{ t('QueryPanel.save.button') }}</button>
             </div>
           </section>
 
           <section v-if="activeTab === 'loadSql'" class="tool-section library-section">
-            <div class="tool-title"><i class="bi bi-folder2-open"></i><div><h4>Query library</h4><p>Search and restore saved SQL.</p></div></div>
-            <div class="library-search"><i class="bi bi-search"></i><input v-model="sqlSearchQuery" placeholder="Search query..." @input="searchQuery"></div>
+            <div class="tool-title"><i class="bi bi-folder2-open"></i><div><h4>{{ t('QueryPanel.library.title') }}</h4><p>{{ t('QueryPanel.library.help') }}</p></div></div>
+            <div class="library-search"><i class="bi bi-search"></i><input v-model="sqlSearchQuery" :placeholder="t('QueryPanel.library.searchPlaceholder')" @input="searchQuery"></div>
             <div v-if="queries && queries.length" class="query-library">
               <article v-for="queryCandidate in queries" :key="queryCandidate.id_query" @click="selectQuery(queryCandidate)">
-                <header><b>{{ queryCandidate.name }}</b><button title="Delete query" @click.stop="deleteQuery(queryCandidate)"><i class="bi bi-trash3"></i></button></header>
+                <header><b>{{ queryCandidate.name }}</b><button :title="t('QueryPanel.library.deleteTitle')" @click.stop="deleteQuery(queryCandidate)"><i class="bi bi-trash3"></i></button></header>
                 <p>{{ queryCandidate.description }}</p>
                 <code>{{ queryCandidate.query }}</code>
               </article>
             </div>
-            <div v-else-if="sqlSearchQuery" class="tool-empty"><i class="bi bi-search"></i><p>No saved queries found.</p></div>
+            <div v-else-if="sqlSearchQuery" class="tool-empty"><i class="bi bi-search"></i><p>{{ t('QueryPanel.library.noResults') }}</p></div>
           </section>
 
           <section v-if="activeTab === 'askGpt'" class="tool-section ai-section">
-            <div class="tool-title"><i class="bi bi-stars"></i><div><h4>AI SQL assistant</h4><p>Describe the result you need in plain language.</p></div></div>
+            <div class="tool-title"><i class="bi bi-stars"></i><div><h4>{{ t('QueryPanel.ai.title') }}</h4><p>{{ t('QueryPanel.ai.help') }}</p></div></div>
             <div class="ai-prompt">
-              <textarea id="chatGPTInput" v-model="chatGPTInput" rows="5" placeholder="Show average asking price by city..."></textarea>
-              <button :disabled="!chatGPTInput.trim()" @click="askChatGPT"><i class="bi bi-send"></i> Generate SQL</button>
+              <textarea id="chatGPTInput" v-model="chatGPTInput" rows="5" :placeholder="t('QueryPanel.ai.placeholder')"></textarea>
+              <button :disabled="!chatGPTInput.trim()" @click="askChatGPT"><i class="bi bi-send"></i> {{ t('QueryPanel.ai.generate') }}</button>
             </div>
             <div v-if="chatGPTOutput" class="ai-response">
-              <span>Generated query</span>
+              <span>{{ t('QueryPanel.ai.generated') }}</span>
               <code>{{ chatGPTOutput }}</code>
-              <button @click="useChatGPTAnswer"><i class="bi bi-play-fill"></i> Run this query</button>
+              <button @click="useChatGPTAnswer"><i class="bi bi-play-fill"></i> {{ t('QueryPanel.ai.runIt') }}</button>
             </div>
           </section>
         </div>
@@ -140,30 +140,31 @@
     <section class="results-panel">
       <header class="results-header">
         <div>
-          <span class="page-kicker">Execution output</span>
-          <h3>Query results</h3>
+          <span class="page-kicker">{{ t('QueryPanel.results.kicker') }}</span>
+          <h3>{{ t('QueryPanel.results.title') }}</h3>
         </div>
-        <div v-if="querySuccesful" class="result-status"><i class="bi bi-check2-circle"></i><span><b>Success</b><small>Stored in {{ tableName }}</small></span></div>
+        <div v-if="querySuccesful" class="result-status"><i class="bi bi-check2-circle"></i><span><b>{{ t('QueryPanel.results.success') }}</b><small>{{ t('QueryPanel.results.storedIn', { name: tableName }) }}</small></span></div>
       </header>
       <div v-if="querySuccesful" class="results-body">
         <TableInspector :tableName="tableName" :showOptions="showOptions" />
       </div>
       <div v-else class="results-empty">
         <div><i class="bi bi-terminal"></i></div>
-        <h4>No results yet</h4>
-        <p>Run the active SQL query to inspect its output here.</p>
+        <h4>{{ t('QueryPanel.results.emptyTitle') }}</h4>
+        <p>{{ t('QueryPanel.results.emptyHelp') }}</p>
       </div>
     </section>
   </section>
 
   <section v-else class="query-empty">
     <i class="bi bi-database-exclamation"></i>
-    <h2>No tables available</h2>
-    <p>Load some data before opening the SQL workspace.</p>
+    <h2>{{ t('QueryPanel.noTables') }}</h2>
+    <p>{{ t('QueryPanel.noTablesHelp') }}</p>
   </section>
 </template>
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Codemirror } from "vue-codemirror";
 import { sql } from "@codemirror/lang-sql";
 
@@ -179,6 +180,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['tableCreated']);
+const { t } = useI18n();
 
 const completionSchema = ref({});
 const schemaStatus = ref('loading');
@@ -188,10 +190,10 @@ const extensions = computed(() => [sql({
   upperCaseKeywords: true
 })]);
 const schemaStatusText = computed(() => {
-  if (schemaStatus.value === 'loading') return 'Loading schema';
-  if (schemaStatus.value === 'unavailable') return 'Autocomplete unavailable';
+  if (schemaStatus.value === 'loading') return t('QueryPanel.schema.loading');
+  if (schemaStatus.value === 'unavailable') return t('QueryPanel.schema.unavailable');
   const tableCount = Object.keys(completionSchema.value).length;
-  return `${tableCount} ${tableCount === 1 ? 'table' : 'tables'} indexed`;
+  return t('QueryPanel.schema.indexed', tableCount);
 });
 const query = ref('SELECT * FROM iris');
 const auxQuery1 = ref('');
@@ -214,14 +216,10 @@ const querySuccesful = ref(false);
 const showOptions = ref(true);
 const queryError = ref(null);
 const queryRunning = ref(false);
-const queryTabs = [
-  { id: 'mainQuery', label: 'Main query', shortcut: '01' },
-  { id: 'aux1', label: 'Aux 1', shortcut: '02' },
-  { id: 'aux2', label: 'Aux 2', shortcut: '03' },
-  { id: 'aux3', label: 'Aux 3', shortcut: '04' },
-  { id: 'aux4', label: 'Aux 4', shortcut: '05' },
-  { id: 'aux5', label: 'Aux 5', shortcut: '06' }
-];
+const queryTabs = computed(() => [
+  { id: 'mainQuery', label: t('QueryPanel.tabs.main'), shortcut: '01' },
+  ...[1, 2, 3, 4, 5].map((n) => ({ id: `aux${n}`, label: t('QueryPanel.tabs.aux', { n }), shortcut: `0${n + 1}` }))
+]);
 const queryBuffers = {
   mainQuery: query,
   aux1: auxQuery1,
@@ -234,7 +232,7 @@ const currentQuery = computed({
   get: () => queryBuffers[activeQueryTab.value].value,
   set: (value) => { queryBuffers[activeQueryTab.value].value = value; }
 });
-const activeQueryLabel = computed(() => queryTabs.find((tab) => tab.id === activeQueryTab.value)?.label || 'Query');
+const activeQueryLabel = computed(() => queryTabs.value.find((tab) => tab.id === activeQueryTab.value)?.label || t('QueryPanel.tabs.fallback'));
 
 function toCompletionSchema(databaseSchema) {
   return Object.fromEntries(
@@ -284,9 +282,9 @@ async function runQuery() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Running query, please wait...',
-      success: 'Query executed',
-      error: 'Error running query'
+      pending: t('QueryPanel.toast.running'),
+      success: t('QueryPanel.toast.executed'),
+      error: t('QueryPanel.toast.runError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
@@ -310,18 +308,18 @@ async function createTable() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Creating table from query, please wait...',
-      success: 'Table created',
-      error: 'Error creting table from query'
+      pending: t('QueryPanel.toast.creatingTable'),
+      success: t('QueryPanel.toast.tableCreated'),
+      error: t('QueryPanel.toast.createTableError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -336,18 +334,18 @@ async function askChatGPT() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Asking ChatGPT, please wait...',
-      success: 'ChatGPT answered',
-      error: 'Error asking ChatGPT'
+      pending: t('QueryPanel.toast.asking'),
+      success: t('QueryPanel.toast.answered'),
+      error: t('QueryPanel.toast.askError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     chatGPTOutput.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -367,16 +365,16 @@ async function saveSqlQuery() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Saving SQL query, please wait...',
-      success: 'SQL query saved',
-      error: 'Error saving SQL query'
+      pending: t('QueryPanel.toast.saving'),
+      success: t('QueryPanel.toast.saved'),
+      error: t('QueryPanel.toast.saveError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -391,18 +389,18 @@ async function searchQuery() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Searching SQL queries, please wait...',
-      success: 'SQL queries loaded',
-      error: 'Error loading SQL queries'
+      pending: t('QueryPanel.toast.searching'),
+      success: t('QueryPanel.toast.loaded'),
+      error: t('QueryPanel.toast.loadError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     queries.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -423,18 +421,18 @@ async function deleteQuery(queryCandidate) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Deleting SQL query, please wait...',
-      success: 'SQL query deleted',
-      error: 'Error deleting SQL query'
+      pending: t('QueryPanel.toast.deleting'),
+      success: t('QueryPanel.toast.deleted'),
+      error: t('QueryPanel.toast.deleteError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     searchQuery();
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('QueryPanel.toast.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }

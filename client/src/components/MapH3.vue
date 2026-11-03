@@ -2,30 +2,30 @@
   <div class="map-h3-shell">
     <section class="map-setup-card">
       <div>
-        <span class="map-kicker">Map setup</span>
-        <h4>Choose the location columns</h4>
+        <span class="map-kicker">{{ $t('MapH3.kicker') }}</span>
+        <h4>{{ $t('MapH3.heading') }}</h4>
         <p>{{ mapStatusText }}</p>
       </div>
       <button class="map-refresh" :disabled="!hasLocation || loading || !mapLoaded" @click="refreshVisibleLayers">
-        <i class="bi bi-arrow-clockwise"></i> Refresh visible area
+        <i class="bi bi-arrow-clockwise"></i> {{ $t('MapH3.refresh') }}
       </button>
     </section>
     <div v-if="mapError" class="map-message map-message-error" role="alert">
-      <i class="bi bi-exclamation-triangle"></i><span>{{ mapError }}</span>
+      <i class="bi bi-exclamation-triangle"></i><span>{{ mapErrorText }}</span>
     </div>
     <div v-else-if="!hasLocation" class="map-message">
-      <i class="bi bi-geo-alt"></i><span>Select latitude and longitude, or a geometry column, to enable map layers.</span>
+      <i class="bi bi-geo-alt"></i><span>{{ $t('MapH3.noLocation') }}</span>
     </div>
     <!-- General controls  -->
     <div class="row">
       <div class="col-2">
         <!-- Tile dark or light button -->
         <div class="col-2">
-          <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+          <div class="btn-group" role="group" :aria-label="$t('MapH3.mapStyle')">
             <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off">
-            <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">Dark</label>
+            <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">{{ $t('MapH3.dark') }}</label>
             <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off" checked>
-            <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">Light</label>
+            <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">{{ $t('MapH3.light') }}</label>
           </div>
         </div>
       </div>
@@ -33,9 +33,9 @@
       <div class="col-3">
         <!-- Selectors for latitude, longitude and geom fields -->
         <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">Latitude</span>
+          <span class="input-group-text">{{ $t('MapH3.latitude') }}</span>
           <select class="form-select" v-model="latitudeField" @change="coordinatesChanged">
-            <option :value="null">Select latitude</option>
+            <option :value="null">{{ $t('MapH3.selectLatitude') }}</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -43,9 +43,9 @@
 
       <div class="col-3">
         <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">Longitude</span>
+          <span class="input-group-text">{{ $t('MapH3.longitude') }}</span>
           <select class="form-select" v-model="longitudeField" @change="coordinatesChanged">
-            <option :value="null">Select longitude</option>
+            <option :value="null">{{ $t('MapH3.selectLongitude') }}</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -53,9 +53,9 @@
 
       <div class="col-3">
         <div v-if="selectedFields" class="input-group">
-          <span class="input-group-text">Geom</span>
+          <span class="input-group-text">{{ $t('MapH3.geom') }}</span>
           <select class="form-select" v-model="geomField" @change="coordinatesChanged">
-            <option :value="null">No geometry column</option>
+            <option :value="null">{{ $t('MapH3.noGeom') }}</option>
             <option v-for="field in selectedFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -68,15 +68,15 @@
     <div class="row">
       <div class="col-5">
         <div class="form-check form-switch">
-          <label class="form-check-label">H3 Data / Geom</label>
+          <label class="form-check-label">{{ $t('MapH3.h3Toggle') }}</label>
           <input class="form-check-input" type="checkbox" v-model="showData" :disabled="!canRenderH3 || loading" @change="updateVisibility()">
         </div>
         <br />
         <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group">
-          <span class="input-group-text">Show field</span>
+          <span class="input-group-text">{{ $t('MapH3.showField') }}</span>
           <select class="form-select" v-model="selectedFieldForH3" @change="showField('H3')">
-            <option value="count">Record count</option>
+            <option value="count">{{ $t('MapH3.recordCount') }}</option>
             <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
           </select>
         </div>
@@ -87,7 +87,7 @@
       <div class="col-2">
         <div class="row">
           <div class="input-group">
-            <span class="input-group-text">H3 Level</span>
+            <span class="input-group-text">{{ $t('MapH3.h3Level') }}</span>
             <select class="form-select" v-model="h3Level" @change="reloadMap('H3', true, true)">
               <option v-for="i in 12" :key="i" :value="i">{{ i }}</option>
             </select>
@@ -98,7 +98,7 @@
         <div class="row">
           <!-- H3 Opacity -->
           <div class="col-6">
-            <label for="customRange1" class="form-label">Opacity {{ h3Opacity }}</label>
+            <label for="customRange1" class="form-label">{{ $t('MapH3.opacity', { value: h3Opacity }) }}</label>
           </div>
           <div class="col-6">
             <input type="range" class="form-range" min="0" max="1" step="0.05" v-model="h3Opacity"
@@ -111,7 +111,7 @@
           <div class="col-6">
             <div class="form-check form-switch">
               <input class="form-check-input" type="checkbox" v-model="outline" @change="toggleOutline()">
-              <label class="form-check-label">Lines</label>
+              <label class="form-check-label">{{ $t('MapH3.lines') }}</label>
             </div>
           </div>
 
@@ -120,7 +120,7 @@
             <div class="col-3">
               <div class="form-check form-switch">
                 <input class="form-check-input" type="checkbox" v-model="show3D" @change="reloadLayers()">
-                <label class="form-check-label">3D</label>
+                <label class="form-check-label">{{ $t('MapH3.threeD') }}</label>
               </div>
             </div>
           </div>
@@ -132,17 +132,17 @@
         <div class="row">
           <div class="col-3">
             <div class="input-group">
-              <span class="input-group-text">Low</span>
+              <span class="input-group-text">{{ $t('MapH3.low') }}</span>
               <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerH3Low" title="Choose your color" @change="reloadLayers('H3')">
+                v-model="colorPickerH3Low" :title="$t('MapH3.chooseColor')" @change="reloadLayers('H3')">
             </div>
           </div>
           <div class="col-6"></div>
           <div class="col-3">
             <div class="input-group">
               <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerH3High" title="Choose your color" @change="reloadLayers('H3')">
-              <span class="input-group-text">High</span>
+                v-model="colorPickerH3High" :title="$t('MapH3.chooseColor')" @change="reloadLayers('H3')">
+              <span class="input-group-text">{{ $t('MapH3.high') }}</span>
             </div>
           </div>
         </div>
@@ -158,10 +158,10 @@
                 @change="changeLimits('H3')">
             </div>
             <div class="value-display">
-              <span>Absolute Min<br />{{ min }}</span>
-              <span>Selected Min<br />{{ minValue }}</span>
-              <span>Selected Max<br />{{ maxValue }}</span>
-              <span>Absolute Max<br />{{ max }}</span>
+              <span>{{ $t('MapH3.absoluteMin') }}<br />{{ min }}</span>
+              <span>{{ $t('MapH3.selectedMin') }}<br />{{ minValue }}</span>
+              <span>{{ $t('MapH3.selectedMax') }}<br />{{ maxValue }}</span>
+              <span>{{ $t('MapH3.absoluteMax') }}<br />{{ max }}</span>
             </div>
           </div>
 
@@ -187,14 +187,14 @@
     <div class="row">
       <div class="col-5">
         <div class="form-check form-switch">
-          <label class="form-check-label">Points</label>
+          <label class="form-check-label">{{ $t('MapH3.points') }}</label>
           <input class="form-check-input" type="checkbox" v-model="showDataPoints" :disabled="!canRenderPoints || loading" @change="updateVisibility()">
         </div>
         <br />
 
         <!-- Selector del campo a mostrar (de selectedFields) -->
         <div class="input-group" v-if="showDataPoints">
-          <span class="input-group-text">Show field</span>
+          <span class="input-group-text">{{ $t('MapH3.showField') }}</span>
           <select class="form-select" v-model="selectedFieldForPoints" @change="showField('POINTS')">
             <option v-for="field in numericFields" :key="field" :value="field">{{ field }}</option>
           </select>
@@ -207,7 +207,7 @@
         <div class="row">
           <!-- Bar seelctor for point size -->
           <div class="input-group">
-            <span class="input-group-text">Point size</span>
+            <span class="input-group-text">{{ $t('MapH3.pointSize') }}</span>
             <select class="form-select" v-model="pointSize" @change="reloadMap('POINTS', false)">
               <option v-for="i in 10" :key="i" :value="i">{{ i }}</option>
             </select>
@@ -218,7 +218,7 @@
         <!-- Points Opacity -->
         <div class="row">
           <div class="col-6">
-            <label for="customRange1" class="form-label">Opacity {{ pointsOpacity }}</label>
+            <label for="customRange1" class="form-label">{{ $t('MapH3.opacity', { value: pointsOpacity }) }}</label>
           </div>
 
           <div class="col-6">
@@ -233,9 +233,9 @@
         <div class="row">
           <div class="col-3">
             <div class="input-group">
-              <span class="input-group-text">Low</span>
+              <span class="input-group-text">{{ $t('MapH3.low') }}</span>
               <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerPointsLow" title="Choose your color" @change="reloadLayers('POINTS')">
+                v-model="colorPickerPointsLow" :title="$t('MapH3.chooseColor')" @change="reloadLayers('POINTS')">
             </div>
           </div>
           <div class="col-6"></div>
@@ -243,8 +243,8 @@
             <div class="input-group">
 
               <input type="color" class="form-control form-control-color" id="exampleColorInput"
-                v-model="colorPickerPointsHigh" title="Choose your color" @change="reloadLayers('POINTS')">
-              <span class="input-group-text">High</span>
+                v-model="colorPickerPointsHigh" :title="$t('MapH3.chooseColor')" @change="reloadLayers('POINTS')">
+              <span class="input-group-text">{{ $t('MapH3.high') }}</span>
             </div>
           </div>
         </div>
@@ -260,10 +260,10 @@
                 @change="changeLimits('POINTS')">
             </div>
             <div class="value-display">
-              <span>Absolute Min<br />{{ minPoints }}</span>
-              <span>Selected Min<br /> {{ minValuePoints }}</span>
-              <span>Selected Max<br /> {{ maxValuePoints }}</span>
-              <span>Absolute Max<br />{{ maxPoints }}</span>
+              <span>{{ $t('MapH3.absoluteMin') }}<br />{{ minPoints }}</span>
+              <span>{{ $t('MapH3.selectedMin') }}<br /> {{ minValuePoints }}</span>
+              <span>{{ $t('MapH3.selectedMax') }}<br /> {{ maxValuePoints }}</span>
+              <span>{{ $t('MapH3.absoluteMax') }}<br />{{ maxPoints }}</span>
             </div>
             <!--<button class="btn m-1 opcion-style" :class="limitsPointsSetedManually ? 'btn-primary' : 'btn-secondary'"
           @click="reloadPointsMap(false, true)">Refresh
@@ -290,19 +290,19 @@
   <div class="row">
     <div class="col-6">
       <div v-if="geometadata" class="alert alert-light" role="alert">
-        <strong><b>H3 Layer</b></strong><br>
-        <strong>Records:</strong> {{ geometadata.records }}<br>
-        <strong>Dataframe Size:</strong> {{ geometadata.dfsize }} Mb<br>
-        <strong>Payload Size:</strong> {{ geometadata.objectSize }} Mb<br>
-        <strong>Time:</strong> {{ geometadata.time }} seconds<br>
-        <strong>H3 Radix:</strong> {{ h3Radix }} meters<br>
+        <strong><b>{{ $t('MapH3.metadata.h3Layer') }}</b></strong><br>
+        <strong>{{ $t('MapH3.metadata.records') }}</strong> {{ geometadata.records }}<br>
+        <strong>{{ $t('MapH3.metadata.dfSize') }}</strong> {{ $t('MapH3.metadata.megabytes', { value: geometadata.dfsize }) }}<br>
+        <strong>{{ $t('MapH3.metadata.payloadSize') }}</strong> {{ $t('MapH3.metadata.megabytes', { value: geometadata.objectSize }) }}<br>
+        <strong>{{ $t('MapH3.metadata.time') }}</strong> {{ $t('MapH3.metadata.seconds', { value: geometadata.time }) }}<br>
+        <strong>{{ $t('MapH3.metadata.h3Radix') }}</strong> {{ $t('MapH3.metadata.meters', { value: h3Radix }) }}<br>
       </div>
     </div>
 
     <div class="col-6">
       <div v-if="geometadata" class="alert alert-light" role="alert">
-        <strong><b>Points Layer</b></strong><br>
-        <strong>Points:</strong> {{ totalPoints }}<br>
+        <strong><b>{{ $t('MapH3.metadata.pointsLayer') }}</b></strong><br>
+        <strong>{{ $t('MapH3.metadata.points') }}</strong> {{ totalPoints }}<br>
 
       </div>
     </div>
@@ -419,14 +419,20 @@ export default {
       return Boolean(this.mapLoaded && this.hasCoordinates);
     },
     mapStatusText() {
-      if (!this.mapLoaded) return 'Loading the base map…';
-      if (this.loading) return 'Loading data for the visible map area…';
+      if (!this.mapLoaded) return this.$t('MapH3.status.loadingBasemap');
+      if (this.loading) return this.$t('MapH3.status.loadingData');
       if (!this.token) return this.hasLocation
-        ? 'Using the open basemap. Enable H3 or points to display data.'
-        : 'Using the open basemap; select location columns to continue.';
-      if (!this.hasLocation) return 'The coordinate columns could not be detected automatically.';
-      if (this.showData || this.showDataPoints) return 'Move the map and refresh to query the current visible area.';
-      return 'Coordinates are ready. Enable H3 or points to display data.';
+        ? this.$t('MapH3.status.openBasemapReady')
+        : this.$t('MapH3.status.openBasemapNoLocation');
+      if (!this.hasLocation) return this.$t('MapH3.status.noCoordinates');
+      if (this.showData || this.showDataPoints) return this.$t('MapH3.status.moveAndRefresh');
+      return this.$t('MapH3.status.ready');
+    },
+    // mapError holds either a server/Mapbox message (text) or a translation key, so the
+    // message follows the language selector.
+    mapErrorText() {
+      if (!this.mapError) return '';
+      return this.mapError.text || this.$t(this.mapError.key);
     },
 
     h3Radix() {
@@ -572,6 +578,9 @@ export default {
       const maxPercent = Math.max(minPercent, Math.min(100, ((Number(maxValue) - Number(min)) / range) * 100));
       return { left: minPercent + "%", width: (maxPercent - minPercent) + "%" };
     },
+    errorFrom(text, key) {
+      return text ? { text: String(text) } : { key };
+    },
     beginRequest() {
       this.activeRequests += 1;
       this.loading = true;
@@ -646,12 +655,12 @@ export default {
         if (requestId !== this.h3RequestId) return null;
         this.geometadata = response.data.metadata;
         const result = response.data.geojson;
-        if (!result?.features?.length) this.mapError = "No spatial records were found in the visible area.";
+        if (!result?.features?.length) this.mapError = { key: "MapH3.errors.noSpatialRecords" };
         return result;
       } catch (error) {
         if (requestId !== this.h3RequestId) return null;
-        this.mapError = error.response?.data?.detail || "The H3 layer could not be loaded.";
-        toast.error(this.mapError);
+        this.mapError = this.errorFrom(error.response?.data?.detail, "MapH3.errors.h3Load");
+        toast.error(this.mapErrorText);
         return null;
       } finally {
         this.endRequest();
@@ -699,12 +708,12 @@ export default {
         });
         if (requestId !== this.pointsRequestId) return null;
         this.totalPoints = pointsGeojson?.features?.length || 0;
-        if (!this.totalPoints) this.mapError = "No points were found in the visible area.";
+        if (!this.totalPoints) this.mapError = { key: "MapH3.errors.noPoints" };
         return pointsGeojson;
       } catch (error) {
         if (requestId !== this.pointsRequestId) return null;
-        this.mapError = error.response?.data?.detail || "The point layer could not be loaded.";
-        toast.error(this.mapError);
+        this.mapError = this.errorFrom(error.response?.data?.detail, "MapH3.errors.pointsLoad");
+        toast.error(this.mapErrorText);
         return null;
       } finally {
         this.endRequest();
@@ -718,7 +727,7 @@ export default {
         return response.data.token;
       } catch (error) {
         if (error.response?.status !== 503) {
-          this.mapError = error.response?.data?.detail || "Map configuration could not be loaded.";
+          this.mapError = this.errorFrom(error.response?.data?.detail, "MapH3.errors.config");
         }
         return null;
       }
@@ -748,7 +757,7 @@ export default {
         this.applyLayerVisibility();
       });
       this.map.on("error", (event) => {
-        this.mapError = event?.error?.message || "The base map could not be loaded.";
+        this.mapError = this.errorFrom(event?.error?.message, "MapH3.errors.basemap");
       });
     },
     ////////////////////////////
@@ -986,17 +995,17 @@ export default {
       this.popupHandlersBound = true;
       this.popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
 
-      const showPopup = (title) => (event) => {
+      const showPopup = (titleKey) => (event) => {
         const feature = event.features?.[0];
         if (!feature) return;
         this.map.getCanvas().style.cursor = "pointer";
         this.popup
           .setLngLat(event.lngLat)
-          .setHTML(this.popupContent(title, feature.properties))
+          .setHTML(this.popupContent(this.$t(titleKey), feature.properties))
           .addTo(this.map);
       };
-      this.map.on("mousemove", "h3", showPopup("H3 properties"));
-      this.map.on("mousemove", "points", showPopup("Point properties"));
+      this.map.on("mousemove", "h3", showPopup("MapH3.popup.h3"));
+      this.map.on("mousemove", "points", showPopup("MapH3.popup.point"));
 
       const hidePopup = () => {
         this.map.getCanvas().style.cursor = "";

@@ -1,7 +1,7 @@
 <template>
   <div class="compact-panel compact-db-view">
-    <h2 class="compact-title">Select database</h2>
-    <p class="compact-muted mb-2">Choose the active local database for this session.</p>
+    <h2 class="compact-title">{{ t('ChangeDatabase.selectTitle') }}</h2>
+    <p class="compact-muted mb-2">{{ t('ChangeDatabase.selectHelp') }}</p>
     <div v-if="databases" class="col-md-12">
       <div class="db-grid">
         <div v-for="db in databases" :key="db" class="m-0">
@@ -13,7 +13,7 @@
           >
             <span class="db-card-top">
               <i class="bi bi-database"></i>
-              <span class="db-badge" v-if="isActiveDatabase(db)">ACTIVE</span>
+              <span class="db-badge" v-if="isActiveDatabase(db)">{{ t('ChangeDatabase.active') }}</span>
             </span>
             <span class="db-name">{{ db.toUpperCase() }}</span>
           </button>
@@ -21,16 +21,16 @@
       </div>
     </div>
 
-    <h2 class="compact-title mt-3">Create new database</h2>
+    <h2 class="compact-title mt-3">{{ t('ChangeDatabase.createTitle') }}</h2>
     <div class="row align-items-start g-2">
       <div class="col-md-4 compact-input-group">
-        <input type="text" class="form-control" v-model="newDatabaseName" placeholder="Database name">
+        <input type="text" class="form-control" v-model="newDatabaseName" :placeholder="t('ChangeDatabase.namePlaceholder')">
       </div>
       <div class="col-md-3" v-if="newDatabaseName">
-        <button type="button" class="btn btn-sm btn-primary" @click="createDatabase()">Create new database</button>
+        <button type="button" class="btn btn-sm btn-primary" @click="createDatabase()">{{ t('ChangeDatabase.createButton') }}</button>
       </div>
       <div class="col-md-5" v-if="newDatabaseName && !newDatabaseName.endsWith('.db')">
-        <p class="text-danger">Database name must end with .db</p>
+        <p class="text-danger">{{ t('ChangeDatabase.mustEndWithDb') }}</p>
       </div>
     </div>
   </div>
@@ -38,10 +38,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
+const { t } = useI18n();
 const databases = ref(null);
 const activeDatabase = ref(null);
 const newDatabaseName = ref('newdatabase.db');
@@ -63,7 +65,7 @@ const getDatabaseList = async () => {
       activeDatabase.value = databases.value[0];
     }
   } catch (error) {
-    toast.error('Error getting database list');
+    toast.error(t('ChangeDatabase.listError'));
   }
 };
 
@@ -78,19 +80,18 @@ const changeDatabase = async (databaseName) => {
         databaseName: databaseName
       }
     });
-    toast.success('Database changed');
+    toast.success(t('ChangeDatabase.changed'));
     activeDatabase.value = databaseName;
     getDatabaseList();
     emit('changedDatabase', databaseName);
   } catch (error) {
-    toast.error('Error changing database: ' + error);
-    
+    toast.error(t('ChangeDatabase.changeError', { error: String(error) }));
   }
 };
 
 const createDatabase = async () => {
   if (!newDatabaseName.value.endsWith('.db')) {
-    toast.error('Database name must end with .db');
+    toast.error(t('ChangeDatabase.mustEndWithDb'));
     return;
   }
   try {
@@ -99,11 +100,11 @@ const createDatabase = async () => {
         databaseName: newDatabaseName.value
       }
     });
-    toast.success('Database created');
+    toast.success(t('ChangeDatabase.created'));
     newDatabaseName.value = '';
     getDatabaseList();
   } catch (error) {
-    toast.error('Error creating database');
+    toast.error(t('ChangeDatabase.createError'));
   }
 };
 </script>

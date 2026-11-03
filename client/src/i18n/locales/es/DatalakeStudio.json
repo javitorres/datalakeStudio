@@ -1,0 +1,37 @@
+{
+  "tooltips": {
+    "changeDatabase": "Cambiar de base de datos",
+    "loadData": "Cargar datos desde ficheros",
+    "remoteDb": "Cargar datos de una base de datos externa",
+    "showTables": "Ver tablas",
+    "queries": "Consultas",
+    "apiRetriever": "Obtener datos de una API",
+    "apiServer": "Publicar datos como API",
+    "s3": "Explorar tus buckets de S3",
+    "chatgpt": "Asistente de datos con IA (experimental)",
+    "settings": "Configuración"
+  },
+  "sections": {
+    "welcome": "Inicio",
+    "changeDatabase": "Bases de datos",
+    "loadData": "Cargar datos",
+    "remoteDb": "Base de datos remota",
+    "showTables": "Explorador de tablas",
+    "queries": "Espacio SQL",
+    "apiRetriever": "Enriquecer con APIs",
+    "apiServer": "APIs publicadas",
+    "s3": "Explorador de S3",
+    "chatgpt": "Asistente de datos con IA",
+    "settings": "Configuración"
+  },
+  "tables": "sin tablas | {n} tabla | {n} tablas",
+  "about": "Acerca de",
+  "logout": "Cerrar sesión",
+  "tagline": "Tu espacio de trabajo con datos",
+  "user": "Usuario",
+  "errorLoadingTables": "Error al cargar las tablas",
+  "tableDeleted": "Tabla borrada",
+  "tableRenamed": "Tabla renombrada a {name}",
+  "errorRenaming": "Error al renombrar la tabla: {detail}",
+  "errorDeleting": "Error al borrar la tabla: {detail}"
+}

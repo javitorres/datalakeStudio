@@ -1,0 +1,29 @@
+{
+  "databaseName": "Database name",
+  "databasePlaceholder": "Write the database name",
+  "connectedDatabase": "Database: {name}.",
+  "clickToDisconnect": "Click to disconnect",
+  "activeSchema": "Schema active: {name}.",
+  "hideSchemas": "Click to hide schemas",
+  "showSchemas": "Click to show schemas",
+  "remoteSchemas": "Remote Schemas:",
+  "remoteTables": "Remote Tables:",
+  "filterPlaceholder": "Filter by name",
+  "queryTitle": "Query on remote database",
+  "codePlaceholder": "code goes here...",
+  "runQuery": "Run remote Query",
+  "createFromQuery": "Create table from query",
+  "newTablePlaceholder": "New table name",
+  "createTable": "Create table",
+  "errorDetail": "Error: {detail}",
+  "httpError": "Error: HTTP {detail}",
+  "toast": {
+    "searchError": "Error searching databases",
+    "connected": "Database {name} connected",
+    "connectError": "Error connecting to remote database",
+    "schemasError": "Error loading schemas",
+    "tableCreated": "Table created successfully",
+    "tableError": "Table creation error: {detail}",
+    "disconnectError": "Error disconnecting remote database"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "language": "Idioma",
+  "languageHelp": "Idioma de la aplicación. El asistente de IA también responde, habla y escucha en este idioma.",
+  "model": "Modelo de IA",
+  "modelHelp": "El modelo de OpenAI que escribe el SQL, explica los resultados, elige los gráficos y nombra las conversaciones. Solo aparecen los de texto a los que tiene acceso la clave.",
+  "modelDefault": "El de la configuración ({model})",
+  "modelsError": "No se han podido listar los modelos: {detail}",
+  "unknownError": "error desconocido",
+  "voice": "Voz del asistente",
+  "voiceHelp": "Respuestas habladas del asistente de IA. ElevenLabs suena más natural; si está desactivado o no está configurado, se usa OpenAI.",
+  "useElevenLabs": "Usar ElevenLabs para las respuestas habladas",
+  "elevenLabsMissing": "Añade elevenlabs_api_key a server/secrets.yml para activarlo.",
+  "savedOnServer": "Tus preferencias (idioma, modelo y voz) se guardan en el servidor y te siguen en cualquier navegador.",
+  "saveError": "No se han podido guardar tus preferencias en el servidor.",
+  "integrations": "Integraciones",
+  "integrationsHelp": "Lo que el servidor ha leído de config.yml y secrets.yml. Nunca se muestran los valores.",
+  "statusError": "No se ha podido leer la configuración del servidor.",
+  "read": "leído",
+  "notFound": "no encontrado",
+  "configured": "Configurado",
+  "notDefined": "No definido",
+  "awsChain": "Credenciales de AWS",
+  "services": {
+    "openai": {
+      "name": "OpenAI",
+      "use": "Asistente de IA, preguntas por voz"
+    },
+    "elevenlabs": {
+      "name": "ElevenLabs",
+      "use": "Respuestas habladas"
+    },
+    "mapbox": {
+      "name": "Mapbox",
+      "use": "Mapas"
+    },
+    "s3": {
+      "name": "Amazon S3",
+      "use": "Explorador de S3, carga desde S3"
+    },
+    "postgres": {
+      "name": "PostgreSQL",
+      "use": "Bases de datos remotas (fichero pgpass)"
+    },
+    "google": {
+      "name": "Google",
+      "use": "Iniciar sesión con Google"
+    },
+    "smtp": {
+      "name": "Correo (SMTP)",
+      "use": "Verificación de email, recuperar contraseña"
+    },
+    "apiSearch": {
+      "name": "Búsqueda de APIs",
+      "use": "Enriquecimiento con APIs"
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "tabs": {
+    "upload": "Subir fichero",
+    "s3": "Cargar desde S3",
+    "url": "Cargar desde URL",
+    "path": "Cargar desde ruta del servidor"
+  },
+  "table": "Tabla",
+  "tableName": "Nombre de la tabla",
+  "loadFile": "Cargar fichero",
+  "s3Bucket": "Bucket de S3",
+  "s3BucketPlaceholder": "bucket de s3",
+  "s3File": "Fichero de datos",
+  "s3FilePlaceholder": "Buscar fichero en S3",
+  "file": "Fichero",
+  "example": "Ejemplo:",
+  "examples": "Ejemplos:",
+  "urlToLoad": "URL que cargar",
+  "pathToLoad": "Ruta o fichero que cargar",
+  "pathPlaceholder": "Ruta del fichero. Empieza por 's3 ' para buscar en tu bucket mientras escribes",
+  "uploading": "Subiendo fichero, espera...",
+  "uploadDone": "Fichero subido",
+  "uploadError": "Error al subir el fichero",
+  "couldNotLoad": "No se han podido cargar los datos: {status}",
+  "errorDetail": "Error: {message}",
+  "searchingS3": "Buscando en S3, espera...",
+  "s3SearchDone": "Búsqueda en S3 terminada",
+  "s3SearchError": "Error al buscar en S3",
+  "creatingTable": "Creando la tabla a partir del fichero, espera...",
+  "tableCreated": "Tabla creada",
+  "createTableError": "Error al crear la tabla a partir del fichero"
+}

@@ -1,0 +1,14 @@
+{
+  "selectTitle": "Seleccionar base de datos",
+  "selectHelp": "Elige la base de datos local activa para esta sesión.",
+  "active": "ACTIVA",
+  "createTitle": "Crear base de datos",
+  "namePlaceholder": "Nombre de la base de datos",
+  "createButton": "Crear base de datos",
+  "mustEndWithDb": "El nombre de la base de datos debe terminar en .db",
+  "listError": "Error al obtener la lista de bases de datos",
+  "changed": "Base de datos cambiada",
+  "changeError": "Error al cambiar de base de datos: {error}",
+  "created": "Base de datos creada",
+  "createError": "Error al crear la base de datos"
+}

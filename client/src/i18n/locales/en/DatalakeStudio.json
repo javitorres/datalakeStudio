@@ -1,0 +1,37 @@
+{
+  "tooltips": {
+    "changeDatabase": "Change database",
+    "loadData": "Load data from files",
+    "remoteDb": "Load data from an external database",
+    "showTables": "Show tables",
+    "queries": "Queries",
+    "apiRetriever": "Get data from an API",
+    "apiServer": "Expose data via API",
+    "s3": "Explore your S3 buckets",
+    "chatgpt": "AI data assistant (Experimental)",
+    "settings": "Settings"
+  },
+  "sections": {
+    "welcome": "Overview",
+    "changeDatabase": "Databases",
+    "loadData": "Load data",
+    "remoteDb": "Remote database",
+    "showTables": "Table explorer",
+    "queries": "SQL workspace",
+    "apiRetriever": "API enrichment",
+    "apiServer": "Published APIs",
+    "s3": "S3 explorer",
+    "chatgpt": "AI data assistant",
+    "settings": "Settings"
+  },
+  "tables": "no tables | {n} table | {n} tables",
+  "about": "About",
+  "logout": "Log out",
+  "tagline": "Your personal data workspace",
+  "user": "User",
+  "errorLoadingTables": "Error loading tables",
+  "tableDeleted": "Table deleted",
+  "tableRenamed": "Table renamed to {name}",
+  "errorRenaming": "Error renaming the table: {detail}",
+  "errorDeleting": "Error deleting the table: {detail}"
+}

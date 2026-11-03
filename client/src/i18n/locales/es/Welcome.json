@@ -1,0 +1,19 @@
+{
+  "kicker": "ESPACIO DE DATOS LOCAL",
+  "titleLine1": "Explora sin límites.",
+  "titleLine2": "Publica con confianza.",
+  "intro": "Reúne tus datos en un espacio de trabajo rápido, haz mejores preguntas y convierte las respuestas en algo útil.",
+  "docs": "Leer la documentación",
+  "logoAlt": "Logo de Datalake Studio",
+  "nodes": {
+    "connect": "Conecta",
+    "query": "Consulta",
+    "visualize": "Visualiza",
+    "publish": "Publica"
+  },
+  "steps": {
+    "load": { "title": "Carga una fuente", "text": "Ficheros, URLs, S3 o PostgreSQL" },
+    "explore": { "title": "Explora con SQL", "text": "La velocidad de DuckDB con ayuda de la IA" },
+    "publish": { "title": "Publica una API", "text": "Convierte consultas guardadas en endpoints" }
+  }
+}

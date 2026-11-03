@@ -1,0 +1,14 @@
+{
+  "selectTitle": "Select database",
+  "selectHelp": "Choose the active local database for this session.",
+  "active": "ACTIVE",
+  "createTitle": "Create new database",
+  "namePlaceholder": "Database name",
+  "createButton": "Create new database",
+  "mustEndWithDb": "Database name must end with .db",
+  "listError": "Error getting database list",
+  "changed": "Database changed",
+  "changeError": "Error changing database: {error}",
+  "created": "Database created",
+  "createError": "Error creating database"
+}

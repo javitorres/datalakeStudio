@@ -1,0 +1,32 @@
+{
+  "tabs": {
+    "upload": "Upload file",
+    "s3": "Load from S3",
+    "url": "Load from URL",
+    "path": "Load from server path"
+  },
+  "table": "Table",
+  "tableName": "Table name",
+  "loadFile": "Load file",
+  "s3Bucket": "S3 Bucket",
+  "s3BucketPlaceholder": "s3 bucket",
+  "s3File": "Data file to load",
+  "s3FilePlaceholder": "Search S3 file",
+  "file": "File",
+  "example": "Example:",
+  "examples": "Examples:",
+  "urlToLoad": "URL to load",
+  "pathToLoad": "Path or file to load",
+  "pathPlaceholder": "Path to the file. Start with 's3 ' to search your bucket while you type",
+  "uploading": "Uploading file, please wait...",
+  "uploadDone": "Upload finished",
+  "uploadError": "Error uploading file",
+  "couldNotLoad": "Could not load data: {status}",
+  "errorDetail": "Error: {message}",
+  "searchingS3": "Searching in S3, please wait...",
+  "s3SearchDone": "S3 search finished",
+  "s3SearchError": "Error searching in S3",
+  "creatingTable": "Creating table from file, please wait...",
+  "tableCreated": "Table created",
+  "createTableError": "Error creating table from file"
+}

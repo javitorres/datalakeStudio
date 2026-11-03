@@ -1,0 +1,57 @@
+{
+  "language": "Language",
+  "languageHelp": "Language of the app. The AI assistant also answers, speaks and listens in it.",
+  "model": "AI model",
+  "modelHelp": "The OpenAI model that writes the SQL, explains the results, picks the charts and names the conversations. Only the text models the key can use are listed.",
+  "modelDefault": "The one in the config ({model})",
+  "modelsError": "Could not list the models: {detail}",
+  "unknownError": "unknown error",
+  "voice": "Assistant voice",
+  "voiceHelp": "Spoken answers of the AI assistant. ElevenLabs sounds more natural; OpenAI is used when it is off or not configured.",
+  "useElevenLabs": "Use ElevenLabs for spoken answers",
+  "elevenLabsMissing": "Add elevenlabs_api_key to server/secrets.yml to enable it.",
+  "savedOnServer": "Your preferences (language, model and voice) are saved on the server and follow you to any browser.",
+  "saveError": "Your preferences could not be saved on the server.",
+  "integrations": "Integrations",
+  "integrationsHelp": "What the server read from config.yml and secrets.yml. Values are never shown.",
+  "statusError": "Could not read the server settings.",
+  "read": "read",
+  "notFound": "not found",
+  "configured": "Configured",
+  "notDefined": "Not defined",
+  "awsChain": "AWS credentials",
+  "services": {
+    "openai": {
+      "name": "OpenAI",
+      "use": "AI assistant, voice questions"
+    },
+    "elevenlabs": {
+      "name": "ElevenLabs",
+      "use": "Spoken answers"
+    },
+    "mapbox": {
+      "name": "Mapbox",
+      "use": "Maps"
+    },
+    "s3": {
+      "name": "Amazon S3",
+      "use": "S3 explorer, loading from S3"
+    },
+    "postgres": {
+      "name": "PostgreSQL",
+      "use": "Remote databases (pgpass file)"
+    },
+    "google": {
+      "name": "Google",
+      "use": "Sign in with Google"
+    },
+    "smtp": {
+      "name": "Email (SMTP)",
+      "use": "Email verification, password recovery"
+    },
+    "apiSearch": {
+      "name": "API search",
+      "use": "API enrichment"
+    }
+  }
+}
