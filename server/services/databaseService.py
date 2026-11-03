@@ -613,3 +613,10 @@ def retrieve_json(query):
     if df is not None:
         return to_json_records(df)
     return []
+
+
+def get_user_folder(username=None):
+    """The user's own folder (their databases live there), for other per-user files."""
+    folder = _get_user_db_folder(username)
+    os.makedirs(folder, exist_ok=True)
+    return folder

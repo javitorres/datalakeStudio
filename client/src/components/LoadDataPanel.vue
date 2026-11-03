@@ -5,25 +5,25 @@
       <!-- Upload file  -->
       <li class="nav-item">
         <a :class="{ 'nav-link': true, active: activeTab === 'uploadFile' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'uploadFile'">Upload file</a>
+          @click.prevent="activeTab = 'uploadFile'">{{ t('LoadDataPanel.tabs.upload') }}</a>
       </li>
 
       <!-- Load from S3  -->
       <li class="nav-item" v-if="engine.capabilities.s3">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadS3' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'loadS3'">Load from S3</a>
+          @click.prevent="activeTab = 'loadS3'">{{ t('LoadDataPanel.tabs.s3') }}</a>
       </li>
 
       <!-- Load from URL -->
       <li class="nav-item">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadUrl' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'loadUrl'">Load from URL</a>
+          @click.prevent="activeTab = 'loadUrl'">{{ t('LoadDataPanel.tabs.url') }}</a>
       </li>
 
       <!-- Load from Path -->
       <li class="nav-item" v-if="engine.capabilities.serverPath">
         <a :class="{ 'nav-link': true, active: activeTab === 'loadPath' }" aria-current="page" href="#"
-          @click.prevent="activeTab = 'loadPath'">Load from server path</a>
+          @click.prevent="activeTab = 'loadPath'">{{ t('LoadDataPanel.tabs.path') }}</a>
       </li>
     </ul>
 
@@ -36,15 +36,15 @@
 
         <!-- Table name input -->
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">Table</span>
-          <input id="tableNameInputUpload" type="text" class="form-control" placeholder="Table name"
-            aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputUpload">
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.table') }}</span>
+          <input id="tableNameInputUpload" type="text" class="form-control" :placeholder="t('LoadDataPanel.tableName')"
+            :aria-label="t('LoadDataPanel.tableName')" aria-describedby="basic-addon1" v-model="tableNameInputUpload">
         </div>
 
         <div class="col-md-2" v-if="tableNameInputUpload">
           <!-- Load file button -->
           <button class="btn btn-sm btn-primary" @click="uploadFile(tableNameInputUpload, fileInputUpload)">
-            Load file
+            {{ t('LoadDataPanel.loadFile') }}
           </button>
         </div> <!-- col-md-2 -->
       </div>
@@ -55,16 +55,16 @@
 
       <div class="col-md-6">
         <div class="input-group mb-3 compact-input-group mt-2">
-          <span class="input-group-text" id="basic-addon1">S3 Bucket</span>
-          <input id="bucket" type="text" class="form-control" placeholder="s3 bucket" aria-label="File"
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.s3Bucket') }}</span>
+          <input id="bucket" type="text" class="form-control" :placeholder="t('LoadDataPanel.s3BucketPlaceholder')" :aria-label="t('LoadDataPanel.s3Bucket')"
             aria-describedby="basic-addon1" v-model="bucket">
         </div>
       </div>
 
       <div class="col-md-6">
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">Data file to load</span>
-          <input id="fileInput" type="text" class="form-control" placeholder="Search S3 file" aria-label="File"
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.s3File') }}</span>
+          <input id="fileInput" type="text" class="form-control" :placeholder="t('LoadDataPanel.s3FilePlaceholder')" :aria-label="t('LoadDataPanel.file')"
             aria-describedby="basic-addon1" v-model="fileInputS3" @input="findFileInS3">
         </div>
       </div> <!-- col-md-6 -->
@@ -72,8 +72,8 @@
       <div class="col-md-4" v-if="fileInputS3">
         <!-- Table name input -->
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">Table</span>
-          <input id="tableNameInput" type="text" class="form-control" placeholder="Table name" aria-label="Table name"
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.table') }}</span>
+          <input id="tableNameInput" type="text" class="form-control" :placeholder="t('LoadDataPanel.tableName')" :aria-label="t('LoadDataPanel.tableName')"
             aria-describedby="basic-addon1" v-model="tableNameInputS3">
         </div>
       </div> <!-- col-md-4 -->
@@ -81,7 +81,7 @@
       <div class="col-md-2" v-if="fileInputS3 && tableNameInputS3">
         <!-- Load file button -->
         <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputS3, fileInputS3)">
-          Load file
+          {{ t('LoadDataPanel.loadFile') }}
         </button>
       </div> <!-- col-md-2 -->
 
@@ -106,7 +106,7 @@
     <!-- Load from URL ###########################################################  -->
     <div v-if="activeTab == 'loadUrl'">
       <div class="col-md-6">
-        <p>Example:</p>
+        <p>{{ t('LoadDataPanel.example') }}</p>
         <ul>
           <li>https://raw.githubusercontent.com/javitorres/GenericCross/main/public/data/iris.csv</li>
         </ul>
@@ -116,26 +116,26 @@
         </p>
 
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">URL to load</span>
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.urlToLoad') }}</span>
           <input id="fileInputUrl" type="text" class="form-control"
-            :placeholder="engine.mode === 'local' ? 'https://… (a file on the web)' : 'Path to the file. Start with \'s3 \' for search in your bucket while you type'"
-            aria-label="File" aria-describedby="basic-addon1" v-model="fileInputUrl">
+            :placeholder="engine.mode === 'local' ? t('LoadDataPanel.urlPlaceholder') : t('LoadDataPanel.pathPlaceholder')"
+            :aria-label="t('LoadDataPanel.file')" aria-describedby="basic-addon1" v-model="fileInputUrl">
 
         </div>
 
         <div class="col-md-4" v-if="fileInputUrl">
           <!-- Table name input -->
           <div class="input-group mb-3 compact-input-group">
-            <span class="input-group-text" id="basic-addon1">Table</span>
-            <input id="tableNameInputUrl" type="text" class="form-control" placeholder="Table name"
-              aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputUrl">
+            <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.table') }}</span>
+            <input id="tableNameInputUrl" type="text" class="form-control" :placeholder="t('LoadDataPanel.tableName')"
+              :aria-label="t('LoadDataPanel.tableName')" aria-describedby="basic-addon1" v-model="tableNameInputUrl">
           </div>
         </div> <!-- col-md-4 -->
 
         <div class="col-md-2" v-if="fileInputUrl && tableNameInputUrl">
           <!-- Load file button -->
           <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputUrl, fileInputUrl)">
-            Load file
+            {{ t('LoadDataPanel.loadFile') }}
           </button>
         </div> <!-- col-md-2 -->
       </div>
@@ -144,16 +144,16 @@
     <!-- Load from PATH ###########################################################  -->
     <div v-if="activeTab == 'loadPath'">
       <div class="col-md-6">
-        <p>Examples:</p>
+        <p>{{ t('LoadDataPanel.examples') }}</p>
         <ul>
           <li>/home/mydata/myfile.csv</li>
           <li>/home/mydata/*.csv</li>
         </ul>
 
         <div class="input-group mb-3 compact-input-group">
-          <span class="input-group-text" id="basic-addon1">Path or file to load</span>
+          <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.pathToLoad') }}</span>
           <input id="fileInputUrl" type="text" class="form-control"
-            placeholder="Path to the file. Start with 's3 ' for search in your bucket while you type" aria-label="File"
+            :placeholder="t('LoadDataPanel.pathPlaceholder')" :aria-label="t('LoadDataPanel.file')"
             aria-describedby="basic-addon1" v-model="fileInputPath">
 
         </div>
@@ -161,16 +161,16 @@
         <div class="col-md-4" v-if="fileInputPath">
           <!-- Table name input -->
           <div class="input-group mb-3 compact-input-group">
-            <span class="input-group-text" id="basic-addon1">Table</span>
-            <input id="tableNameInputUrl" type="text" class="form-control" placeholder="Table name"
-              aria-label="Table name" aria-describedby="basic-addon1" v-model="tableNameInputPath">
+            <span class="input-group-text" id="basic-addon1">{{ t('LoadDataPanel.table') }}</span>
+            <input id="tableNameInputUrl" type="text" class="form-control" :placeholder="t('LoadDataPanel.tableName')"
+              :aria-label="t('LoadDataPanel.tableName')" aria-describedby="basic-addon1" v-model="tableNameInputPath">
           </div>
         </div> <!-- col-md-4 -->
 
         <div class="col-md-2" v-if="fileInputPath && tableNameInputPath">
           <!-- Load file button -->
           <button class="btn btn-sm btn-primary" @click="loadFile(tableNameInputPath, fileInputPath)">
-            Load file
+            {{ t('LoadDataPanel.loadFile') }}
           </button>
         </div> <!-- col-md-2 -->
       </div>
@@ -181,12 +181,14 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import api from '../services/api';
 import { useEngine } from '../engine';
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
 
 const emit = defineEmits(['tableCreated']);
+const { t } = useI18n();
 const engine = useEngine();
 
 const activeTab = ref('uploadFile');
@@ -210,15 +212,15 @@ function uploadFile() {
   toast.promise(
     engine.loadFile({ file, tableName: tableNameInputUpload.value }),
     {
-      pending: 'Uploading file, please wait...',
-      success: 'Upload finished',
-      error: 'Error uploading file'
+      pending: t('LoadDataPanel.uploading'),
+      success: t('LoadDataPanel.uploadDone'),
+      error: t('LoadDataPanel.uploadError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    toast.error(t('LoadDataPanel.errorDetail', { message: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 
@@ -249,18 +251,18 @@ async function findFileInS3() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Searching in S3, please wait...',
-      success: 'S3 search finished',
-      error: 'Error searching in S3'
+      pending: t('LoadDataPanel.searchingS3'),
+      success: t('LoadDataPanel.s3SearchDone'),
+      error: t('LoadDataPanel.s3SearchError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     S3Files.value = response.data.results;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('LoadDataPanel.errorDetail', { message: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('LoadDataPanel.errorDetail', { message: String(error.response.data) }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -274,15 +276,15 @@ async function loadFile(tableNameInput, fileInput) {
   toast.promise(
     engine.loadFile({ url: fileInput, tableName: tableNameInput }),
     {
-      pending: 'Creating table from file, please wait...',
-      success: 'Table created',
-      error: 'Error creting table from file'
+      pending: t('LoadDataPanel.creatingTable'),
+      success: t('LoadDataPanel.tableCreated'),
+      error: t('LoadDataPanel.createTableError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
-    toast.error(`Error: ${error.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+    toast.error(t('LoadDataPanel.errorDetail', { message: error.message }), { position: toast.POSITION.BOTTOM_RIGHT });
   });
 }
 

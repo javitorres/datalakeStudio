@@ -5,14 +5,22 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import services.chatGPTService as chatGPTService
 
 from fastapi import FastAPI, File, UploadFile
+from typing import Optional
+
+from pydantic import BaseModel, Field
 from pydub import AudioSegment
 import io
 import os
 import tempfile
 
-from config import Config
 
 router = APIRouter(prefix="/gpt")
+
+
+def _assistant_error(e):
+    # Never 401: the client logs the user out on it
+    return JSONResponse(content={"status": "error", "message": e.message}, status_code=e.status_code)
+
 
 @router.get("/askGPT")
 def askGPT(question: str):
@@ -27,15 +35,17 @@ def askGPT(question: str):
     else:
         questionForChatGPT = "The query I need, for DuckDB is:" + question
 
-    chatGPTResponse = chatGPTService.askGpt(questionForChatGPT, Config.get_instance().get_secrets.get("openai_api_key"))
-    print("GPT response: " + chatGPTResponse)
+    try:
+        chatGPTResponse = chatGPTService.askGpt(questionForChatGPT)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
 
     return JSONResponse(content=chatGPTResponse, status_code=200)
 
 ####################################################
 
 @router.post("/askGPTWhisper")
-async def askGPTWhisper(file: UploadFile = File(...)):
+async def askGPTWhisper(file: UploadFile = File(...), language: str = None):
     print("askGPTWhisper")
     if file.content_type != "audio/wav":
         content = {"error": "File is not WAV"}
@@ -59,7 +69,9 @@ async def askGPTWhisper(file: UploadFile = File(...)):
             f.write(output.read())
         output.seek(0)
 
-        transcription = chatGPTService.transcribeAudioFile(filename, Config.get_instance().get_secrets.get("openai_api_key"))
+        transcription = chatGPTService.transcribeAudioFile(filename, language)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
     finally:
         if os.path.exists(filename):
             os.remove(filename)
@@ -79,26 +91,61 @@ async def askGPTWhisper(file: UploadFile = File(...)):
 
 ####################################################
 @router.get("/genericQuestion")
-def genericQuestion(question: str):
+def genericQuestion(question: str, language: str = None):
     if (question is None or question == ""):
         return JSONResponse(content="Empty question", status_code=400)
     elif (len(question) > 1000):
         # To avoid sent GPT a huge question due some error in the data provided by the user
         return JSONResponse(content={"answer": "Question too long"}, status_code=200)
         
-    chatGPTResponse = chatGPTService.askGptGenericQuestion(question, Config.get_instance().get_secrets.get("openai_api_key"))
-    print("GPT response: " + chatGPTResponse)
+    try:
+        chatGPTResponse = chatGPTService.askGptGenericQuestion(question, language)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
     
     return JSONResponse(content={"answer": chatGPTResponse}, status_code=200)
 
 
 ####################################################
+class ExplainResultRequest(BaseModel):
+    question: str = Field(min_length=1, max_length=2000)
+    sql: str = Field(max_length=20000)
+    csv: str = Field(max_length=200000)
+    language: Optional[str] = None
+
+
+@router.post("/explainResult")
+def explainResult(request: ExplainResultRequest):
+    try:
+        result = chatGPTService.explainResult(request.question, request.sql, request.csv, request.language)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
+    return JSONResponse(content=result, status_code=200)
+
+
+####################################################
+@router.get("/conversationTitle")
+def conversationTitle(question: str, language: str = None):
+    if not question.strip():
+        return JSONResponse(content={"status": "error", "message": "Empty question"}, status_code=400)
+    try:
+        title = chatGPTService.conversationTitle(question, language)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
+    return JSONResponse(content={"title": title}, status_code=200)
+
+
+####################################################
 @router.get("/text2speech")
-def text2speech(text):
+def text2speech(text: str, language: str = None, provider: str = "auto"):
     # Use a unique temp file so concurrent requests don't overwrite each other.
     fd, tmp_path = tempfile.mkstemp(suffix=".mp3")
     os.close(fd)
-    chatGPTService.text2speech(text, tmp_path, Config.get_instance().get_secrets.get("openai_api_key"))
+    try:
+        chatGPTService.text2speech(text, tmp_path, language, provider)
+    except chatGPTService.AssistantError as e:
+        os.remove(tmp_path)
+        return _assistant_error(e)
 
     def iterfile():
         try:

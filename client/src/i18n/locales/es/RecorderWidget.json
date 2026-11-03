@@ -1,0 +1,8 @@
+{
+  "startRecording": "Empezar a grabar",
+  "stopRecording": "Parar la grabación",
+  "clickToStart": "Pulsa para grabar un mensaje",
+  "clickToStop": "Vuelve a pulsar el icono para parar la grabación",
+  "micFailed": "No se ha podido usar el micrófono. Recarga la página, vuelve a intentarlo y permite el acceso al micrófono.",
+  "recorded": "Grabado"
+}

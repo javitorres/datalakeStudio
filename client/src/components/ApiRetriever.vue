@@ -2,18 +2,18 @@
   <section class="api-retriever" v-if="tables && tables.length > 0">
     <header class="flow-header">
       <div>
-        <span class="page-kicker">Data enrichment pipeline</span>
-        <h2>Connect your data to an API</h2>
-        <p>Map table columns to request parameters, inspect a real response and create an enriched dataset.</p>
+        <span class="page-kicker">{{ t('ApiRetriever.kicker') }}</span>
+        <h2>{{ t('ApiRetriever.title') }}</h2>
+        <p>{{ t('ApiRetriever.subtitle') }}</p>
       </div>
-      <div class="flow-progress" aria-label="Configuration progress">
-        <span class="progress-step complete"><i>1</i>Dataset</span>
+      <div class="flow-progress" :aria-label="t('ApiRetriever.progressAria')">
+        <span class="progress-step complete"><i>1</i>{{ t('ApiRetriever.progress.dataset') }}</span>
         <b></b>
-        <span class="progress-step" :class="{ complete: table }"><i>2</i>Endpoint</span>
+        <span class="progress-step" :class="{ complete: table }"><i>2</i>{{ t('ApiRetriever.progress.endpoint') }}</span>
         <b></b>
-        <span class="progress-step" :class="{ complete: methodInfo || methodPathManualMode }"><i>3</i>Map</span>
+        <span class="progress-step" :class="{ complete: methodInfo || methodPathManualMode }"><i>3</i>{{ t('ApiRetriever.progress.map') }}</span>
         <b></b>
-        <span class="progress-step" :class="{ complete: newTableName }"><i>4</i>Run</span>
+        <span class="progress-step" :class="{ complete: newTableName }"><i>4</i>{{ t('ApiRetriever.progress.run') }}</span>
       </div>
     </header>
 
@@ -22,15 +22,15 @@
         <article class="step-card">
           <header class="step-header">
             <span class="step-number">01</span>
-            <div><span class="step-label">Input</span><h3>Select a dataset</h3><p>Choose the local table whose rows will be enriched.</p></div>
-            <span v-if="table" class="step-status"><i class="bi bi-check2"></i> Ready</span>
+            <div><span class="step-label">{{ t('ApiRetriever.step1.label') }}</span><h3>{{ t('ApiRetriever.step1.title') }}</h3><p>{{ t('ApiRetriever.step1.description') }}</p></div>
+            <span v-if="table" class="step-status"><i class="bi bi-check2"></i> {{ t('ApiRetriever.ready') }}</span>
           </header>
           <div class="step-body dataset-step">
-            <label class="field-label" for="tableSelector">Source table</label>
+            <label class="field-label" for="tableSelector">{{ t('ApiRetriever.step1.sourceTable') }}</label>
             <div class="select-control">
               <i class="bi bi-table"></i>
               <select id="tableSelector" v-model="table">
-                <option :value="null" disabled>Select a table...</option>
+                <option :value="null" disabled>{{ t('ApiRetriever.step1.selectTable') }}</option>
                 <option v-for="tableOption in tables" :key="tableOption" :value="tableOption">{{ tableOption }}</option>
               </select>
               <i class="bi bi-chevron-down"></i>
@@ -39,7 +39,7 @@
               <span v-for="(fieldType, field) in schema" :key="field"><b>{{ field }}</b><small>{{ fieldType }}</small></span>
             </div>
             <details v-if="table" class="dataset-preview">
-              <summary><i class="bi bi-eye"></i> Preview source data</summary>
+              <summary><i class="bi bi-eye"></i> {{ t('ApiRetriever.step1.preview') }}</summary>
               <div><TableInspector :tableName="table" :showOptions="showOptions" /></div>
             </details>
           </div>
@@ -48,42 +48,42 @@
         <article class="step-card" :class="{ locked: !table }">
           <header class="step-header">
             <span class="step-number">02</span>
-            <div><span class="step-label">Connection</span><h3>Choose an API endpoint</h3><p>Discover a registered service or enter a URL manually.</p></div>
-            <span v-if="methodInfo || methodPathManualMode" class="step-status"><i class="bi bi-check2"></i> Configured</span>
+            <div><span class="step-label">{{ t('ApiRetriever.step2.label') }}</span><h3>{{ t('ApiRetriever.step2.title') }}</h3><p>{{ t('ApiRetriever.step2.description') }}</p></div>
+            <span v-if="methodInfo || methodPathManualMode" class="step-status"><i class="bi bi-check2"></i> {{ t('ApiRetriever.configured') }}</span>
           </header>
           <div class="step-body" v-if="table">
             <div class="mode-selector">
               <label :class="{ active: mode === 'search' }">
                 <input type="radio" name="apiMode" v-model="mode" value="search">
                 <i class="bi bi-search"></i>
-                <span><b>Discover service</b><small>Search the API catalogue</small></span>
+                <span><b>{{ t('ApiRetriever.step2.discover') }}</b><small>{{ t('ApiRetriever.step2.discoverHelp') }}</small></span>
                 <em></em>
               </label>
               <label :class="{ active: mode === 'write' }">
                 <input type="radio" name="apiMode" v-model="mode" value="write">
                 <i class="bi bi-link-45deg"></i>
-                <span><b>Direct URL</b><small>Use a known endpoint</small></span>
+                <span><b>{{ t('ApiRetriever.step2.direct') }}</b><small>{{ t('ApiRetriever.step2.directHelp') }}</small></span>
                 <em></em>
               </label>
             </div>
 
             <div v-if="mode === 'search'" class="endpoint-config">
-              <label class="field-label" for="apiServiceName">Find a service</label>
+              <label class="field-label" for="apiServiceName">{{ t('ApiRetriever.step2.findService') }}</label>
               <div class="text-control">
                 <i class="bi bi-search"></i>
-                <input id="apiServiceName" v-model="apiServiceName" type="search" placeholder="Search by service name..." @input="searchService(apiServiceName)">
+                <input id="apiServiceName" v-model="apiServiceName" type="search" :placeholder="t('ApiRetriever.step2.servicePlaceholder')" @input="searchService(apiServiceName)">
               </div>
 
               <div v-if="services && services.length" class="result-list service-results">
                 <button v-for="serviceOption in services" :key="serviceOption" :class="{ selected: service === serviceOption }" @click="searchMethod(serviceOption, '')">
-                  <i class="bi bi-box"></i><span><b>{{ serviceOption }}</b><small>API service</small></span><i class="bi bi-chevron-right"></i>
+                  <i class="bi bi-box"></i><span><b>{{ serviceOption }}</b><small>{{ t('ApiRetriever.step2.apiService') }}</small></span><i class="bi bi-chevron-right"></i>
                 </button>
               </div>
 
               <div v-if="service" class="method-search">
-                <div class="selected-service"><span>Selected service</span><b>{{ service }}</b></div>
-                <label class="field-label" for="methodPath">Find an operation</label>
-                <div class="text-control"><i class="bi bi-diagram-2"></i><input id="methodPath" v-model="methodPath" type="search" placeholder="Filter by method or path..." @input="searchMethod(service, methodPath)"></div>
+                <div class="selected-service"><span>{{ t('ApiRetriever.step2.selectedService') }}</span><b>{{ service }}</b></div>
+                <label class="field-label" for="methodPath">{{ t('ApiRetriever.step2.findOperation') }}</label>
+                <div class="text-control"><i class="bi bi-diagram-2"></i><input id="methodPath" v-model="methodPath" type="search" :placeholder="t('ApiRetriever.step2.operationPlaceholder')" @input="searchMethod(service, methodPath)"></div>
                 <div v-if="methods && methods.length" class="method-results">
                   <button v-for="methodOption in methods" :key="methodOption.path + methodOption.method" @click="clickMethod(service, methodOption)">
                     <span class="method-badge" :class="'method-' + methodOption.method.toLowerCase()">{{ methodOption.method }}</span>
@@ -96,50 +96,50 @@
               <div v-if="methodInfo" class="endpoint-summary">
                 <div class="endpoint-title"><span class="method-badge" :class="'method-' + methodInfo.method.toLowerCase()">{{ methodInfo.method }}</span><code>{{ methodInfo.url }}</code></div>
                 <div v-if="methodInfo.parameters && methodInfo.parameters.length" class="parameter-tags">
-                  <span v-for="param in methodInfo.parameters" :key="param.name"><b>{{ param.name }}</b><small>{{ param.schema?.type || 'value' }} · {{ param.required ? 'required' : 'optional' }}</small></span>
+                  <span v-for="param in methodInfo.parameters" :key="param.name"><b>{{ param.name }}</b><small>{{ param.schema?.type || t('ApiRetriever.step2.value') }} · {{ param.required ? t('ApiRetriever.step2.required') : t('ApiRetriever.step2.optional') }}</small></span>
                 </div>
-                <p v-else class="empty-note">This endpoint has no declared query parameters.</p>
+                <p v-else class="empty-note">{{ t('ApiRetriever.step2.noParameters') }}</p>
               </div>
             </div>
 
             <div v-else class="endpoint-config">
-              <label class="field-label" for="manualApiUrl">Endpoint URL</label>
+              <label class="field-label" for="manualApiUrl">{{ t('ApiRetriever.step2.endpointUrl') }}</label>
               <div class="text-control"><i class="bi bi-link-45deg"></i><input id="manualApiUrl" v-model="methodPathManualMode" type="url" placeholder="https://service/api?param={column}"></div>
-              <p class="field-help"><i class="bi bi-info-circle"></i> Use placeholders such as <code>{customer_id}</code> to represent values from your table.</p>
+              <p class="field-help"><i class="bi bi-info-circle"></i> <i18n-t keypath="ApiRetriever.step2.placeholderHelp" tag="span"><template #example><code>{customer_id}</code></template></i18n-t></p>
             </div>
           </div>
-          <div class="locked-message" v-else><i class="bi bi-lock"></i><span>Select a source table to configure the endpoint.</span></div>
+          <div class="locked-message" v-else><i class="bi bi-lock"></i><span>{{ t('ApiRetriever.step2.locked') }}</span></div>
         </article>
 
         <article class="step-card" v-if="methodInfo || methodPathManualMode">
           <header class="step-header">
             <span class="step-number">03</span>
-            <div><span class="step-label">Request mapping</span><h3>Connect fields and test</h3><p>Map request parameters and validate the API response with the first row.</p></div>
+            <div><span class="step-label">{{ t('ApiRetriever.step3.label') }}</span><h3>{{ t('ApiRetriever.step3.title') }}</h3><p>{{ t('ApiRetriever.step3.description') }}</p></div>
           </header>
           <div class="step-body mapping-layout">
             <section class="mapping-panel">
-              <div class="subsection-title"><i class="bi bi-bezier2"></i><div><h4>Parameter mapping</h4><p>Choose the source column for each request value.</p></div></div>
+              <div class="subsection-title"><i class="bi bi-bezier2"></i><div><h4>{{ t('ApiRetriever.step3.mappingTitle') }}</h4><p>{{ t('ApiRetriever.step3.mappingHelp') }}</p></div></div>
               <div v-if="mode === 'search' && methodInfo">
                 <div v-for="param in methodInfo.parameters" :key="param.name" class="mapping-row">
-                  <div><b>{{ param.name }}</b><small>{{ param.required ? 'Required' : 'Optional' }}</small></div>
+                  <div><b>{{ param.name }}</b><small>{{ param.required ? t('ApiRetriever.step3.required') : t('ApiRetriever.step3.optional') }}</small></div>
                   <i class="bi bi-arrow-right"></i>
                   <select :id="'fieldSelector-' + param.name" v-model="selectedFields[param.name]" @change="buildQueryString">
-                    <option value="">Do not map</option>
+                    <option value="">{{ t('ApiRetriever.step3.doNotMap') }}</option>
                     <option v-for="(fieldType, field) in schema" :key="field" :value="field">{{ field }} · {{ fieldType }}</option>
                   </select>
                 </div>
               </div>
               <div v-if="mode === 'write'" class="manual-mapping">
-                <label class="field-label" for="fieldSelector">Placeholder field</label>
-                <div class="text-control"><i class="bi bi-braces"></i><input id="fieldSelector" v-model="selectedFields.field" placeholder="Column name" @change="buildQueryString"></div>
+                <label class="field-label" for="fieldSelector">{{ t('ApiRetriever.step3.placeholderField') }}</label>
+                <div class="text-control"><i class="bi bi-braces"></i><input id="fieldSelector" v-model="selectedFields.field" :placeholder="t('ApiRetriever.step3.columnName')" @change="buildQueryString"></div>
               </div>
             </section>
 
             <section class="response-panel">
-              <div class="subsection-title"><i class="bi bi-braces-asterisk"></i><div><h4>Response preview</h4><p>Sample generated from the first source row.</p></div></div>
+              <div class="subsection-title"><i class="bi bi-braces-asterisk"></i><div><h4>{{ t('ApiRetriever.step3.responseTitle') }}</h4><p>{{ t('ApiRetriever.step3.responseHelp') }}</p></div></div>
               <div v-if="fullUrlExample" class="request-url"><span>GET</span><code>{{ fullUrlExample }}</code></div>
               <pre v-if="sampleResponse">{{ JSON.stringify(sampleResponse, null, 2) }}</pre>
-              <div v-else class="response-empty"><i class="bi bi-send"></i><p>Map a parameter to send a sample request.</p></div>
+              <div v-else class="response-empty"><i class="bi bi-send"></i><p>{{ t('ApiRetriever.step3.responseEmpty') }}</p></div>
             </section>
           </div>
         </article>
@@ -147,24 +147,24 @@
         <article class="step-card output-card" :class="{ locked: !table }">
           <header class="step-header">
             <span class="step-number">04</span>
-            <div><span class="step-label">Output</span><h3>Build the enriched table</h3><p>Choose which response fields to keep and where to store them.</p></div>
+            <div><span class="step-label">{{ t('ApiRetriever.step4.label') }}</span><h3>{{ t('ApiRetriever.step4.title') }}</h3><p>{{ t('ApiRetriever.step4.description') }}</p></div>
           </header>
           <div class="step-body" v-if="table">
-            <div class="extract-header"><div><h4>Response fields</h4><p>Leave the JSON path empty to store the complete response.</p></div><button class="add-mapping" @click="addMapping"><i class="bi bi-plus-lg"></i> Add field</button></div>
+            <div class="extract-header"><div><h4>{{ t('ApiRetriever.step4.fieldsTitle') }}</h4><p>{{ t('ApiRetriever.step4.fieldsHelp') }}</p></div><button class="add-mapping" @click="addMapping"><i class="bi bi-plus-lg"></i> {{ t('ApiRetriever.step4.addField') }}</button></div>
             <div class="extract-list">
               <div v-for="(mapping, index) in mappings" :key="index" class="extract-row">
                 <span class="mapping-index">{{ String(index + 1).padStart(2, '0') }}</span>
-                <div><label>JSON path</label><input v-model="mapping.jsonField" placeholder="data.customer.segment"></div>
+                <div><label>{{ t('ApiRetriever.step4.jsonPath') }}</label><input v-model="mapping.jsonField" placeholder="data.customer.segment"></div>
                 <i class="bi bi-arrow-right"></i>
-                <div><label>New column</label><input v-model="mapping.newFieldName" placeholder="customer_segment"></div>
+                <div><label>{{ t('ApiRetriever.step4.newColumn') }}</label><input v-model="mapping.newFieldName" placeholder="customer_segment"></div>
               </div>
             </div>
-            <button v-if="mappings.length" class="clear-mappings" @click="deleteAllMappings"><i class="bi bi-trash3"></i> Clear mappings</button>
+            <button v-if="mappings.length" class="clear-mappings" @click="deleteAllMappings"><i class="bi bi-trash3"></i> {{ t('ApiRetriever.step4.clearMappings') }}</button>
 
             <div class="run-config">
-              <div><label for="recordsToProcess">Rows to process</label><input id="recordsToProcess" v-model="recordsToProcess" placeholder="10"><small>Leave empty to process every row</small></div>
-              <div><label for="newTableName">Output table</label><input id="newTableName" v-model="newTableName" placeholder="enrichedTable"><small>A new local table will be created</small></div>
-              <button v-if="newTableName" class="run-button" @click="runDataEnrichment()">Run</button>
+              <div><label for="recordsToProcess">{{ t('ApiRetriever.step4.rowsToProcess') }}</label><input id="recordsToProcess" v-model="recordsToProcess" placeholder="10"><small>{{ t('ApiRetriever.step4.rowsHelp') }}</small></div>
+              <div><label for="newTableName">{{ t('ApiRetriever.step4.outputTable') }}</label><input id="newTableName" v-model="newTableName" placeholder="enrichedTable"><small>{{ t('ApiRetriever.step4.outputHelp') }}</small></div>
+              <button v-if="newTableName" class="run-button" @click="runDataEnrichment()">{{ t('ApiRetriever.step4.run') }}</button>
             </div>
           </div>
         </article>
@@ -172,30 +172,31 @@
 
       <aside class="flow-summary">
         <div class="summary-card">
-          <span class="summary-kicker">Pipeline summary</span>
-          <h3>Enrichment job</h3>
+          <span class="summary-kicker">{{ t('ApiRetriever.summary.kicker') }}</span>
+          <h3>{{ t('ApiRetriever.summary.title') }}</h3>
           <dl>
-            <div><dt><i class="bi bi-table"></i> Dataset</dt><dd>{{ table || 'Not selected' }}</dd></div>
-            <div><dt><i class="bi bi-box"></i> Service</dt><dd>{{ mode === 'write' ? 'Direct URL' : (service || 'Not selected') }}</dd></div>
-            <div><dt><i class="bi bi-signpost-2"></i> Endpoint</dt><dd>{{ methodInfo?.method || (methodPathManualMode ? 'URL' : 'Not selected') }}</dd></div>
-            <div><dt><i class="bi bi-bezier2"></i> Parameters</dt><dd>{{ Object.keys(selectedFields).filter(key => selectedFields[key]).length }} mapped</dd></div>
-            <div><dt><i class="bi bi-layout-three-columns"></i> Output fields</dt><dd>{{ mappings.length }}</dd></div>
+            <div><dt><i class="bi bi-table"></i> {{ t('ApiRetriever.summary.dataset') }}</dt><dd>{{ table || t('ApiRetriever.summary.notSelected') }}</dd></div>
+            <div><dt><i class="bi bi-box"></i> {{ t('ApiRetriever.summary.service') }}</dt><dd>{{ mode === 'write' ? t('ApiRetriever.summary.directUrl') : (service || t('ApiRetriever.summary.notSelected')) }}</dd></div>
+            <div><dt><i class="bi bi-signpost-2"></i> {{ t('ApiRetriever.summary.endpoint') }}</dt><dd>{{ methodInfo?.method || (methodPathManualMode ? t('ApiRetriever.summary.url') : t('ApiRetriever.summary.notSelected')) }}</dd></div>
+            <div><dt><i class="bi bi-bezier2"></i> {{ t('ApiRetriever.summary.parameters') }}</dt><dd>{{ t('ApiRetriever.summary.mapped', Object.keys(selectedFields).filter(key => selectedFields[key]).length) }}</dd></div>
+            <div><dt><i class="bi bi-layout-three-columns"></i> {{ t('ApiRetriever.summary.outputFields') }}</dt><dd>{{ mappings.length }}</dd></div>
           </dl>
-          <div class="summary-output" :class="{ ready: newTableName }"><span>Output</span><b>{{ newTableName || 'Name your result table' }}</b></div>
+          <div class="summary-output" :class="{ ready: newTableName }"><span>{{ t('ApiRetriever.summary.output') }}</span><b>{{ newTableName || t('ApiRetriever.summary.nameResult') }}</b></div>
         </div>
-        <div class="summary-tip"><i class="bi bi-lightbulb"></i><p><b>Start with a small sample.</b> Test 10 rows before processing the complete dataset.</p></div>
+        <div class="summary-tip"><i class="bi bi-lightbulb"></i><p><b>{{ t('ApiRetriever.summary.tipTitle') }}</b> {{ t('ApiRetriever.summary.tipText') }}</p></div>
       </aside>
     </div>
   </section>
 
   <section v-else class="api-empty">
     <i class="bi bi-database-exclamation"></i>
-    <h2>No data available</h2>
-    <p>Load a table before creating an API enrichment pipeline.</p>
+    <h2>{{ t('ApiRetriever.empty.title') }}</h2>
+    <p>{{ t('ApiRetriever.empty.text') }}</p>
   </section>
 </template>
 <script setup>
 import { ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import TableInspector from './TableInspector.vue';
 
 import api from '../services/api';
@@ -208,6 +209,8 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['tableCreated']);
+
+const { t } = useI18n();
 
 const expanded = ref(true);
 const showOptions = ref(false);
@@ -253,17 +256,17 @@ async function searchService(apiServiceNameInput) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Searching service, please wait...',
-      error: 'Error Searching  service'
+      pending: t('ApiRetriever.toast.searchingService'),
+      error: t('ApiRetriever.toast.searchServiceError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     services.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -281,17 +284,17 @@ async function searchMethod(nextService, nextMethodPath) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Loading service, please wait...',
-      error: 'Error loading  service'
+      pending: t('ApiRetriever.toast.loadingService'),
+      error: t('ApiRetriever.toast.loadServiceError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     methods.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -310,17 +313,17 @@ async function clickMethod(nextService, selectedMethod) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Loading method info, please wait...',
-      error: 'Error loading  method'
+      pending: t('ApiRetriever.toast.loadingMethod'),
+      error: t('ApiRetriever.toast.loadMethodError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     methodInfo.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -335,18 +338,18 @@ async function getTableSchema(nextTable) {
   toast.promise(
     fetchData(),
     {
-      pending: 'Loading table schema, please wait...',
-      success: 'Schema loaded',
-      error: 'Error loading  schema'
+      pending: t('ApiRetriever.toast.loadingSchema'),
+      success: t('ApiRetriever.toast.schemaLoaded'),
+      error: t('ApiRetriever.toast.schemaError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     schema.value = response.data;
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }
@@ -365,7 +368,7 @@ async function getSampleData(nextTable) {
   }).then((response) => {
     sampleData.value = response.data;
   }).catch((error) => {
-    toast.error(`Error: HTTP ${error.message}`);
+    toast.error(t('ApiRetriever.httpError', { detail: error.message }));
   }).finally(() => {
     loading.value = false;
   });
@@ -406,15 +409,15 @@ async function buildQueryString() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Loading example request...',
-      success: 'Example loaded',
-      error: 'Error loading sample data'
+      pending: t('ApiRetriever.toast.loadingExample'),
+      success: t('ApiRetriever.toast.exampleLoaded'),
+      error: t('ApiRetriever.toast.exampleError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then((response) => {
     sampleResponse.value = response.data;
   }).catch((error) => {
-    toast.error(error.response?.data?.message || 'Error loading the API response', {
+    toast.error(error.response?.data?.message || t('ApiRetriever.toast.apiResponseError'), {
       position: toast.POSITION.BOTTOM_RIGHT
     });
   });
@@ -443,18 +446,18 @@ async function runDataEnrichment() {
   toast.promise(
     fetchData(),
     {
-      pending: 'Generating new table using API, please wait...',
-      success: 'New table created',
-      error: 'Error creating table'
+      pending: t('ApiRetriever.toast.running'),
+      success: t('ApiRetriever.toast.tableCreated'),
+      error: t('ApiRetriever.toast.tableError')
     },
     { position: toast.POSITION.BOTTOM_RIGHT }
   ).then(() => {
     emit('tableCreated');
   }).catch((error) => {
     if (error.response.data.message) {
-      toast.error('Info' + `Error: ${error.response.data.message}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data.message }), { position: toast.POSITION.BOTTOM_RIGHT });
     } else {
-      toast.error('Info:' + `Error: ${error.response.data}`, { position: toast.POSITION.BOTTOM_RIGHT });
+      toast.error(t('ApiRetriever.errorDetail', { detail: error.response.data }), { position: toast.POSITION.BOTTOM_RIGHT });
     }
   });
 }

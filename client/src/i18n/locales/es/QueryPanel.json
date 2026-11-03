@@ -1,0 +1,101 @@
+{
+  "kicker": "Entorno de consultas DuckDB",
+  "title": "Espacio de trabajo SQL",
+  "intro": "Escribe, prueba y reutiliza consultas en seis búferes independientes.",
+  "tablesWord": "tablas | tabla | tablas",
+  "status": {
+    "failed": "La consulta ha fallado",
+    "succeeded": "Última ejecución correcta",
+    "ready": "Listo"
+  },
+  "buffersLabel": "Búferes de consultas SQL",
+  "tabs": {
+    "main": "Consulta principal",
+    "aux": "Aux. {n}",
+    "fallback": "Consulta"
+  },
+  "tokens": "{n} tokens | {n} token | {n} tokens",
+  "schema": {
+    "loading": "Cargando el esquema",
+    "unavailable": "Autocompletado no disponible",
+    "indexed": "{n} tablas indexadas | {n} tabla indexada | {n} tablas indexadas"
+  },
+  "clearTitle": "Borrar la consulta actual",
+  "clear": "Borrar",
+  "run": "Ejecutar consulta",
+  "executionFailed": "Error al ejecutar la consulta",
+  "dismissError": "Cerrar el error",
+  "poweredBy": "Con la tecnología de DuckDB",
+  "tabSize": "Tabulación: {n}",
+  "toolsKicker": "Herramientas",
+  "actions": "Acciones",
+  "toolTabs": {
+    "newTable": "Nueva tabla",
+    "saveSql": "Guardar SQL",
+    "library": "Biblioteca",
+    "askAi": "Preguntar a la IA"
+  },
+  "newTable": {
+    "title": "Crear a partir del resultado",
+    "help": "Guarda el resultado actual como una tabla local.",
+    "nameLabel": "Nombre de la tabla",
+    "namePlaceholder": "Nuevo nombre de la tabla",
+    "create": "Crear tabla",
+    "runFirst": "Ejecuta una consulta antes de crear una tabla."
+  },
+  "save": {
+    "title": "Guardar consulta",
+    "help": "Añade el búfer SQL activo a tu biblioteca.",
+    "nameLabel": "Nombre de la consulta",
+    "namePlaceholder": "Ingresos mensuales",
+    "descriptionLabel": "Descripción",
+    "descriptionPlaceholder": "¿Qué devuelve esta consulta?",
+    "button": "Guardar consulta SQL"
+  },
+  "library": {
+    "title": "Biblioteca de consultas",
+    "help": "Busca y recupera consultas SQL guardadas.",
+    "searchPlaceholder": "Buscar consulta...",
+    "deleteTitle": "Borrar consulta",
+    "noResults": "No hay consultas guardadas que coincidan."
+  },
+  "ai": {
+    "title": "Asistente SQL con IA",
+    "help": "Describe con tus palabras el resultado que necesitas.",
+    "placeholder": "Precio medio de oferta por ciudad...",
+    "generate": "Generar SQL",
+    "generated": "Consulta generada",
+    "runIt": "Ejecutar esta consulta"
+  },
+  "results": {
+    "kicker": "Salida de la ejecución",
+    "title": "Resultados de la consulta",
+    "success": "Correcto",
+    "storedIn": "Guardado en {name}",
+    "emptyTitle": "Todavía no hay resultados",
+    "emptyHelp": "Ejecuta la consulta SQL activa para ver aquí su resultado."
+  },
+  "noTables": "No hay tablas disponibles",
+  "noTablesHelp": "Carga algunos datos antes de abrir el espacio de trabajo SQL.",
+  "toast": {
+    "running": "Ejecutando la consulta...",
+    "executed": "Consulta ejecutada",
+    "runError": "Error al ejecutar la consulta",
+    "creatingTable": "Creando la tabla a partir de la consulta...",
+    "tableCreated": "Tabla creada",
+    "createTableError": "Error al crear la tabla a partir de la consulta",
+    "asking": "Preguntando al asistente de IA...",
+    "answered": "El asistente de IA ha respondido",
+    "askError": "Error al preguntar al asistente de IA",
+    "saving": "Guardando la consulta SQL...",
+    "saved": "Consulta SQL guardada",
+    "saveError": "Error al guardar la consulta SQL",
+    "searching": "Buscando consultas SQL...",
+    "loaded": "Consultas SQL cargadas",
+    "loadError": "Error al cargar las consultas SQL",
+    "deleting": "Borrando la consulta SQL...",
+    "deleted": "Consulta SQL borrada",
+    "deleteError": "Error al borrar la consulta SQL",
+    "errorDetail": "Error: {detail}"
+  }
+}

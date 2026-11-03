@@ -3,21 +3,21 @@
     <aside class="field-column" v-if="tableSchema && showOptions">
       <div class="schema-heading">
         <div>
-          <span class="section-kicker">Schema</span>
-          <h3>Columns</h3>
+          <span class="section-kicker">{{ t('TableInspector.schema') }}</span>
+          <h3>{{ t('TableInspector.columns') }}</h3>
         </div>
         <span class="field-count">{{ selectedFields?.length || 0 }}/{{ Object.keys(tableSchema).length }}</span>
       </div>
 
       <div class="field-toolbar">
-        <button class="schema-action" title="Deselect all fields" @click="selectAllFields(false)">
-          <i class="bi bi-square"></i><span>None</span>
+        <button class="schema-action" :title="t('TableInspector.deselectAll')" @click="selectAllFields(false)">
+          <i class="bi bi-square"></i><span>{{ t('TableInspector.none') }}</span>
         </button>
-        <button class="schema-action primary" title="Select all fields" @click="selectAllFields(true)">
-          <i class="bi bi-check2-square"></i><span>All</span>
+        <button class="schema-action primary" :title="t('TableInspector.selectAll')" @click="selectAllFields(true)">
+          <i class="bi bi-check2-square"></i><span>{{ t('TableInspector.all') }}</span>
         </button>
-        <button class="schema-action" title="Copy selected field names" @click="copyToClipboard(true)">
-          <i class="bi bi-copy"></i><span>Copy</span>
+        <button class="schema-action" :title="t('TableInspector.copyFields')" @click="copyToClipboard(true)">
+          <i class="bi bi-copy"></i><span>{{ t('TableInspector.copy') }}</span>
         </button>
       </div>
 
@@ -37,18 +37,18 @@
     </aside>
 
     <section class="data-column">
-      <nav class="explorer-nav" v-if="showOptions" aria-label="Table views">
+      <nav class="explorer-nav" v-if="showOptions" :aria-label="t('TableInspector.tableViews')">
         <button :class="{ active: showSampleData }" @click="getSampleData(tableName)">
-          <i class="bi bi-table"></i><span>Data</span><small>Browse rows</small>
+          <i class="bi bi-table"></i><span>{{ t('TableInspector.views.data') }}</span><small>{{ t('TableInspector.views.dataHint') }}</small>
         </button>
         <button :class="{ active: showProfile }" @click="getTableProfile(tableName)">
-          <i class="bi bi-activity"></i><span>Profile</span><small>Statistics</small>
+          <i class="bi bi-activity"></i><span>{{ t('TableInspector.views.profile') }}</span><small>{{ t('TableInspector.views.profileHint') }}</small>
         </button>
         <button :class="{ active: showMosaic }" @click="toggleMosaic()">
-          <i class="bi bi-bar-chart"></i><span>Charts</span><small>Cross-filter</small>
+          <i class="bi bi-bar-chart"></i><span>{{ t('TableInspector.views.charts') }}</span><small>{{ t('TableInspector.views.chartsHint') }}</small>
         </button>
         <button v-if="engine.capabilities.maps" :class="{ active: showMap }" @click="mapData(tableName)">
-          <i class="bi bi-map"></i><span>Map</span><small>Geospatial</small>
+          <i class="bi bi-map"></i><span>{{ t('TableInspector.views.map') }}</span><small>{{ t('TableInspector.views.mapHint') }}</small>
         </button>
       </nav>
 
@@ -56,39 +56,39 @@
         <div class="table-view" v-show="sampleData && showSampleData">
           <header class="view-header">
             <div>
-              <span class="section-kicker">Data preview</span>
-              <h3>Sample rows</h3>
+              <span class="section-kicker">{{ t('TableInspector.dataPreview') }}</span>
+              <h3>{{ t('TableInspector.sampleRows') }}</h3>
             </div>
             <div class="view-metrics">
-              <span><i class="bi bi-list-ul"></i><b>{{ rowcount }}</b> total rows</span>
-              <span><i class="bi bi-eye"></i><b>{{ records || rowcount }}</b> displayed</span>
-              <span><i class="bi bi-layout-three-columns"></i><b>{{ selectedFields?.length || 0 }}</b> columns</span>
+              <span><i class="bi bi-list-ul"></i><b>{{ rowcount }}</b> {{ t('TableInspector.totalRows') }}</span>
+              <span><i class="bi bi-eye"></i><b>{{ records || rowcount }}</b> {{ t('TableInspector.displayed') }}</span>
+              <span><i class="bi bi-layout-three-columns"></i><b>{{ selectedFields?.length || 0 }}</b> {{ t('TableInspector.columnsMetric') }}</span>
             </div>
           </header>
 
           <div class="sample-toolbar" v-if="showOptions">
             <div class="toolbar-group">
-              <span class="toolbar-label">Sample</span>
-              <button :class="{ active: type === 'First' }" @click="setType('First')">First</button>
-              <button :class="{ active: type === 'Shuffle' }" @click="setType('Shuffle')">Random</button>
-              <button :class="{ active: type === 'Last' }" @click="setType('Last')">Last</button>
+              <span class="toolbar-label">{{ t('TableInspector.sample') }}</span>
+              <button :class="{ active: type === 'First' }" @click="setType('First')">{{ t('TableInspector.first') }}</button>
+              <button :class="{ active: type === 'Shuffle' }" @click="setType('Shuffle')">{{ t('TableInspector.random') }}</button>
+              <button :class="{ active: type === 'Last' }" @click="setType('Last')">{{ t('TableInspector.last') }}</button>
             </div>
             <div class="toolbar-group">
-              <span class="toolbar-label">Rows</span>
+              <span class="toolbar-label">{{ t('TableInspector.rows') }}</span>
               <button :class="{ active: records === 50 }" @click="setRecords(50)">50</button>
               <button :class="{ active: records === 100 }" @click="setRecords(100)">100</button>
               <button :class="{ active: records === 200 }" @click="setRecords(200)">200</button>
-              <button v-if="records < 1000" :class="{ active: records === 0 }" @click="setRecords(0)">All</button>
+              <button v-if="records < 1000" :class="{ active: records === 0 }" @click="setRecords(0)">{{ t('TableInspector.all') }}</button>
             </div>
             <div class="toolbar-group" v-if="activeFilter">
-              <span class="toolbar-label">Cross-filter</span>
-              <button :class="{ active: dataShowFiltered }" @click="setDataFiltered(true)">Show filtered</button>
-              <button :class="{ active: !dataShowFiltered }" @click="setDataFiltered(false)">Show all</button>
+              <span class="toolbar-label">{{ t('TableInspector.crossFilter') }}</span>
+              <button :class="{ active: dataShowFiltered }" @click="setDataFiltered(true)">{{ t('TableInspector.showFiltered') }}</button>
+              <button :class="{ active: !dataShowFiltered }" @click="setDataFiltered(false)">{{ t('TableInspector.showAll') }}</button>
             </div>
           </div>
 
           <div class="active-filters" v-if="activeFilter && dataShowFiltered && activeFilterList.length">
-            <span class="filters-label">Filters</span>
+            <span class="filters-label">{{ t('TableInspector.filters') }}</span>
             <span class="filter-chip" v-for="f in activeFilterList" :key="f.field"><b>{{ f.field }}</b> {{ f.text }}</span>
           </div>
 
@@ -97,16 +97,19 @@
 
         <div class="profile-view" v-if="tableProfile && showProfile">
           <header class="view-header">
-            <div><span class="section-kicker">Column analysis</span><h3>Table profile</h3></div>
-            <p>Distribution and descriptive statistics for the selected dataset.</p>
+            <div><span class="section-kicker">{{ t('TableInspector.columnAnalysis') }}</span><h3>{{ t('TableInspector.tableProfile') }}</h3></div>
+            <p>{{ t('TableInspector.profileHelp') }}</p>
           </header>
           <div class="profile-table" ref="tableProfileEl"></div>
         </div>
 
         <div v-if="sampleData && chartConfig && showPlot">
           <div v-if="showMap">
-            <p>Found coordinates in <b>{{ latField }}</b> and <b>{{ lonField }}</b></p>
-            <button class="btn btn-primary" @click="hideMap = !hideMap">{{ hideMap ? 'Show map' : 'Hide map' }}</button>
+            <i18n-t keypath="TableInspector.foundCoordinates" tag="p">
+              <template #lat><b>{{ latField }}</b></template>
+              <template #lon><b>{{ lonField }}</b></template>
+            </i18n-t>
+            <button class="btn btn-primary" @click="hideMap = !hideMap">{{ hideMap ? t('TableInspector.showMap') : t('TableInspector.hideMap') }}</button>
             <Map v-if="!hideMap" :data="sampleData" :latField="latField" :lonField="lonField" />
           </div>
         </div>
@@ -114,8 +117,8 @@
         <!-- v-show + keep-alive keep the charts mounted so cross-filters survive tab switches -->
         <div class="visualization-view" v-show="showMosaic">
           <header class="view-header">
-            <div><span class="section-kicker">Interactive analysis</span><h3>Cross-filter charts</h3></div>
-            <p>Select ranges in any chart to filter every visualization.</p>
+            <div><span class="section-kicker">{{ t('TableInspector.interactiveAnalysis') }}</span><h3>{{ t('TableInspector.crossFilterCharts') }}</h3></div>
+            <p>{{ t('TableInspector.chartsHelp') }}</p>
           </header>
           <keep-alive>
             <CrossFilterCharts v-if="showMosaic" :table="tableName" :selectedFields="selectedFields" :schema="tableSchema" @removeField="toggleField" @filterChange="onFilterChange" />
@@ -125,16 +128,16 @@
         <!-- v-show + keep-alive keep the map alive so it (and its layers) survive tab switches -->
         <div class="map-view" v-show="showMap">
           <header class="view-header">
-            <div><span class="section-kicker">Spatial analysis</span><h3>Geospatial explorer</h3></div>
-            <p>Configure coordinates, H3 aggregation and point layers.</p>
+            <div><span class="section-kicker">{{ t('TableInspector.spatialAnalysis') }}</span><h3>{{ t('TableInspector.geoExplorer') }}</h3></div>
+            <p>{{ t('TableInspector.mapHelp') }}</p>
             <div class="filter-toggle" v-if="activeFilter">
-              <span class="toolbar-label">Cross-filter</span>
-              <button :class="{ active: mapShowFiltered }" @click="mapShowFiltered = true">Show filtered</button>
-              <button :class="{ active: !mapShowFiltered }" @click="mapShowFiltered = false">Show all</button>
+              <span class="toolbar-label">{{ t('TableInspector.crossFilter') }}</span>
+              <button :class="{ active: mapShowFiltered }" @click="mapShowFiltered = true">{{ t('TableInspector.showFiltered') }}</button>
+              <button :class="{ active: !mapShowFiltered }" @click="mapShowFiltered = false">{{ t('TableInspector.showAll') }}</button>
             </div>
           </header>
           <div class="active-filters" v-if="activeFilter && mapShowFiltered && activeFilterList.length">
-            <span class="filters-label">Filters</span>
+            <span class="filters-label">{{ t('TableInspector.filters') }}</span>
             <span class="filter-chip" v-for="f in activeFilterList" :key="f.field"><b>{{ f.field }}</b> {{ f.text }}</span>
           </div>
           <keep-alive>
@@ -147,6 +150,7 @@
 </template>
 <script setup>
 import { onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useEngine } from '../engine';
 import { getTableSchema as fetchTableSchema, profile, rowCount, sample } from '../data/tables';
 import { uiType } from '../data/types';
@@ -164,6 +168,7 @@ const props = defineProps({
   showOptions: Boolean,
 });
 
+const { t } = useI18n();
 const engine = useEngine();
 let myTabulator = null;
 
@@ -239,9 +244,9 @@ function toggleField(field) {
 function copyToClipboard() {
   var text = selectedFields.value.join(', ');
   navigator.clipboard.writeText(text).then(function () {
-    toast.success('Fields names copied to clipboard');
+    toast.success(t('TableInspector.fieldsCopied'));
   }, function () {
-    toast.error('Error copying fields names to clipboard');
+    toast.error(t('TableInspector.fieldsCopyError'));
   });
 }
 
@@ -287,7 +292,7 @@ async function getRowcount() {
   try {
     rowcount.value = await rowCount(engine, props.tableName);
   } catch (error) {
-    toast.error('Error loading rowcount');
+    toast.error(t('TableInspector.rowcountError'));
   } finally {
     loading.value = false;
   }
@@ -298,7 +303,7 @@ async function getTableSchema(tableName) {
     tableSchema.value = await fetchTableSchema(engine, tableName);
     selectedFields.value = Object.keys(tableSchema.value);
   } catch (error) {
-    toast.error('Error loading schema');
+    toast.error(t('TableInspector.schemaError'));
   } finally {
     loading.value = false;
   }
@@ -334,7 +339,7 @@ async function getSampleData(tableName) {
       updateTable();
     });
   } catch (error) {
-    toast.error(`Error: ${error.message}`);
+    toast.error(t('TableInspector.httpError', { detail: error.message }));
   } finally {
     loading.value = false;
   }
@@ -350,9 +355,9 @@ async function getTableProfile(tableName) {
   toast.promise(
     profile(engine, tableName),
     {
-      pending: 'Loading table profile, please wait...',
-      success: 'Profile loaded',
-      error: 'Error loading profile'
+      pending: t('TableInspector.profileLoading'),
+      success: t('TableInspector.profileLoaded'),
+      error: t('TableInspector.profileError')
     },
     {
       position: toast.POSITION.BOTTOM_RIGHT,

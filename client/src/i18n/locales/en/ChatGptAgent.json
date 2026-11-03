@@ -1,0 +1,73 @@
+{
+  "title": "AI Assistant",
+  "subtitle": "Ask about your data by voice or text: it writes the SQL, runs it and explains the result.",
+  "tts": "Read aloud",
+  "ttsHelp": "Read every answer aloud (uses voice tokens)",
+  "blindMode": "Blind mode",
+  "blindModeHelp": "Hide the conversation",
+  "blindModeOn": "Blind mode is on",
+  "blindModeHint": "The conversation is hidden. Ask by voice and turn on Read aloud to hear the answers.",
+  "newChat": "New chat",
+  "emptyTitle": "What do you want to know about your data?",
+  "emptyHint": "Ask in plain words: the assistant knows your tables and their columns, and can draw charts.",
+  "noTables": "Load a table to start asking.",
+  "suggestions": {
+    "rowCount": "How many rows does {table} have?",
+    "describe": "Summarise the columns of {table}",
+    "sample": "Show me 5 rows of {table}"
+  },
+  "textQuestion": "Question",
+  "placeholder": "Ask anything about your data…",
+  "needsKey": "Add your OpenAI API key above to ask",
+  "ask": "Send",
+  "disclaimer": "The assistant can make mistakes: check the SQL before using it.",
+  "copy": "Copy",
+  "copied": "Copied",
+  "copySql": "Copy the SQL",
+  "rows": "no rows | {n} row | {n} rows",
+  "rowsShown": "Showing {shown} of {total} rows",
+  "readAloud": "Read aloud",
+  "status": {
+    "transcribing": "Listening to your question…",
+    "writing": "Writing the SQL…",
+    "running": "Running the query…",
+    "explaining": "Reading the results…"
+  },
+  "error": "Error: {detail}",
+  "unknownError": "unknown error",
+  "queryFailed": "The query failed: {detail}",
+  "emptyAudio": "The recording is empty: check your microphone.",
+  "speechError": "Could not read the answer aloud: {detail}",
+  "history": {
+    "title": "Recent conversations",
+    "search": "Search conversations",
+    "empty": "Your conversations will appear here.",
+    "noMatch": "No conversation matches.",
+    "loadError": "Could not load your conversations.",
+    "saveError": "The conversation could not be saved.",
+    "rename": "Rename",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete it?",
+    "show": "Show conversations",
+    "hide": "Hide conversations",
+    "groups": {
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "week": "Previous 7 days",
+      "older": "Older"
+    }
+  },
+  "chart": {
+    "type": "Chart type",
+    "others": "Others",
+    "types": {
+      "bar": "Bars",
+      "horizontalBar": "Horizontal bars",
+      "line": "Lines",
+      "area": "Area",
+      "pie": "Pie",
+      "scatter": "Scatter"
+    }
+  }
+}

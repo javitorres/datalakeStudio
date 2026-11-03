@@ -1,6 +1,6 @@
 <template>
   <div class="container" v-if="filtersList && filtersList.length > 0">
-    <h3> <i class="bi bi-funnel"></i>  Active filters:</h3>
+    <h3> <i class="bi bi-funnel"></i>  {{ t('GenericCross.activeFilters') }}</h3>
     <ul class="list-unstyled d-flex flex-wrap">
       <li v-for="filter in filtersList" :key="filter.id">
         <button class="btn btn-primary m-1 opcion-style" @click="resetChart(filter.chart)">
@@ -12,7 +12,7 @@
   </div>
 
   <div class="container">
-    <button type="button" class="btn btn-danger" id="reset-all" >Reset All Filters</button>
+    <button type="button" class="btn btn-danger" id="reset-all" >{{ t('GenericCross.resetAll') }}</button>
   </div>
 
 
@@ -28,6 +28,7 @@
 
 <script setup>
 import { onMounted, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { csvParse } from 'd3-dsv';
 
 const props = defineProps({
@@ -36,6 +37,7 @@ const props = defineProps({
   key: Number,
 });
 
+const { t } = useI18n();
 const filtersList = ref([]);
 
 onMounted(() => {
@@ -69,13 +71,13 @@ function createChartContainer(title, identifier, index, type) {
     var minInput = document.createElement('input');
     minInput.type = 'number';
     minInput.className = 'input is-small';
-    minInput.placeholder = 'Min';
+    minInput.placeholder = t('GenericCross.min');
     minInput.onchange = () => { setChartDomain(elementId, 'min', minInput.value); };
 
     var maxInput = document.createElement('input');
     maxInput.type = 'number';
     maxInput.className = 'input is-small';
-    maxInput.placeholder = 'Max';
+    maxInput.placeholder = t('GenericCross.max');
     maxInput.onchange = () => { setChartDomain(elementId, 'max', maxInput.value); };
 
     rangeContainer.appendChild(minInput);
@@ -215,7 +217,7 @@ function generateChart(crossFilterData, chartConfig, index, data) {
 
   var resetLink = document.createElement('a');
   resetLink.className = 'reset-link button is-small';
-  resetLink.innerText = 'Reset';
+  resetLink.innerText = t('GenericCross.reset');
   resetLink.addEventListener('click', () => resetChart(elementId));
   document.getElementById(elementId).appendChild(resetLink);
 

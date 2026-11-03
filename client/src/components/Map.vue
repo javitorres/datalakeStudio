@@ -1,22 +1,25 @@
 <template>
   <!-- Tile dark or light button -->
-  <div class="btn-group" role="group" aria-label="Basic radio toggle button group">
+  <div class="btn-group" role="group" :aria-label="t('Map.mapStyle')">
     <input type="radio" class="btn-check" name="btnradio" id="btnradio1" autocomplete="off" checked>
-    <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">Dark</label>
+    <label class="btn btn-outline-primary" for="btnradio1" @click="changeTile('dark')">{{ t('Map.dark') }}</label>
 
     <input type="radio" class="btn-check" name="btnradio" id="btnradio2" autocomplete="off">
-    <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">Light</label>
+    <label class="btn btn-outline-primary" for="btnradio2" @click="changeTile('light')">{{ t('Map.light') }}</label>
   </div>
   <div id="map" style="height: 800px; width: 1200px"></div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
+import { useI18n } from 'vue-i18n';
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
 const dark = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 const light = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+const { t } = useI18n();
 
 const props = defineProps({
   data: String,

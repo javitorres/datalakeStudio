@@ -62,7 +62,8 @@ jobs:
       - name: Install deps
         run: |
           pip install -r requirements.txt
-          pip install pytest
+          # The HTTP tests use httpx, which openai no longer pulls in
+          pip install pytest httpx==0.28.1
 
       - name: Run backend tests
         run: python -m pytest -q

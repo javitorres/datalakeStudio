@@ -1,0 +1,13 @@
+{
+  "using": "Usando tu clave de OpenAI",
+  "change": "Cambiar",
+  "forget": "Olvidar la clave",
+  "title": "Usa tu propia clave de la API de OpenAI",
+  "privacy": "Se guarda solo en este navegador y solo se envía a OpenAI. Para responder, el asistente envía a OpenAI tu pregunta y los nombres y tipos de las columnas de tus tablas. Tus tablas nunca salen de este navegador.",
+  "privacyWithRows": "Se guarda solo en este navegador y solo se envía a OpenAI. Para responder, el asistente envía a OpenAI tu pregunta, los nombres y tipos de las columnas de tus tablas y las primeras filas de cada resultado para explicarlo. Tus tablas nunca salen de este navegador.",
+  "key": "Clave de la API",
+  "model": "Modelo",
+  "save": "Guardar en este navegador",
+  "cancel": "Cancelar",
+  "getKey": "Conseguir una clave"
+}

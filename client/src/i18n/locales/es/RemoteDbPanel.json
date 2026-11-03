@@ -1,0 +1,29 @@
+{
+  "databaseName": "Base de datos",
+  "databasePlaceholder": "Escribe el nombre de la base de datos",
+  "connectedDatabase": "Base de datos: {name}.",
+  "clickToDisconnect": "Pulsa para desconectar",
+  "activeSchema": "Esquema activo: {name}.",
+  "hideSchemas": "Pulsa para ocultar los esquemas",
+  "showSchemas": "Pulsa para ver los esquemas",
+  "remoteSchemas": "Esquemas remotos:",
+  "remoteTables": "Tablas remotas:",
+  "filterPlaceholder": "Filtrar por nombre",
+  "queryTitle": "Consulta en la base de datos remota",
+  "codePlaceholder": "escribe el código aquí...",
+  "runQuery": "Ejecutar consulta remota",
+  "createFromQuery": "Crear tabla a partir de la consulta",
+  "newTablePlaceholder": "Nombre de la tabla nueva",
+  "createTable": "Crear tabla",
+  "errorDetail": "Error: {detail}",
+  "httpError": "Error: HTTP {detail}",
+  "toast": {
+    "searchError": "Error al buscar bases de datos",
+    "connected": "Base de datos {name} conectada",
+    "connectError": "Error al conectar con la base de datos remota",
+    "schemasError": "Error al cargar los esquemas",
+    "tableCreated": "Tabla creada",
+    "tableError": "Error al crear la tabla: {detail}",
+    "disconnectError": "Error al desconectar la base de datos remota"
+  }
+}
