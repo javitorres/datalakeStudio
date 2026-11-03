@@ -1,6 +1,6 @@
 <template>
-  <div class="inspector-layout">
-    <aside class="field-column" v-if="tableSchema && showOptions">
+  <div class="inspector-layout" :class="{ wide: mapWithFilters }">
+    <aside class="field-column" v-if="tableSchema && showOptions" v-show="!mapWithFilters">
       <div class="schema-heading">
         <div>
           <span class="section-kicker">{{ t('TableInspector.schema') }}</span>
@@ -38,21 +38,22 @@
 
     <section class="data-column">
       <nav class="explorer-nav" v-if="showOptions" :aria-label="t('TableInspector.tableViews')">
-        <button :class="{ active: showSampleData }" @click="getSampleData(tableName)">
+        <button :class="{ active: showSampleData }" @click="selectView('data')">
           <i class="bi bi-table"></i><span>{{ t('TableInspector.views.data') }}</span><small>{{ t('TableInspector.views.dataHint') }}</small>
         </button>
-        <button :class="{ active: showProfile }" @click="getTableProfile(tableName)">
+        <button :class="{ active: showProfile }" @click="selectView('profile')">
           <i class="bi bi-activity"></i><span>{{ t('TableInspector.views.profile') }}</span><small>{{ t('TableInspector.views.profileHint') }}</small>
         </button>
-        <button :class="{ active: showMosaic }" @click="toggleMosaic()">
+        <button :class="{ active: showMosaic }" @click="selectView('charts')">
           <i class="bi bi-bar-chart"></i><span>{{ t('TableInspector.views.charts') }}</span><small>{{ t('TableInspector.views.chartsHint') }}</small>
         </button>
-        <button v-if="engine.capabilities.maps" :class="{ active: showMap }" @click="mapData(tableName)">
+        <button v-if="engine.capabilities.maps" :class="{ active: showMap }" @click="selectView('map')">
           <i class="bi bi-map"></i><span>{{ t('TableInspector.views.map') }}</span><small>{{ t('TableInspector.views.mapHint') }}</small>
         </button>
       </nav>
 
-      <div class="view-canvas">
+      <!-- With the filters beside the map, both views show at once and share the same cross-filter -->
+      <div class="view-canvas" :class="{ 'split-view': mapWithFilters }">
         <div class="table-view" v-show="sampleData && showSampleData">
           <header class="view-header">
             <div>
@@ -115,13 +116,13 @@
         </div>
 
         <!-- v-show + keep-alive keep the charts mounted so cross-filters survive tab switches -->
-        <div class="visualization-view" v-show="showMosaic">
+        <div class="visualization-view" v-show="showMosaic || mapWithFilters">
           <header class="view-header">
             <div><span class="section-kicker">{{ t('TableInspector.interactiveAnalysis') }}</span><h3>{{ t('TableInspector.crossFilterCharts') }}</h3></div>
             <p>{{ t('TableInspector.chartsHelp') }}</p>
           </header>
           <keep-alive>
-            <CrossFilterCharts v-if="showMosaic" :table="tableName" :selectedFields="selectedFields" :schema="tableSchema" @removeField="toggleField" @filterChange="onFilterChange" />
+            <CrossFilterCharts v-if="showMosaic || mapWithFilters" :compact="mapWithFilters" :table="tableName" :selectedFields="selectedFields" :schema="tableSchema" @removeField="toggleField" @filterChange="onFilterChange" />
           </keep-alive>
         </div>
 
@@ -130,6 +131,10 @@
           <header class="view-header">
             <div><span class="section-kicker">{{ t('TableInspector.spatialAnalysis') }}</span><h3>{{ t('TableInspector.geoExplorer') }}</h3></div>
             <p>{{ t('TableInspector.mapHelp') }}</p>
+            <button class="split-toggle" :class="{ active: filtersBesideMap }" :title="t('TableInspector.filtersBesideMapHelp')"
+              @click="setFiltersBesideMap(!filtersBesideMap)">
+              <i class="bi bi-layout-sidebar"></i> {{ filtersBesideMap ? t('TableInspector.mapOnly') : t('TableInspector.filtersBesideMap') }}
+            </button>
             <div class="filter-toggle" v-if="activeFilter">
               <span class="toolbar-label">{{ t('TableInspector.crossFilter') }}</span>
               <button :class="{ active: mapShowFiltered }" @click="mapShowFiltered = true">{{ t('TableInspector.showFiltered') }}</button>
@@ -149,7 +154,7 @@
   </div>
 </template>
 <script setup>
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useEngine } from '../engine';
 import { getTableSchema as fetchTableSchema, profile, rowCount, sample } from '../data/tables';
@@ -166,18 +171,52 @@ import CrossFilterCharts from './CrossFilterCharts.vue';
 const props = defineProps({
   tableName: String,
   showOptions: Boolean,
+  // The view to open: data, profile, charts or map (v-model:view keeps it across reruns of a query)
+  view: { type: String, default: 'data' },
 });
+const emit = defineEmits(['update:view']);
 
 const { t } = useI18n();
 const engine = useEngine();
 let myTabulator = null;
 
+const VIEWS = ['data', 'profile', 'charts', 'map'];
+const initialView = VIEWS.includes(props.view) && (props.view !== 'map' || engine.capabilities.maps) ? props.view : 'data';
+
 const selectedFields = ref(null);
-const showSampleData = ref(true);
+const showSampleData = ref(initialView === 'data');
 const showProfile = ref(false);
 const showPlot = ref(false);
-const showMap = ref(false);
-const showMosaic = ref(false);
+const showMap = ref(initialView === 'map');
+const showMosaic = ref(initialView === 'charts');
+
+// The cross-filter charts beside the map: remembered in this browser
+const FILTERS_BESIDE_MAP = 'datalakeStudio.filtersBesideMap';
+const filtersBesideMap = ref(readFlag(FILTERS_BESIDE_MAP));
+const mapWithFilters = computed(() => showMap.value && filtersBesideMap.value);
+
+function readFlag(key) {
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch (_) {
+    return false;
+  }
+}
+
+function setFiltersBesideMap(value) {
+  filtersBesideMap.value = value;
+  try {
+    localStorage.setItem(FILTERS_BESIDE_MAP, String(value));
+  } catch (_) { /* storage blocked */ }
+}
+
+function selectView(view) {
+  emit('update:view', view);
+  if (view === 'profile') getTableProfile(props.tableName);
+  else if (view === 'charts') toggleMosaic();
+  else if (view === 'map') mapData(props.tableName);
+  else openSampleData();
+}
 const hideMap = ref(false);
 
 // Cross-filter shared from the Charts tab (SQL predicate + readable list).
@@ -276,6 +315,9 @@ async function load() {
   await getTableSchema(props.tableName);
   await getRowcount();
   await getSampleData(props.tableName);
+  // The other views build what they show when opened
+  if (showProfile.value) getTableProfile(props.tableName);
+  if (showMap.value) mapData(props.tableName);
 }
 
 function imageSrc(typeInput) {
@@ -309,13 +351,17 @@ async function getTableSchema(tableName) {
   }
 }
 
-async function getSampleData(tableName) {
+function openSampleData() {
   showSampleData.value = true;
   showProfile.value = false;
   showPlot.value = false;
   showMap.value = false;
   showMosaic.value = false;
+  getSampleData(props.tableName);
+}
 
+// Reloads the rows of the data view, whichever view is open
+async function getSampleData(tableName) {
   try {
     sampleData.value = await sample(engine, tableName, {
       type: type.value,
@@ -443,7 +489,7 @@ function toggleMosaic() {
   showProfile.value = false;
   showPlot.value = false;
   showMap.value = false;
-  showMosaic.value = !showMosaic.value;
+  showMosaic.value = true;
 }
 </script>
 <style scoped>
@@ -481,5 +527,14 @@ function toggleMosaic() {
 .filter-toggle button{min-width:35px;padding:4px 7px;border:1px solid transparent;border-radius:6px;background:transparent;color:#6b7975;font-size:9px;font-weight:700;cursor:pointer}
 .filter-toggle button:hover{background:#e7efec}
 .filter-toggle button.active{border-color:#b6d8cf;background:#fff;color:var(--ds-teal-dark);box-shadow:0 2px 6px rgba(32,65,57,.06)}
+.split-toggle{display:inline-flex;align-items:center;gap:6px;flex:none;padding:5px 10px;border:1px solid #cfe1dc;border-radius:7px;background:#fff;color:var(--ds-teal-dark);font-size:10px;font-weight:700}
+.split-toggle:hover{background:var(--ds-mint)}.split-toggle.active{border-color:var(--ds-teal);background:var(--ds-teal);color:#fff}
+/* The map with the filters beside it: the whole width for the two of them */
+.inspector-layout.wide{grid-template-columns:minmax(0,1fr)}
+.view-canvas.split-view{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:12px;align-items:start}
+.split-view .visualization-view{position:sticky;top:95px;max-height:calc(100vh - 110px);overflow-y:auto;padding-bottom:0}
+.split-view .visualization-view>:not(.view-header){margin:0}
+.split-view .visualization-view .view-header p{display:none}
+@media(max-width:1100px){.view-canvas.split-view{grid-template-columns:1fr}.split-view .visualization-view{position:static;max-height:none}}
 @media(max-width:850px){.inspector-layout{grid-template-columns:1fr}.field-column{position:static;max-height:none}.field-list{max-height:190px;grid-template-columns:repeat(2,minmax(0,1fr))}.explorer-nav button>small{display:none}.explorer-nav button{grid-template-columns:24px 1fr;padding:7px}.view-header{align-items:flex-start;flex-direction:column;gap:8px}.view-metrics{flex-wrap:wrap}.sample-toolbar{align-items:flex-start;flex-direction:column}}
 </style>

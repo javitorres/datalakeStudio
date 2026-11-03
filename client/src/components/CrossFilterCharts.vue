@@ -1,5 +1,5 @@
 <template>
-  <div class="crossfilter-container">
+  <div class="crossfilter-container" :class="{ compact }">
     <div class="charts-grid">
       <div v-for="field in numericFields" :key="field" class="chart-wrapper">
         <button class="close-btn" :title="t('CrossFilterCharts.removeField')" @click="removeField(field)">✕</button>
@@ -63,6 +63,8 @@ const props = defineProps({
   table: String,
   selectedFields: Array,
   schema: Object,
+  // One column of shorter charts, to sit beside the map
+  compact: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['removeField', 'filterChange']);
@@ -433,6 +435,8 @@ watch(locale, () => {
 .chart-wrapper{position:relative;min-height:340px;overflow:hidden;border:1px solid var(--ds-line);border-radius:11px;background:#fff;box-shadow:0 5px 18px rgba(31,67,58,.045);transition:transform .15s,box-shadow .15s}
 .chart-wrapper:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(31,67,58,.08)}
 .chart{width:100%;height:340px}
+/* Beside the map: one narrow column of shorter charts */
+.compact{padding:10px}.compact .charts-grid{grid-template-columns:1fr;gap:10px}.compact .chart-wrapper{min-height:250px}.compact .chart{height:250px}
 .close-btn{position:absolute;top:9px;left:9px;z-index:10;width:23px;height:23px;display:grid;place-items:center;padding:0;border:1px solid #e2e9e7;border-radius:6px;background:#f7faf9;color:#8a9692;font-size:10px;cursor:pointer}
 .close-btn:hover{border-color:#e5aeb5;background:#fff0f1;color:#b93748}
 @media(max-width:900px){.charts-grid{grid-template-columns:1fr}}

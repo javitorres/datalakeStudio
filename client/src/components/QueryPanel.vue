@@ -147,7 +147,7 @@
         <div v-if="querySuccesful" class="result-status"><i class="bi bi-check2-circle"></i><span><b>{{ t('QueryPanel.results.success') }}</b><small>{{ t('QueryPanel.results.storedIn', { name: tableName }) }}</small></span></div>
       </header>
       <div v-if="querySuccesful" class="results-body">
-        <TableInspector :tableName="tableName" :showOptions="showOptions" />
+        <TableInspector v-model:view="resultView" :tableName="tableName" :showOptions="showOptions" />
       </div>
       <div v-else class="results-empty">
         <div><i class="bi bi-terminal"></i></div>
@@ -219,6 +219,8 @@ const chatGPTInput = ref('dame askingprice medio');
 const chatGPTOutput = ref('');
 const tableName = ref('__lastQuery');
 const querySuccesful = ref(false);
+// The view of the result the user picked (data, charts, map…): running the query again reopens it
+const resultView = ref('data');
 const showOptions = ref(true);
 const queryError = ref(null);
 const queryRunning = ref(false);
