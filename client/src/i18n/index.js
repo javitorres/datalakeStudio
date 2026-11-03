@@ -24,7 +24,9 @@ function initialLocale() {
   if (LANGUAGES.some((l) => l.code === saved)) {
     return saved;
   }
-  return (navigator.language || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
+  // Node before 21 (the data tests, CI) has no navigator
+  const browserLanguage = typeof navigator !== 'undefined' ? navigator.language : '';
+  return (browserLanguage || 'en').toLowerCase().startsWith('es') ? 'es' : 'en';
 }
 
 export const i18n = createI18n({
