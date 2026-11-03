@@ -153,6 +153,13 @@ allowedOrigins:                  # CORS origins for app endpoints (not /api/*)
 # duckdbThreads: 4               # per open database (default: all cores)
 # duckdbMaxOpenDatabases: 8      # beyond it, the least recently used database is closed
 # duckdbIdleMinutes: 30          # close databases idle for longer than this
+# aiModel: "gpt-5.4-mini"        # OpenAI model of the AI assistant (needs openai_api_key in secrets.yml)
+# aiTranscriptionModel: "gpt-4o-mini-transcribe"   # voice questions
+# aiSpeechModel: "gpt-4o-mini-tts"                 # spoken answers, when there is no ElevenLabs key
+# elevenLabsModel: "eleven_v4"                     # spoken answers with elevenlabs_api_key in secrets.yml
+# elevenLabsVoices:                               # ElevenLabs voice id per app language
+#   es: "dNjJKg63Fr5AXwIdkATa"                     # Cristina, Spanish from Spain
+#   en: "JBFqnCBsd6RMkjVDRZzb"                     # George, British English
 ```
 
 With the sandbox on, each user's SQL can only read and write their own database
@@ -170,7 +177,7 @@ need — everything is optional depending on the features you use:
 cp server/secrets.yml.template server/secrets.yml
 ```
 
-It covers S3 access, OpenAI (AI assistant), the API search domain, the PostgreSQL
+It covers S3 access, OpenAI (AI assistant), ElevenLabs (spoken answers, optional), the API search domain, the PostgreSQL
 `pgpass` file, a Mapbox token (maps), Google OAuth and SMTP (email verification /
 password recovery). If you enable `authEnabled`, also set a strong `jwt_secret`.
 
@@ -271,11 +278,37 @@ Preview files or load them into Datalake Studio:
 
 ![S3 preview](https://github.com/javitorres/datalakeStudio/assets/4235424/16c1f44a-52a0-4593-9c42-4f687fe315b1)
 
-### Talk to ChatGPT
+### AI data assistant
 
-Explore your data conversationally (experimental):
+Explore your data conversationally (experimental): ask by voice or text, and the
+assistant writes the SQL, runs it and explains the result, out loud if you want.
+Ask for a chart ("pie chart of trips per borough") and it draws one from the
+result; it may also propose one when it helps. You can switch between bars, lines,
+area, pie and scatter without asking again.
 
-![ChatGPT](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
+Your recent conversations are listed on the left. The AI names each one after its
+first question, and you can rename or delete them. They are saved on the server
+for each user, in `<databasesFolder>/<user>/conversations/`, which keeps the
+last 100.
+
+![AI data assistant](https://github.com/javitorres/datalakeStudio/assets/4235424/e3913bb0-5741-4cac-b702-ad30f37d5fa5)
+
+### Settings
+
+The gear icon opens the settings:
+
+- **Language**: English or Spanish (Spain). It applies to the whole app and to the
+  assistant, which answers, speaks and transcribes your voice in that language.
+- **AI model**: the OpenAI model of the assistant, from the text models your key can
+  use. "The one in the config" uses `aiModel` from `config.yml`.
+- **Assistant voice**: ElevenLabs or OpenAI for the spoken answers. ElevenLabs is
+  used when `elevenlabs_api_key` is set and the switch is on.
+- **Integrations**: which services the server found configured in `config.yml`
+  and `secrets.yml` (OpenAI, ElevenLabs, Mapbox, S3, PostgreSQL, Google, SMTP…).
+  It never shows the values.
+
+Language, model and voice are saved on the server for each user
+(`<databasesFolder>/<user>/preferences.json`), so they follow you to any browser.
 
 ## License
 
