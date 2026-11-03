@@ -305,7 +305,7 @@ async function getTables() {
     const notice = engine.takeNotice?.();
     if (notice) toast.warning(notice, { autoClose: false });
   } catch (error) {
-    toast.error(t('DatalakeStudio.errorLoadingTables'));
+    toast.error(t('DatalakeStudio.errorLoadingTables', { detail: error.message }));
   }
 }
 

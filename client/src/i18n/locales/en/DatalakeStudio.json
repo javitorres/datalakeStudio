@@ -29,7 +29,7 @@
   "logout": "Log out",
   "tagline": "Your personal data workspace",
   "user": "User",
-  "errorLoadingTables": "Error loading tables",
+  "errorLoadingTables": "Error loading tables: {detail}",
   "tableDeleted": "Table deleted",
   "tableRenamed": "Table renamed to {name}",
   "errorRenaming": "Error renaming the table: {detail}",
