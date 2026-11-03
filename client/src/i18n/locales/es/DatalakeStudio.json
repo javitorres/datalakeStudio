@@ -29,7 +29,7 @@
   "logout": "Cerrar sesión",
   "tagline": "Tu espacio de trabajo con datos",
   "user": "Usuario",
-  "errorLoadingTables": "Error al cargar las tablas",
+  "errorLoadingTables": "Error al cargar las tablas: {detail}",
   "tableDeleted": "Tabla borrada",
   "tableRenamed": "Tabla renombrada a {name}",
   "errorRenaming": "Error al renombrar la tabla: {detail}",
