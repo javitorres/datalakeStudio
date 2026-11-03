@@ -9,6 +9,8 @@ import { quoteIdent } from '../data/sql';
 
 const CURRENT_DB_KEY = 'datalakeStudio.localDatabase';
 const DEFAULT_DATABASE = 'datalakeStudio.db';
+// Tries to open the database when another page still holds it (every half second)
+const OPEN_ATTEMPTS = 6;
 
 export class LocalEngine {
   constructor() {
@@ -48,14 +50,19 @@ export class LocalEngine {
     await this.db.instantiate(bundle.mainModule, bundle.pthreadWorker);
     // Ask the browser to keep the databases: without it, it may evict OPFS when it runs short of space
     if (this.capabilities.persistent) navigator.storage.persist?.().catch(() => {});
-    try {
-      await this.openDatabase(this.currentDatabaseName());
-    } catch (error) {
-      // Only one tab can have a database file open
-      if (/Access Handle/i.test(error.message)) {
-        throw new Error('Datalake Studio is already open in another tab of this browser. Close it and reload this page.');
+    // Only one tab can have a database file open. Right after a reload the previous page may still hold
+    // it for a moment, so wait a little before telling the user it's open in another tab.
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        await this.openDatabase(this.currentDatabaseName());
+        return;
+      } catch (error) {
+        if (!/Access Handle/i.test(error.message)) throw error;
+        if (attempt >= OPEN_ATTEMPTS) {
+          throw new Error('Datalake Studio is already open in another tab of this browser. Close it and reload this page.');
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
-      throw error;
     }
   }
 
