@@ -69,6 +69,25 @@ describe('QueryPanel', () => {
     expect(wrapper.find('[data-test="table-inspector"]').exists()).toBe(true)
   })
 
+  it('reopens the view the user picked when the query runs again', async () => {
+    const TableInspector = {
+      props: ['view'],
+      emits: ['update:view'],
+      template: '<div data-test="table-inspector" :data-view="view" @click="$emit(\'update:view\', \'map\')"></div>'
+    }
+    const wrapper = mount(QueryPanel, { props: { tables: ['iris'] }, global: { stubs: { TableInspector } } })
+    const run = async () => {
+      await wrapper.findAll('button').find((b) => b.text().includes('Run Query')).trigger('click')
+      await flushPromises()
+    }
+
+    await run()
+    expect(wrapper.find('[data-test="table-inspector"]').attributes('data-view')).toBe('data')
+    await wrapper.find('[data-test="table-inspector"]').trigger('click')
+    await run()
+    expect(wrapper.find('[data-test="table-inspector"]').attributes('data-view')).toBe('map')
+  })
+
   it('creates table from query and emits tableCreated', async () => {
 
     const wrapper = mount(QueryPanel, {
@@ -180,7 +199,8 @@ describe('QueryPanel', () => {
       expect(context.numericFields).toEqual(['population', 'lat_coord', 'longitude'])
       expect(context.latitudeField).toBe('lat_coord')
       expect(context.longitudeField).toBe('longitude')
-      expect(context.selectedFieldForH3).toBe('population')
+      expect(context.selectedFieldForH3).toBe('count')
+      expect(context.selectedFieldForPoints).toBeNull()
     })
 
     it('calculates finite percentiles and histograms for zero and string values', () => {
@@ -199,9 +219,8 @@ describe('QueryPanel', () => {
       expect(MapH3.methods.getPercentiles.call({}, { features: [] }, 'value')).toBeNull()
     })
 
-    it('escapes popup values and handles degenerate ranges', () => {
+    it('escapes popup values', () => {
       expect(MapH3.methods.escapeHtml('<img onerror="x">')).toBe('&lt;img onerror=&quot;x&quot;&gt;')
-      expect(MapH3.methods.highlightStyle(5, 5, 5, 5)).toEqual({ left: '0%', width: '100%' })
     })
   })
 })

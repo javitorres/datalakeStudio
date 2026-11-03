@@ -227,11 +227,18 @@ Or use cross-filters to explore interactively:
 
 ![Cross-filter](docs/assets/screenshots/cross-filter.png)
 
-If your data has spatial information, view it on a map:
+If your data has spatial information, view it on a map. The **Map** tab finds the
+latitude and longitude (or geometry) columns and shows the rows grouped into H3
+hexagons right away, with a cell size that follows the zoom. On the left, each
+layer (hexagons and points) has its own switch, the field that colors it, and a
+color scale drawn over the histogram of its values. The legend and the counts sit
+on the map. Move the map and **Search this area** loads what is now in view.
+**Filters beside** shows the cross-filter charts next to the map: filter on a chart
+and the map follows. Running a query again keeps the view you were on.
 
 ![Map points](docs/assets/screenshots/map-points.jpg)
 
-Or aggregate it into H3 hexagons, in 2D or 3D:
+Or show the hexagons in 2D or 3D:
 
 ![H3 aggregation](docs/assets/screenshots/map-h3.jpg)
 

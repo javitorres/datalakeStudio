@@ -4,9 +4,7 @@ import { createAPIContext } from '@uwdata/vgplot';
 import { astToDOM } from '@uwdata/mosaic-spec';
 import { useEngine } from '../engine';
 
-// Shared Mosaic/vgplot plumbing used by both Mosaic.vue and DataSelector.vue.
-// Each component keeps its own reload()/load()/getYaml() (they render different
-// specs); everything below is the identical boilerplate they used to duplicate.
+// Mosaic/vgplot plumbing used by Mosaic.vue, which keeps its own reload()/load()/getYaml().
 export function useMosaic() {
   const selectedConnector = ref('rest');
   const queryLog = ref(false);
