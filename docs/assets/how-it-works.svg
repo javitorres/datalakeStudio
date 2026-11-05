@@ -1,0 +1,165 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="660" viewBox="0 0 1280 660" role="img" aria-labelledby="t d">
+  <title id="t">How Datalake Studio works</title>
+  <desc id="d">Data is loaded from files, URLs, S3, PostgreSQL or APIs into DuckDB, which runs either in the browser (DuckDB-WASM, data never leaves the machine) or on a Python server. It is explored with the table explorer, cross-filter charts, maps and a SQL workspace with an AI assistant, and shared as new tables, exported files, REST API endpoints, or answers and charts. Results can be saved as new tables and queried again.</desc>
+  <defs>
+    <radialGradient id="bg" cx="25%" cy="20%" r="90%">
+      <stop offset="0" stop-color="#1f4a40"/>
+      <stop offset="0.6" stop-color="#17211f"/>
+    </radialGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#2fb594"/>
+    </marker>
+    <marker id="arrowSoft" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#9fdcc9"/>
+    </marker>
+    <style>
+      text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .h1 { font-size: 26px; font-weight: 700; fill: #ffffff; }
+      .lead { font-size: 15px; fill: #b9c8c3; }
+      .step { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; fill: #2fb594; }
+      .card { fill: #1d2c29; stroke: #3f8f7c; stroke-width: 1.2; }
+      .card-strong { fill: #20352f; stroke: #2fb594; stroke-width: 1.6; }
+      .title { font-size: 16px; font-weight: 700; fill: #ffffff; }
+      .body { font-size: 13px; fill: #b9c8c3; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #9fdcc9; }
+      .tag { font-size: 10px; font-weight: 800; letter-spacing: 0.06em; fill: #17211f; }
+      .server { fill: #9fdcc9; }
+      .flow { stroke: #2fb594; stroke-width: 2; fill: none; }
+      .loop { stroke: #9fdcc9; stroke-width: 1.6; fill: none; stroke-dasharray: 6 5; }
+      .note { font-size: 12.5px; fill: #b9c8c3; }
+    </style>
+  </defs>
+
+  <rect width="1280" height="660" rx="24" fill="url(#bg)"/>
+
+  <!-- Heading -->
+  <text class="h1" x="40" y="58">How Datalake Studio works</text>
+  <text class="lead" x="40" y="84">Load data from anywhere, query it with DuckDB in your browser or on your server, explore it and share what you find.</text>
+
+  <!-- Column headings -->
+  <text class="step" x="40" y="128">1 · LOAD</text>
+  <text class="step" x="330" y="128">2 · STORE &amp; QUERY</text>
+  <text class="step" x="664" y="128">3 · EXPLORE</text>
+  <text class="step" x="990" y="128">4 · SHARE</text>
+
+  <!-- 1 · Sources -->
+  <g>
+    <rect class="card" x="40" y="142" width="250" height="86" rx="12"/>
+    <text class="title" x="58" y="170">Files</text>
+    <text class="body" x="58" y="192">CSV · Parquet · JSON · GeoJSON</text>
+    <text class="body" x="58" y="211">Shapefile (zip) · from your computer</text>
+
+    <rect class="card" x="40" y="242" width="250" height="86" rx="12"/>
+    <text class="title" x="58" y="270">URLs and S3</text>
+    <text class="mono" x="58" y="292">https://…/trips.parquet</text>
+    <text class="mono" x="58" y="311">s3://bucket/path/</text>
+    <rect class="server" x="194" y="299" width="54" height="18" rx="9"/><text class="tag" x="221" y="312" text-anchor="middle">SERVER</text>
+
+    <rect class="card" x="40" y="342" width="250" height="86" rx="12"/>
+    <text class="title" x="58" y="370">PostgreSQL</text>
+    <text class="body" x="58" y="392">Query a remote database and</text>
+    <text class="body" x="58" y="411">keep the result as a table</text>
+    <rect class="server" x="224" y="354" width="54" height="18" rx="9"/><text class="tag" x="251" y="367" text-anchor="middle">SERVER</text>
+
+    <rect class="card" x="40" y="442" width="250" height="86" rx="12"/>
+    <text class="title" x="58" y="470">REST APIs</text>
+    <text class="body" x="58" y="492">Enrich each row of a table by</text>
+    <text class="body" x="58" y="511">calling an API with its values</text>
+    <rect class="server" x="224" y="454" width="54" height="18" rx="9"/><text class="tag" x="251" y="467" text-anchor="middle">SERVER</text>
+  </g>
+
+  <!-- Sources into the engine -->
+  <path class="flow" d="M290 185 C 312 185, 308 300, 328 300" marker-end="url(#arrow)"/>
+  <path class="flow" d="M290 285 C 310 285, 310 320, 328 320" marker-end="url(#arrow)"/>
+  <path class="flow" d="M290 385 C 310 385, 310 350, 328 350" marker-end="url(#arrow)"/>
+  <path class="flow" d="M290 485 C 312 485, 308 370, 328 370" marker-end="url(#arrow)"/>
+
+  <!-- 2 · Engine -->
+  <g>
+    <rect class="card-strong" x="330" y="142" width="300" height="386" rx="14"/>
+    <circle cx="362" cy="176" r="15" fill="#fff000"/>
+    <circle cx="368" cy="174" r="4.5" fill="#17211f"/>
+    <text class="title" x="388" y="172" style="font-size:19px">DuckDB</text>
+    <text class="body" x="388" y="191">Columnar SQL · millions of rows</text>
+
+    <rect class="card" x="348" y="210" width="264" height="132" rx="10"/>
+    <text class="title" x="364" y="236">In your browser</text>
+    <text class="body" x="364" y="258">DuckDB-WASM, nothing to install</text>
+    <text class="body" x="364" y="277">Databases in the browser's storage</text>
+    <text class="body" x="364" y="296">Your data never leaves your machine</text>
+    <text class="mono" x="364" y="322">datalakestudio.com/app</text>
+
+    <rect class="card" x="348" y="356" width="264" height="114" rx="10"/>
+    <text class="title" x="364" y="382">On your server</text>
+    <text class="body" x="364" y="404">Python + FastAPI · Docker</text>
+    <text class="body" x="364" y="423">Users and login · more power</text>
+    <text class="body" x="364" y="442">S3, PostgreSQL and published APIs</text>
+    <rect class="server" x="546" y="368" width="54" height="18" rx="9"/><text class="tag" x="573" y="381" text-anchor="middle">SERVER</text>
+
+    <text class="mono" x="348" y="502">spatial · h3 · httpfs extensions</text>
+  </g>
+
+  <!-- Engine into the workspace -->
+  <path class="flow" d="M630 335 L 662 335" marker-end="url(#arrow)"/>
+
+  <!-- 3 · Workspace -->
+  <g>
+    <rect class="card" x="664" y="142" width="290" height="86" rx="12"/>
+    <text class="title" x="682" y="170">Table explorer</text>
+    <text class="body" x="682" y="192">Sample rows, column types and</text>
+    <text class="body" x="682" y="211">a statistical profile</text>
+
+    <rect class="card" x="664" y="242" width="290" height="86" rx="12"/>
+    <text class="title" x="682" y="270">Cross-filter charts</text>
+    <text class="body" x="682" y="292">Brush one chart and the others,</text>
+    <text class="body" x="682" y="311">the rows and the map follow</text>
+
+    <rect class="card" x="664" y="342" width="290" height="86" rx="12"/>
+    <text class="title" x="682" y="370">Maps</text>
+    <text class="body" x="682" y="392">Points, H3 hexagons in 2D or 3D</text>
+    <text class="body" x="682" y="411">and geometries, framed on your data</text>
+
+    <rect class="card" x="664" y="442" width="290" height="86" rx="12"/>
+    <text class="title" x="682" y="470">SQL + AI assistant</text>
+    <text class="body" x="682" y="492">Write SQL, or ask in plain words:</text>
+    <text class="body" x="682" y="511">it writes the SQL and explains it</text>
+  </g>
+
+  <!-- Workspace into the outputs -->
+  <path class="flow" d="M954 185 L 988 185" marker-end="url(#arrow)"/>
+  <path class="flow" d="M954 285 L 988 285" marker-end="url(#arrow)"/>
+  <path class="flow" d="M954 385 L 988 385" marker-end="url(#arrow)"/>
+  <path class="flow" d="M954 485 L 988 485" marker-end="url(#arrow)"/>
+
+  <!-- 4 · Outputs -->
+  <g>
+    <rect class="card" x="990" y="142" width="250" height="86" rx="12"/>
+    <text class="title" x="1008" y="170">New tables</text>
+    <text class="mono" x="1008" y="192">CREATE TABLE … AS SELECT</text>
+    <text class="body" x="1008" y="211">from any result, saved queries</text>
+
+    <rect class="card" x="990" y="242" width="250" height="86" rx="12"/>
+    <text class="title" x="1008" y="270">Files</text>
+    <text class="body" x="1008" y="292">Export any table to</text>
+    <text class="body" x="1008" y="311">CSV or Parquet</text>
+
+    <rect class="card" x="990" y="342" width="250" height="86" rx="12"/>
+    <text class="title" x="1008" y="370">REST API</text>
+    <text class="mono" x="1008" y="392">GET /api/topZones?borough=…</text>
+    <text class="body" x="1008" y="411">a saved query, live as JSON</text>
+    <rect class="server" x="1174" y="354" width="54" height="18" rx="9"/><text class="tag" x="1201" y="367" text-anchor="middle">SERVER</text>
+
+    <rect class="card" x="990" y="442" width="250" height="86" rx="12"/>
+    <text class="title" x="1008" y="470">Answers and charts</text>
+    <text class="body" x="1008" y="492">The assistant's explanation,</text>
+    <text class="body" x="1008" y="511">its chart, read aloud if you want</text>
+  </g>
+
+  <!-- New tables go back into the engine -->
+  <path class="loop" d="M1115 142 C 1115 112, 1200 112, 1252 112 L 1252 572 L 480 572 L 480 532" marker-end="url(#arrowSoft)"/>
+  <text class="note" x="560" y="592">Every result can become a new table, and you keep querying it.</text>
+
+  <!-- Legend -->
+  <rect class="server" x="40" y="620" width="54" height="18" rx="9"/><text class="tag" x="67" y="633" text-anchor="middle">SERVER</text>
+  <text class="note" x="104" y="634">Only in the server version. Everything else also runs in the browser, with nothing to install.</text>
+</svg>
