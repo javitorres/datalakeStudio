@@ -21,7 +21,9 @@ query as a live REST API — all from a single tool that runs on your machine.
 
 Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
 
-<img width="1672" height="941" alt="image" src="https://github.com/user-attachments/assets/351892ab-f1ac-47c2-a497-2c136fe48c58" />
+<p align="center">
+  <img src="docs/assets/how-it-works.svg" alt="How Datalake Studio works: load data from files, URLs, S3, PostgreSQL or APIs into DuckDB, running in your browser or on your server; explore it with the table explorer, cross-filter charts, maps and a SQL workspace with an AI assistant; and share it as new tables, files, REST APIs or answers and charts" width="100%">
+</p>
 
 ![Geospatial explorer with linked cross-filter charts and a 3D H3 map of New York taxi trips](landing/assets/geospatial-explorer.png)
 
