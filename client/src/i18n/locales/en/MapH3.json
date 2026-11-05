@@ -42,7 +42,7 @@
   "style": "Style",
   "flat": "2D",
   "extruded": "3D",
-  "extrudedHelp": "The height of each hexagon shows how many rows it holds",
+  "extrudedHelp": "The height of each hexagon shows the variable you choose (the color one by default)",
   "borders": "Borders",
   "basemap": "Base map",
   "light": "Light",
@@ -76,5 +76,8 @@
   "popup": {
     "h3": "Cell",
     "point": "Point"
-  }
+  },
+  "heightBy": "Height by",
+  "sameAsColor": "Same as the color",
+  "legendHeight": "Height: {field}"
 }

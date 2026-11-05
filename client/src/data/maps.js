@@ -146,6 +146,16 @@ export async function dataExtent(engine, { table, latitudeField, longitudeField,
   return { west, south, east, north };
 }
 
+// The range a 3D layer's heights span for a property: from 0 when every value is positive (heights
+// proportional to the values), else from the lowest value
+export function heightRange(features, field) {
+  const values = features.map((f) => Number(f.properties?.[field])).filter(Number.isFinite);
+  if (!values.length) return { low: 0, high: 1 };
+  const low = Math.min(0, ...values);
+  const high = Math.max(...values);
+  return { low, high: high > low ? high : low + 1 };
+}
+
 function feature(geometry, properties) {
   return { type: 'Feature', geometry: typeof geometry === 'string' ? JSON.parse(geometry) : geometry, properties };
 }

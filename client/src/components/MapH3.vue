@@ -81,6 +81,14 @@
               <label class="form-check-label" for="h3Borders">{{ $t('MapH3.borders') }}</label>
             </div>
           </div>
+          <label v-if="show3D" class="field">
+            <span>{{ $t('MapH3.heightBy') }}</span>
+            <select class="form-select form-select-sm" v-model="heightFieldForH3" @change="reloadLayers('H3')">
+              <option value="">{{ $t('MapH3.sameAsColor') }}</option>
+              <option value="count">{{ $t('MapH3.recordCount') }}</option>
+              <option v-for="field in numericFields" :key="field" :value="field">{{ $t('MapH3.average', { field }) }}</option>
+            </select>
+          </label>
         </div>
       </section>
 
@@ -161,6 +169,7 @@
             <span class="legend-field">{{ entry.field }}</span>
             <span class="legend-ramp" :style="{ background: `linear-gradient(90deg, ${entry.colorLow}, ${entry.colorHigh})` }"></span>
             <span class="legend-values"><span>≤ {{ formatNumber(entry.low) }}</span><span>≥ {{ formatNumber(entry.high) }}</span></span>
+            <span v-if="entry.height" class="legend-height"><i class="bi bi-arrows-vertical"></i> {{ $t('MapH3.legendHeight', { field: entry.height }) }}</span>
           </template>
           <span v-else class="legend-single"><i :style="{ background: entry.colorHigh }"></i></span>
         </div>
@@ -179,7 +188,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import mapboxgl from 'mapbox-gl';
 import api from '../services/api';
 import { useEngine } from '../engine';
-import { dataExtent, mapCells, mapGeometries, mapPoints } from '../data/maps';
+import { dataExtent, heightRange, mapCells, mapGeometries, mapPoints } from '../data/maps';
 import { uiType } from '../data/types';
 import MapColorScale from './MapColorScale.vue';
 
@@ -257,13 +266,14 @@ export default {
       mapStyles: openMapStyles,
       selectedStyle: null,
       selectedFieldForH3: null,
+      // What the hexagons' height shows in 3D: '' follows the color, else 'count' or a numeric field
+      heightFieldForH3: '',
       selectedFieldForPoints: null,
       loading: false,
       limitsSetedManually: false,
       geometadata: null,
       min: 0,
       max: 100,
-      maxCount: 1,
       minValue: 0,
       maxValue: 100,
       minValuePoints: 0,
@@ -304,6 +314,10 @@ export default {
       if (!this.mapLoaded) return this.$t('MapH3.status.loadingBasemap');
       return this.$t('MapH3.status.loadingData');
     },
+    // What the hexagons' height shows in 3D
+    heightField() {
+      return this.heightFieldForH3 || this.selectedFieldForH3 || 'count';
+    },
     // The color scale of each visible layer, for the legend on the map
     legend() {
       const entries = [];
@@ -311,7 +325,9 @@ export default {
         entries.push({
           layer: 'H3',
           title: this.hasCoordinates || !this.geomField ? this.$t('MapH3.h3.title') : this.$t('MapH3.h3.geomTitle'),
-          field: this.selectedFieldForH3 === 'count' ? this.$t('MapH3.recordCount') : this.$t('MapH3.average', { field: this.selectedFieldForH3 }),
+          field: this.fieldLabel(this.selectedFieldForH3),
+          // Only said when the height shows something else than the color
+          height: this.show3D && this.heightField !== this.selectedFieldForH3 ? this.fieldLabel(this.heightField) : null,
           low: this.minValue, high: this.maxValue,
           colorLow: this.colorPickerH3Low, colorHigh: this.colorPickerH3High,
         });
@@ -475,9 +491,15 @@ export default {
       if (!this.numericFields.includes(this.selectedFieldForH3)) {
         this.selectedFieldForH3 = "count";
       }
+      if (this.heightFieldForH3 && this.heightFieldForH3 !== "count" && !this.numericFields.includes(this.heightFieldForH3)) {
+        this.heightFieldForH3 = "";
+      }
       if (!this.numericFields.includes(this.selectedFieldForPoints)) {
         this.selectedFieldForPoints = null;
       }
+    },
+    fieldLabel(field) {
+      return field === 'count' ? this.$t('MapH3.recordCount') : this.$t('MapH3.average', { field });
     },
     formatNumber(value, digits = 2) {
       const number = Number(value);
@@ -790,7 +812,6 @@ export default {
         this.max = 1;
         this.minValue = 0;
         this.maxValue = 1;
-        this.maxCount = 1;
         return;
       }
       this.min = this.roundValue(percentiles.p0);
@@ -798,7 +819,6 @@ export default {
       // The extremes would wash out the colors of everything else
       this.minValue = this.roundValue(percentiles.percentiles[5]);
       this.maxValue = this.roundValue(percentiles.percentiles[95]);
-      this.maxCount = this.getMaxCount(geojson);
       this.percentilesH3 = percentiles;
     },
     ////////////////////////////
@@ -859,9 +879,6 @@ export default {
       };
     },
     ////////////////////////////
-    getMaxCount(geojson) {
-      return Math.max(1, ...geojson.features.map((feature) => Number(feature.properties?.count) || 0));
-    },
     ////////////////////////////
     generateColorScale(min, max, field, layer) {
       min = Number(min);
@@ -933,8 +950,10 @@ export default {
         });
 
         const colorScaleH3 = this.generateColorScale(this.minValue, this.maxValue, this.selectedFieldForH3, 'h3');
-        // The fullest cell rises a few times its own edge, whatever the level
-        const heightScaleH3 = ['interpolate', ['linear'], ['get', 'count'], 0, 0, this.maxCount, this.h3Radix * 3];
+        // The tallest cell rises a few times its own edge, whatever the level
+        const height = heightRange(this.geojson.features, this.heightField);
+        const heightScaleH3 = ['interpolate', ['linear'], ['to-number', ['get', this.heightField], 0],
+          height.low, 0, height.high, this.h3Radix * 3];
         // The points stay on top of the areas
         const beforePoints = this.map.getLayer('points') ? 'points' : undefined;
 
@@ -1206,6 +1225,7 @@ export default {
 .legend-field { overflow: hidden; font-size: 12px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
 .legend-ramp { height: 8px; border-radius: 4px; }
 .legend-values { display: flex; justify-content: space-between; color: var(--ds-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.legend-height { color: var(--ds-muted); font-size: 11px; }
 .legend-single i { display: inline-block; width: 12px; height: 12px; border-radius: 50%; }
 .map-stats { display: flex; gap: 10px; padding: 5px 10px; border-radius: 999px; background: rgba(23, 33, 31, .78); color: #fff; font-size: 11px; font-variant-numeric: tabular-nums; }
 

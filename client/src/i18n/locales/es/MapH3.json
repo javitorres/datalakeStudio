@@ -42,7 +42,7 @@
   "style": "Estilo",
   "flat": "2D",
   "extruded": "3D",
-  "extrudedHelp": "La altura de cada hexágono indica cuántas filas contiene",
+  "extrudedHelp": "La altura de cada hexágono muestra la variable que elijas (por defecto, la del color)",
   "borders": "Bordes",
   "basemap": "Mapa base",
   "light": "Claro",
@@ -76,5 +76,8 @@
   "popup": {
     "h3": "Celda",
     "point": "Punto"
-  }
+  },
+  "heightBy": "Altura según",
+  "sameAsColor": "Igual que el color",
+  "legendHeight": "Altura: {field}"
 }

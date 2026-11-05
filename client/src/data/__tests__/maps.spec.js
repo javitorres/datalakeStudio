@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createNodeEngine } from './nodeEngine'
-import { dataExtent, mapCells, mapGeometries, mapPoints, parseBbox } from '../maps'
+import { dataExtent, heightRange, mapCells, mapGeometries, mapPoints, parseBbox } from '../maps'
 
 let engine
 
@@ -70,6 +70,14 @@ describe('maps', () => {
     expect(zones.north).toBeCloseTo(40.42, 1)
     expect(await dataExtent(engine, { table: 'places', latitudeField: 'lat', longitudeField: 'lon', filter: 'false' })).toBeNull()
     expect(await dataExtent(engine, { table: 'places' })).toBeNull()
+  })
+
+  it('gives 3D heights a range that keeps them proportional', () => {
+    const cells = (values) => values.map((value) => ({ properties: { v: value } }))
+    expect(heightRange(cells([3, 10, 7]), 'v')).toEqual({ low: 0, high: 10 })
+    expect(heightRange(cells([-4, 6]), 'v')).toEqual({ low: -4, high: 6 })
+    expect(heightRange(cells([0, 0]), 'v')).toEqual({ low: 0, high: 1 })
+    expect(heightRange(cells([null, 'x']), 'v')).toEqual({ low: 0, high: 1 })
   })
 
   it('rejects unknown and non-numeric columns', async () => {
