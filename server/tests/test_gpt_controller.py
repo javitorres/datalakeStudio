@@ -250,5 +250,32 @@ class GptControllerTest(unittest.TestCase):
         post.assert_not_called()
 
 
+    def test_dashboard_specification(self):
+        spec = {"title": "Viajes", "summary": "Hecho", "datasets": [{"id": "trips", "sql": "SELECT * FROM trips"}],
+                "filters": [], "widgets": []}
+        FakeOpenAI.answer = json.dumps(spec)
+        request = gpt_controller.DashboardRequest(
+            instruction="a dashboard of trips", current='{"title": "Old"}', previous='{"title": "Bad"}',
+            errors=["Widget 1: unknown column zone"], language="es")
+
+        response = gpt_controller.dashboard(request)
+
+        self.assertEqual(self._json(response), spec)
+        sent = FakeOpenAI.calls[0]
+        self.assertEqual(sent["text"]["format"]["name"], "dashboard")
+        self.assertIn("Spanish from Spain", sent["instructions"])
+        for text in ("Instruction: a dashboard of trips", 'Current dashboard:\n{"title": "Old"}',
+                     '{"title": "Bad"}', "- Widget 1: unknown column zone"):
+            self.assertIn(text, sent["input"])
+
+    def test_dashboard_answer_that_is_not_json(self):
+        FakeOpenAI.answer = "I can't do that"
+
+        response = gpt_controller.dashboard(gpt_controller.DashboardRequest(instruction="a dashboard"))
+
+        self.assertEqual(response.status_code, 502)
+        self.assertIn("dashboard", self._json(response)["message"])
+
+
 if __name__ == "__main__":
     unittest.main()

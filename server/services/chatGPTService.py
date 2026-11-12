@@ -62,6 +62,59 @@ RESULT_FORMAT = {"format": {"type": "json_schema", "name": "result_answer", "str
 # CSV characters sent to explain a result: fewer characters, fewer tokens
 RESULT_CSV_LIMIT = 20000
 
+# The same text as DASHBOARD_SYSTEM_PROMPT in client/src/ai/prompts.js
+DASHBOARD_INSTRUCTIONS = """You design data dashboards for Datalake Studio. From the user's tables and their instruction, answer with a
+dashboard specification in JSON. The app runs the SQL on DuckDB and draws the widgets itself.
+- datasets: named DuckDB SELECT queries with the rows the widgets aggregate. Keep them simple: usually "SELECT * FROM table",
+  adding the computed columns the widgets need (date_trunc('month', ts) AS month, CASE buckets...). Don't aggregate in a
+  dataset: the widgets aggregate. One statement each, no trailing semicolon. Use exactly the table and column names given.
+- widgets, in reading order, on a 12-column grid (width 3, 4, 6, 8 or 12):
+  - kpi: one to four headline numbers (measures), no dimension.
+  - bar, horizontalBar, pie: measures grouped by a categorical dimension.
+  - line, area: measures along an ordered dimension (dates, numbers), with sort "dimension".
+  - histogram: the distribution of the numeric column in dimension.
+  - table: rows of the dataset; columns lists the ones to show (empty for all).
+  - text: a short Markdown note in text.
+  - measures: column, agg (count, countDistinct, sum, avg, min, max or median) and a short label. Column "*" with count
+    counts the rows.
+  - sort: "value" (largest first) or "dimension". limit: maximum groups or rows (0 for the default).
+  - Fields a widget doesn't use: empty string, empty array or 0.
+- filters: controls that filter every dataset that has that column: select (categories), range (numbers) or dateRange
+  (dates and timestamps). Add the 2 to 4 most useful ones. The user can also click bars and pie slices to filter by them.
+Start with the KPIs, then the charts: 5 to 9 widgets unless asked otherwise. When there is a current dashboard, apply the
+instruction to it and return the whole updated specification, keeping what the user didn't ask to change.
+summary: one or two sentences telling the user what you built or changed.
+"""
+DASHBOARD_WIDGETS = ["kpi", "bar", "horizontalBar", "line", "area", "pie", "histogram", "table", "text"]
+DASHBOARD_AGGREGATIONS = ["count", "countDistinct", "sum", "avg", "min", "max", "median"]
+
+
+def _object(properties):
+    return {"type": "object", "additionalProperties": False, "required": list(properties), "properties": properties}
+
+
+_STRING = {"type": "string"}
+DASHBOARD_FORMAT = {"format": {"type": "json_schema", "name": "dashboard", "strict": True, "schema": _object({
+    "title": _STRING,
+    "summary": _STRING,
+    "datasets": {"type": "array", "items": _object({"id": _STRING, "sql": _STRING})},
+    "filters": {"type": "array", "items": _object({
+        "column": _STRING, "type": {"type": "string", "enum": ["select", "range", "dateRange"]}, "label": _STRING})},
+    "widgets": {"type": "array", "items": _object({
+        "type": {"type": "string", "enum": DASHBOARD_WIDGETS},
+        "title": _STRING,
+        "dataset": _STRING,
+        "dimension": _STRING,
+        "measures": {"type": "array", "items": _object({
+            "column": _STRING, "agg": {"type": "string", "enum": DASHBOARD_AGGREGATIONS}, "label": _STRING})},
+        "columns": {"type": "array", "items": _STRING},
+        "text": _STRING,
+        "width": {"type": "integer", "enum": [3, 4, 6, 8, 12]},
+        "sort": {"type": "string", "enum": ["value", "dimension"]},
+        "limit": {"type": "integer"},
+    })},
+})}}
+
 TITLE_INSTRUCTIONS = """Give a short title, of 2 to 6 words, to a conversation that starts with the user question below.
 Answer only with the title: no quotes, no final period, no prefix.
 """
@@ -269,6 +322,39 @@ def explainResult(question, sql, csv, language=None):
         # Not JSON: the answer alone
         return {"answer": output, "chart": None}
     return {"answer": str(parsed.get("answer") or ""), "chart": _chart(parsed.get("chart"), columns)}
+
+
+####################################################
+def dashboardRequest(tables, instruction, current=None, previous=None, errors=None):
+    """What the model is asked: the tables, the dashboard to change (if any), the instruction and, on a
+    retry, its previous answer with what was wrong in it."""
+    request = (f"You have the following tables: {tables}.\n\n" if tables else "")
+    if current:
+        request += f"Current dashboard:\n{current}\n\n"
+    request += f"Instruction: {instruction}"
+    if errors:
+        request += (f"\n\nYour previous answer was:\n{previous or ''}\n\nIt had these problems, fix them:\n"
+                    + "\n".join("- " + error for error in errors))
+    return request
+
+
+def dashboard(tables, instruction, current=None, previous=None, errors=None, language=None):
+    """A dashboard specification for the instruction, as the model wrote it: the app validates it."""
+    instructions = DASHBOARD_INSTRUCTIONS
+    if language_or_none(language):
+        instructions += f"\nAlways write the titles, the labels and the summary in {LANGUAGES[language]}.\n"
+    client = _client()
+    model = _chat_model()
+    output = _call(model, lambda: client.responses.create(
+        model=model, instructions=instructions, input=dashboardRequest(tables, instruction, current, previous, errors),
+        text=DASHBOARD_FORMAT)).output_text
+    try:
+        parsed = json.loads(output)
+    except ValueError:
+        parsed = None
+    if not isinstance(parsed, dict):
+        raise AssistantError("The AI didn't answer with a dashboard, try again")
+    return parsed
 
 
 ####################################################

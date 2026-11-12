@@ -84,6 +84,14 @@
             </a>
           </li>
 
+          <li v-if="caps.serverAi || caps.ownAi">
+            <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'dashboards' }"
+              @click.prevent="activeMenu = 'dashboards'" :title="t('DatalakeStudio.tooltips.dashboards')" data-bs-toggle="tooltip"
+              data-bs-placement="right">
+              <h2><i class="bi bi-columns-gap"></i></h2>
+            </a>
+          </li>
+
           <li>
             <a href="#" class="nav-link py-2 border-bottom compact-nav-link" :class="{ active: activeMenu === 'settings' }"
               @click.prevent="activeMenu = 'settings'" :title="t('DatalakeStudio.tooltips.settings')" data-bs-toggle="tooltip"
@@ -175,6 +183,7 @@ import RemoteDbPanel from './RemoteDbPanel.vue';
 import ApiRetriever from './ApiRetriever.vue';
 import ApiServer from './ApiServer.vue';
 import ChatGptAgent from './ChatGptAgent.vue';
+import DashboardsPanel from './DashboardsPanel.vue';
 import S3Explorer from './S3Explorer.vue';
 import ChangeDatabase from './ChangeDatabase.vue';
 import SettingsPanel from './SettingsPanel.vue';
@@ -209,6 +218,7 @@ const menuIcons = {
   apiServer: 'bi bi-boxes',
   s3: 'bi bi-bucket',
   chatgpt: 'bi bi-stars',
+  dashboards: 'bi bi-columns-gap',
   settings: 'bi bi-gear'
 };
 const activeMenuMeta = computed(() => {
@@ -252,6 +262,8 @@ const currentComponent = computed(() => {
       return ApiServer;
     case 'chatgpt':
       return ChatGptAgent;
+    case 'dashboards':
+      return DashboardsPanel;
     case 's3':
       return S3Explorer;
     case 'settings':
@@ -271,6 +283,8 @@ const currentProps = computed(() => {
       return { tables: tables.value };
     case 'chatgpt':
       return { tables: tables.value };
+    case 'dashboards':
+      return { tables: tables.value, username: props.username };
     default:
       return {};
   }

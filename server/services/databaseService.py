@@ -10,6 +10,7 @@ from zipfile import ZipFile
 from pathlib import Path
 from hashlib import sha256
 
+import pandas as pd
 import pyarrow as pa
 
 import ujson
@@ -154,21 +155,24 @@ def _ensure_user_db(username=None):
     if username is None:
         raise Exception("No user context set")
 
+    if username not in _active_db:
+        default_db = _config.get("defaultDatabase", "datalakeStudio.db")
+        _active_db[username] = default_db
+
+    return _open_user_db(username, _active_db[username])
+
+
+def _open_user_db(username, db_name):
+    """The connection to one of the user's databases, opened (with its sandbox) if it isn't yet."""
     user_db_folder = _get_user_db_folder(username)
     os.makedirs(user_db_folder, exist_ok=True)
 
     if username not in _connections:
         _connections[username] = {}
 
-    if username not in _active_db:
-        default_db = _config.get("defaultDatabase", "datalakeStudio.db")
-        _active_db[username] = default_db
-
-    active_db_name = _active_db[username]
-
-    if active_db_name not in _connections[username]:
+    if db_name not in _connections[username]:
         _close_idle_connections(keep_user=username, make_room=True)
-        db_path = os.path.join(user_db_folder, active_db_name)
+        db_path = os.path.join(user_db_folder, db_name)
         log.info(f"Opening database {db_path} for user {username}")
         sandboxed = _sandbox_enabled()
         db = duckdb.connect(db_path, config=_duckdb_config(sandboxed))
@@ -180,16 +184,16 @@ def _ensure_user_db(username=None):
                 # Never hand out a connection without its sandbox
                 db.close()
                 raise
-        if (username, active_db_name) in _last_query:
+        if (username, db_name) in _last_query:
             try:
                 # The last result was a temporary table, gone with the previous connection
-                db.query("CREATE OR REPLACE TEMP VIEW __lastQuery AS " + _last_query[(username, active_db_name)])
+                db.query("CREATE OR REPLACE TEMP VIEW __lastQuery AS " + _last_query[(username, db_name)])
             except Exception as e:
                 log.warning(f"Could not recreate __lastQuery: {e}")
-        _connections[username][active_db_name] = db
-        _last_used[(username, active_db_name)] = time.monotonic()
+        _connections[username][db_name] = db
+        _last_used[(username, db_name)] = time.monotonic()
 
-    return _connections[username][active_db_name]
+    return _connections[username][db_name]
 
 
 def _user_lock(username):
@@ -390,6 +394,40 @@ def runUserQuery(sql, rows=1000):
             _last_query.pop(key, None)
         db.query("CREATE OR REPLACE TEMP VIEW __lastQuery AS SELECT * FROM __lastQueryData")
         return db.query("SELECT * FROM __lastQuery" + (" LIMIT " + str(int(rows)) if rows else "")).df()
+
+
+####################################################
+def runQueryAs(username, databaseName, sql, params=None, rows=5000, timeout=30):
+    """Run one SELECT on a database of another user (the author of a published dashboard) and return
+    its first rows as JSON records.
+
+    It runs on that user's own connection, so their sandbox applies, and takes turns with their
+    queries. Anything that isn't a single SELECT is refused, and a query running for longer than
+    `timeout` seconds is interrupted.
+    """
+    db_name = _database_file_name(databaseName)
+    if not os.path.exists(os.path.join(_get_user_db_folder(username), db_name)):
+        raise ValueError(f"Database {databaseName} not found")
+    with _user_lock(username):
+        db = _open_user_db(username, db_name)
+        try:
+            statements = db.extract_statements(sql)
+            if len(statements) != 1 or statements[0].type != duckdb.StatementType.SELECT:
+                raise ValueError("Only a single SELECT statement can be published")
+            # A cursor: the result of the user's own last query stays as it is
+            cursor = db.cursor()
+            timer = threading.Timer(timeout, cursor.interrupt)
+            timer.start()
+            try:
+                cursor.execute(sql, params or [])
+                columns = [column[0] for column in cursor.description]
+                df = pd.DataFrame(cursor.fetchmany(rows), columns=columns)
+            finally:
+                timer.cancel()
+                cursor.close()
+        finally:
+            _last_used[(username, db_name)] = time.monotonic()
+    return to_json_records(df)
 
 
 ####################################################

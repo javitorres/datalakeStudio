@@ -103,3 +103,68 @@ export function cleanTitle(title, question) {
   const clean = String(title || '').trim().replace(/^["'«“]+|["'»”]+$/g, '').replace(/\.+$/, '').trim();
   return (clean || question).slice(0, TITLE_LIMIT).trim();
 }
+
+// The dashboards the AI designs: the same text as DASHBOARD_INSTRUCTIONS in services/chatGPTService.py
+export const DASHBOARD_SYSTEM_PROMPT = `You design data dashboards for Datalake Studio. From the user's tables and their instruction, answer with a
+dashboard specification in JSON. The app runs the SQL on DuckDB and draws the widgets itself.
+- datasets: named DuckDB SELECT queries with the rows the widgets aggregate. Keep them simple: usually "SELECT * FROM table",
+  adding the computed columns the widgets need (date_trunc('month', ts) AS month, CASE buckets...). Don't aggregate in a
+  dataset: the widgets aggregate. One statement each, no trailing semicolon. Use exactly the table and column names given.
+- widgets, in reading order, on a 12-column grid (width 3, 4, 6, 8 or 12):
+  - kpi: one to four headline numbers (measures), no dimension.
+  - bar, horizontalBar, pie: measures grouped by a categorical dimension.
+  - line, area: measures along an ordered dimension (dates, numbers), with sort "dimension".
+  - histogram: the distribution of the numeric column in dimension.
+  - table: rows of the dataset; columns lists the ones to show (empty for all).
+  - text: a short Markdown note in text.
+  - measures: column, agg (count, countDistinct, sum, avg, min, max or median) and a short label. Column "*" with count
+    counts the rows.
+  - sort: "value" (largest first) or "dimension". limit: maximum groups or rows (0 for the default).
+  - Fields a widget doesn't use: empty string, empty array or 0.
+- filters: controls that filter every dataset that has that column: select (categories), range (numbers) or dateRange
+  (dates and timestamps). Add the 2 to 4 most useful ones. The user can also click bars and pie slices to filter by them.
+Start with the KPIs, then the charts: 5 to 9 widgets unless asked otherwise. When there is a current dashboard, apply the
+instruction to it and return the whole updated specification, keeping what the user didn't ask to change.
+summary: one or two sentences telling the user what you built or changed.`;
+
+const object = (properties) => ({ type: 'object', additionalProperties: false, required: Object.keys(properties), properties });
+const string = { type: 'string' };
+// The dashboard specification, as a JSON schema the model must follow
+export const DASHBOARD_SCHEMA = object({
+  title: string,
+  summary: string,
+  datasets: { type: 'array', items: object({ id: string, sql: string }) },
+  filters: { type: 'array', items: object({ column: string, type: { type: 'string', enum: ['select', 'range', 'dateRange'] }, label: string }) },
+  widgets: {
+    type: 'array',
+    items: object({
+      type: { type: 'string', enum: ['kpi', 'bar', 'horizontalBar', 'line', 'area', 'pie', 'histogram', 'table', 'text'] },
+      title: string,
+      dataset: string,
+      dimension: string,
+      measures: {
+        type: 'array',
+        items: object({ column: string, agg: { type: 'string', enum: ['count', 'countDistinct', 'sum', 'avg', 'min', 'max', 'median'] }, label: string }),
+      },
+      columns: { type: 'array', items: string },
+      text: string,
+      width: { type: 'integer', enum: [3, 4, 6, 8, 12] },
+      sort: { type: 'string', enum: ['value', 'dimension'] },
+      limit: { type: 'integer' },
+    }),
+  },
+});
+
+// What the model is asked: the tables, the dashboard to change (if any), the instruction and, on a
+// retry, its previous answer with what was wrong in it
+export function dashboardRequest(schema, { instruction, current, previous, errors }) {
+  const tables = describeSchema(schema);
+  let request = tables ? `You have the following tables: ${tables}.\n\n` : '';
+  if (current) request += `Current dashboard:\n${current}\n\n`;
+  request += `Instruction: ${instruction}`;
+  if (errors?.length) {
+    request += `\n\nYour previous answer was:\n${previous || ''}\n\nIt had these problems, fix them:\n`
+      + errors.map((error) => `- ${error}`).join('\n');
+  }
+  return request;
+}

@@ -175,5 +175,110 @@ class HttpApiTest(unittest.TestCase):
             self._request("GET", "/database/changeDatabase", self.bob, params={"databaseName": "datalakeStudio"})
 
 
+    DASHBOARD = {
+        "title": "Homes", "history": [{"role": "user", "text": "homes by city"}],
+        "spec": {
+            "title": "Homes",
+            "datasets": [{"id": "homes", "sql": "SELECT * FROM homes", "columns": {"city": "VARCHAR", "price": "BIGINT"}}],
+            "filters": [{"id": "f1", "column": "city", "type": "select", "label": "City"},
+                        {"id": "f2", "column": "price", "type": "range", "label": "Price"}],
+            "widgets": [{"id": "w1", "type": "bar", "title": "Homes by city", "dataset": "homes", "dimension": "city",
+                         "measures": [{"column": "*", "agg": "count", "label": "Homes"}]}],
+        },
+    }
+    WIDGET_SQL = ("WITH d AS (SELECT * FROM (SELECT * FROM homes) AS s WHERE "
+                  "({f2_min}::DOUBLE IS NULL OR \"price\" >= {f2_min}::DOUBLE) AND "
+                  "({f2_max}::DOUBLE IS NULL OR \"price\" <= {f2_max}::DOUBLE)) "
+                  "SELECT CAST(\"city\" AS VARCHAR) AS x, count(*) AS m0 FROM d GROUP BY \"city\" ORDER BY m0 DESC, x")
+    FILTER_SQL = ("SELECT CAST(\"city\" AS VARCHAR) AS value, count(*) AS n FROM (SELECT * FROM homes) AS s "
+                  "WHERE ({f1}::VARCHAR[] IS NULL OR CAST(\"city\" AS VARCHAR) IN (SELECT unnest({f1}::VARCHAR[]))) "
+                  "GROUP BY 1 ORDER BY 1")
+
+    def _publish(self, token, dashboard_id, path, queries=None):
+        return self._request("PUT", f"/dashboards/{dashboard_id}/publish", token,
+                             json={"path": path, "queries": queries or {"w1": self.WIDGET_SQL, "f1": self.FILTER_SQL}})
+
+    def test_dashboards_are_saved_per_user(self):
+        saved = self._request("PUT", "/dashboards/dash-private1", self.alice, json=self.DASHBOARD).json()
+        self.assertEqual((saved["title"], saved["database"], saved["published"]), ("Homes", "datalakeStudio", None))
+        self.assertNotIn("spec", saved)
+
+        self.assertIn("dash-private1", [d["id"] for d in self._request("GET", "/dashboards", self.alice).json()])
+        self.assertEqual(self._request("GET", "/dashboards/dash-private1", self.alice).json()["spec"], self.DASHBOARD["spec"])
+        self.assertEqual(self._request("GET", "/dashboards", self.bob).json(), [])
+        self.assertEqual(self._request("GET", "/dashboards/dash-private1", self.bob).status_code, 404)
+        self.assertEqual(self._request("GET", "/dashboards/users.json", self.alice).status_code, 400)
+        self.assertEqual(self._request("GET", "/dashboards").status_code, 401)
+
+        self.assertEqual(self._request("DELETE", "/dashboards/dash-private1", self.alice).json(), {"status": "ok"})
+        self.assertEqual(self._request("DELETE", "/dashboards/dash-private1", self.alice).status_code, 404)
+
+    def test_published_dashboard_runs_on_its_authors_database(self):
+        self._upload(self.alice, "homes")
+        self._request("PUT", "/dashboards/dash-homes01", self.alice, json=self.DASHBOARD)
+        published = self._publish(self.alice, "dash-homes01", "Homes/By_City/")
+        self.assertEqual(published.json()["published"]["path"], "homes/by_city")
+
+        # Another user opens it: the specification without its SQL, and the data of the author
+        self.assertEqual(self._request("GET", "/d/homes/by_city").status_code, 401)
+        listed = self._request("GET", "/d", self.bob).json()
+        self.assertEqual([(d["path"], d["owner"]) for d in listed], [("homes/by_city", ALICE)])
+        opened = self._request("GET", "/d/homes/by_city", self.bob).json()
+        self.assertEqual((opened["title"], opened["owner"]), ("Homes", ALICE))
+        self.assertEqual(opened["spec"]["widgets"], self.DASHBOARD["spec"]["widgets"])
+        self.assertNotIn("sql", opened["spec"]["datasets"][0])
+        self.assertNotIn("queries", opened)
+
+        def rows(query, filters=None):
+            return self._request("POST", "/d/homes/by_city", self.bob, json={"query": query, "filters": filters or {}})
+
+        self.assertEqual(rows("w1").json(), [{"x": "Madrid", "m0": 2}, {"x": "Bilbao", "m0": 1}, {"x": "Sevilla", "m0": 1}])
+        self.assertEqual(rows("w1", {"f2": [300000, None]}).json(), [{"x": "Madrid", "m0": 2}])
+        self.assertEqual(rows("f1", {"f1": ["Bilbao", "Sevilla"]}).json(),
+                         [{"value": "Bilbao", "n": 1}, {"value": "Sevilla", "n": 1}])
+        # The values of the viewer are parameters, never SQL
+        self.assertEqual(rows("f1", {"f1": ["x')) OR true --"]}).json(), [])
+        self.assertEqual(rows("w1", {"f2": ["0 OR 1=1", "1; DROP TABLE homes"]}).json()[0], {"x": "Madrid", "m0": 2})
+        self.assertEqual(rows("w9").status_code, 404)
+        self.assertEqual(self._request("POST", "/d/homes/other", self.bob, json={"query": "w1"}).status_code, 404)
+        # Bob has no table homes of his own, and can't change or unpublish it
+        self.assertEqual(self._request("DELETE", "/dashboards/dash-homes01/publish", self.bob).status_code, 404)
+        self._request("PUT", "/dashboards/dash-bobs001", self.bob, json=self.DASHBOARD)
+        self.assertEqual(self._publish(self.bob, "dash-bobs001", "homes/by_city").status_code, 400)
+        self.assertEqual(self._publish(self.bob, "dash-bobs001", "homes/by_city", {"w1": "SELECT 1 AS x"}).status_code, 409)
+
+        # Publishing again under another path moves it; unpublishing removes it
+        self.assertEqual(self._publish(self.alice, "dash-homes01", "homes").status_code, 200)
+        self.assertEqual(self._request("GET", "/d/homes/by_city", self.bob).status_code, 404)
+        self.assertEqual(rows("w1").status_code, 404)
+        unpublished = self._request("DELETE", "/dashboards/dash-homes01/publish", self.alice).json()
+        self.assertIsNone(unpublished["published"])
+        self.assertEqual(self._request("GET", "/d", self.bob).json(), [])
+
+    def test_only_single_selects_and_valid_paths_are_published(self):
+        self._upload(self.alice, "homes")
+        self._request("PUT", "/dashboards/dash-checks1", self.alice, json=self.DASHBOARD)
+
+        for sql in ("DROP TABLE homes", "SELECT 1; DROP TABLE homes", "COPY homes TO 'homes.csv'",
+                    "SELECT * FROM no_such_table", "SELECT {unknown}"):
+            response = self._publish(self.alice, "dash-checks1", "checks", {"w1": sql})
+            self.assertEqual(response.status_code, 400, sql)
+        self.assertEqual(self._publish(self.alice, "dash-checks1", "checks", {"w7": "SELECT 1"}).status_code, 400)
+        for path in ("../users", "a/../b", "a b", "a/b/c/d/e/f", ".published/x", "/"):
+            self.assertEqual(self._publish(self.alice, "dash-checks1", path).status_code, 400, path)
+        self.assertEqual(self._request("GET", "/d", self.bob).json(), [])
+        self.assertEqual(self._exec(self.alice, "SELECT count(*) FROM homes").status_code, 200)
+
+    def test_deleting_a_dashboard_unpublishes_it(self):
+        self._upload(self.alice, "homes")
+        self._request("PUT", "/dashboards/dash-delete1", self.alice, json=self.DASHBOARD)
+        self._publish(self.alice, "dash-delete1", "to-delete")
+        self.assertEqual(self._request("GET", "/d/to-delete", self.bob).status_code, 200)
+
+        self._request("DELETE", "/dashboards/dash-delete1", self.alice)
+
+        self.assertEqual(self._request("GET", "/d/to-delete", self.bob).status_code, 404)
+
+
 if __name__ == '__main__':
     unittest.main()

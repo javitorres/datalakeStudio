@@ -1,0 +1,8 @@
+{
+  "by": "Published by {owner}",
+  "openApp": "Open Datalake Studio",
+  "loading": "Loading the dashboard…",
+  "notFound": "There is no dashboard published at {path}",
+  "notFoundHint": "It may have been unpublished or moved by its author.",
+  "error": "The dashboard couldn't be loaded: {detail}"
+}

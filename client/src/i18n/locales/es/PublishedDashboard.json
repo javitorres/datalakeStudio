@@ -1,0 +1,8 @@
+{
+  "by": "Publicado por {owner}",
+  "openApp": "Abrir Datalake Studio",
+  "loading": "Cargando el dashboard…",
+  "notFound": "No hay ningún dashboard publicado en {path}",
+  "notFoundHint": "Puede que su autor lo haya despublicado o movido.",
+  "error": "No se pudo cargar el dashboard: {detail}"
+}
