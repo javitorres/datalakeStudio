@@ -14,6 +14,7 @@ from routes import maps_controller
 from routes import auth_controller
 from routes import settings_controller
 from routes import conversations_controller
+from routes import dashboards_controller
 
 import logging as log
 
@@ -48,6 +49,9 @@ app.include_router(api_controller.router, dependencies=auth_dep)
 app.include_router(maps_controller.router, dependencies=auth_dep)
 app.include_router(settings_controller.router, dependencies=auth_dep)
 app.include_router(conversations_controller.router, dependencies=auth_dep)
+app.include_router(dashboards_controller.router, dependencies=auth_dep)
+# Published dashboards: any user of this server can open them
+app.include_router(dashboards_controller.published_router, dependencies=auth_dep)
 
 
 if __name__ == "__main__":

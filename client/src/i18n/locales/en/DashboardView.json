@@ -1,0 +1,11 @@
+{
+  "loading": "Loading…",
+  "noData": "No data for these filters",
+  "noValues": "No values",
+  "min": "min",
+  "max": "max",
+  "clearFilters": "Clear filters",
+  "removeFilter": "Remove this filter",
+  "removeWidget": "Remove this widget",
+  "width": "Width, in twelfths of the row"
+}

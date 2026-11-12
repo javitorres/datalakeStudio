@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse, StreamingResponse
 import services.chatGPTService as chatGPTService
 
 from fastapi import FastAPI, File, UploadFile
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 from pydub import AudioSegment
@@ -22,15 +22,17 @@ def _assistant_error(e):
     return JSONResponse(content={"status": "error", "message": e.message}, status_code=e.status_code)
 
 
+def _tables_description():
+    tables = databaseService.getTableList()
+    return " ".join(databaseService.getTableDescriptionForChatGpt(table) for table in tables or [])
+
+
 @router.get("/askGPT")
 def askGPT(question: str):
-    tables = databaseService.getTableList()
+    tables = _tables_description()
 
-    if (tables is not None and len(tables) > 0):
-        questionForChatGPT = " You have the following tables:"
-        for table in tables:
-            #if (table != "__lastQuery"):
-            questionForChatGPT += " " + databaseService.getTableDescriptionForChatGpt(table)
+    if tables:
+        questionForChatGPT = " You have the following tables: " + tables
         questionForChatGPT += ". The query I need, for DuckDB is:" + question
     else:
         questionForChatGPT = "The query I need, for DuckDB is:" + question
@@ -118,6 +120,26 @@ class ExplainResultRequest(BaseModel):
 def explainResult(request: ExplainResultRequest):
     try:
         result = chatGPTService.explainResult(request.question, request.sql, request.csv, request.language)
+    except chatGPTService.AssistantError as e:
+        return _assistant_error(e)
+    return JSONResponse(content=result, status_code=200)
+
+
+####################################################
+class DashboardRequest(BaseModel):
+    instruction: str = Field(min_length=1, max_length=4000)
+    # The dashboard to change and, on a retry, the previous answer and its problems
+    current: Optional[str] = Field(default=None, max_length=60000)
+    previous: Optional[str] = Field(default=None, max_length=60000)
+    errors: List[str] = Field(default_factory=list, max_length=30)
+    language: Optional[str] = None
+
+
+@router.post("/dashboard")
+def dashboard(request: DashboardRequest):
+    try:
+        result = chatGPTService.dashboard(_tables_description(), request.instruction, request.current,
+                                          request.previous, request.errors, request.language)
     except chatGPTService.AssistantError as e:
         return _assistant_error(e)
     return JSONResponse(content=result, status_code=200)

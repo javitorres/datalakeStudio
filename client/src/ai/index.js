@@ -3,8 +3,8 @@ import { useEngine } from '../engine';
 import { getDatabaseSchema } from '../data/tables';
 import { voiceProvider } from '../lib/preferences';
 import {
-  cleanSql, cleanTitle, inLanguage, RESULT_SCHEMA, RESULT_SYSTEM_PROMPT, resultRequest, SQL_SYSTEM_PROMPT,
-  sqlQuestion, TITLE_SYSTEM_PROMPT, toCsv, validChart,
+  cleanSql, cleanTitle, DASHBOARD_SCHEMA, DASHBOARD_SYSTEM_PROMPT, dashboardRequest, inLanguage, RESULT_SCHEMA,
+  RESULT_SYSTEM_PROMPT, resultRequest, SQL_SYSTEM_PROMPT, sqlQuestion, TITLE_SYSTEM_PROMPT, toCsv, validChart,
 } from './prompts';
 
 // The AI assistant. With the backend it uses the server's OpenAI key (/gpt/*). In the browser it calls
@@ -81,6 +81,41 @@ export async function conversationTitle(question, language) {
     return response.data.title;
   }
   return cleanTitle(await chat(TITLE_SYSTEM_PROMPT + inLanguage(language, 'write the title'), question.slice(0, 1000)), question);
+}
+
+// Tries the AI gets to write a dashboard that passes the app's checks
+const DASHBOARD_ATTEMPTS = 3;
+
+// A dashboard for an instruction: a new one, or `current` (a specification) changed. Only the table
+// schema is sent to the AI, never rows. `validate(raw)` checks its answer against the database and
+// returns { spec, errors }; the errors go back to the AI to fix. Returns { spec, summary }.
+export async function buildDashboard({ instruction, current, language, validate }) {
+  const request = { instruction, current: current ? JSON.stringify(current) : null, previous: null, errors: [] };
+  let checked;
+  for (let attempt = 0; attempt < DASHBOARD_ATTEMPTS; attempt += 1) {
+    const raw = await dashboardDraft(request, language);
+    checked = await validate(raw);
+    if (!checked.errors.length) return { spec: checked.spec, summary: String(raw.summary || '') };
+    request.previous = JSON.stringify(raw);
+    request.errors = checked.errors.slice(0, 20);
+  }
+  throw new Error(checked.errors.join('; '));
+}
+
+async function dashboardDraft(request, language) {
+  if (!usesOwnKey()) {
+    const response = await serverCall(() => api.post('/gpt/dashboard', { ...request, language }));
+    return response.data;
+  }
+  const schema = await getDatabaseSchema(useEngine());
+  const output = await chat(DASHBOARD_SYSTEM_PROMPT + inLanguage(language, 'write the titles, the labels and the summary'),
+    dashboardRequest(schema, request),
+    { response_format: { type: 'json_schema', json_schema: { name: 'dashboard', strict: true, schema: DASHBOARD_SCHEMA } } });
+  try {
+    return JSON.parse(output);
+  } catch (_) {
+    throw new Error("The AI didn't answer with a dashboard, try again");
+  }
 }
 
 // The text spoken in a WAV recording ('' when the recording is silent)

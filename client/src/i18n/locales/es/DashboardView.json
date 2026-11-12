@@ -1,0 +1,11 @@
+{
+  "loading": "Cargando…",
+  "noData": "Sin datos para estos filtros",
+  "noValues": "Sin valores",
+  "min": "mín.",
+  "max": "máx.",
+  "clearFilters": "Quitar filtros",
+  "removeFilter": "Quitar este filtro",
+  "removeWidget": "Quitar este widget",
+  "width": "Ancho, en doceavos de la fila"
+}

@@ -9,6 +9,7 @@
     "apiServer": "Publicar datos como API",
     "s3": "Explorar tus buckets de S3",
     "chatgpt": "Asistente de datos con IA (experimental)",
+    "dashboards": "Dashboards con IA",
     "settings": "Configuración"
   },
   "sections": {
@@ -22,6 +23,7 @@
     "apiServer": "APIs publicadas",
     "s3": "Explorador de S3",
     "chatgpt": "Asistente de datos con IA",
+    "dashboards": "Dashboards",
     "settings": "Configuración"
   },
   "tables": "sin tablas | {n} tabla | {n} tablas",

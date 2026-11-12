@@ -50,6 +50,9 @@ Built with **Vue 3** (frontend), **FastAPI** (backend) and **DuckDB** (engine).
   geospatial maps with point and H3 hexagon aggregations.
 - **AI SQL assistant** — With OpenAI credentials, describe what you need in plain
   language and get DuckDB SQL that already knows your tables and fields.
+- **AI dashboards** — Describe a dashboard and the assistant builds it over your
+  tables: indicators, charts and filters to play with. Publish it under a path of
+  your choice (`iris/flower_analysis`) for the other users of the server.
 - **Enrich from remote APIs** — Augment your datasets by calling external APIs.
 - **Publish as an API** — Turn any saved query into a parameterised REST endpoint
   and share live data with other applications.
@@ -309,6 +312,42 @@ browser, and the conversations and settings stay in the browser too. It sends
 OpenAI your question, the columns of your tables and the first rows of each result.
 
 ![AI data assistant](docs/assets/screenshots/chatgpt.png)
+
+### AI dashboards
+
+Describe the dashboard you want ("trips by borough and payment, with the daily
+trend and filters") and the assistant designs it over your tables: indicators,
+bar, line, area and pie charts, histograms, tables and notes, plus filters by
+category, number range and date range. Clicking a bar or a pie slice filters the
+rest of the dashboard by it. Ask for changes in your own words ("add the top 10
+zones", "drop the table"), or change the chart type and width of a widget, or
+remove it, with the tools that appear on it.
+
+A dashboard is never code written by the AI: it is a specification (SQL datasets,
+widgets and filters) that the app checks against your database and draws with its
+own components. The AI only gets the names and types of your columns, never rows.
+
+Your dashboards are listed on the left and are saved on the server for each user,
+in `<databasesFolder>/<user>/dashboards/`. With DuckDB in the browser they are
+kept in the browser, only for you, and the assistant uses your own OpenAI key.
+
+**Publishing** (with the backend). **Publish** gives a dashboard a path of up to
+five segments, such as `iris/flower_analysis`, and a link to share:
+`http://localhost:8080/#/d/iris/flower_analysis`. From then on:
+
+- Any user of the server can open it (with `authEnabled`, any user who is logged
+  in) and sees it with your live data, also listed under "Published by others".
+- Its queries run on your database, the one that was active when you published,
+  inside your sandbox. Viewers can only set its filters: their values are bound as
+  query parameters, and they never see or send SQL. Only single `SELECT`
+  statements are published, a widget gets at most 1000 rows and a query is
+  interrupted after 30 seconds.
+- What is published is a snapshot: later changes show up once you press
+  **Publish changes**. **Unpublish**, or deleting the dashboard, takes the link down.
+
+The server exposes them at `GET /d` (the list), `GET /d/<path>` (the specification,
+without its SQL) and `POST /d/<path>` (the rows of a widget for the filters set),
+apart from the `/api/*` endpoints.
 
 ### Settings
 
